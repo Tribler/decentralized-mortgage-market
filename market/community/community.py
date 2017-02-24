@@ -72,7 +72,7 @@ class MortgageMarketCommunity(Community):
         return [master]
 
     def initiate_meta_messages(self):
-        meta_messages = super(TunnelCommunity, self).initiate_meta_messages()
+        meta_messages = super(MortgageMarketCommunity, self).initiate_meta_messages()
         for i, mm in enumerate(meta_messages):
             if mm.name == "dispersy-introduction-request":
                 meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
@@ -168,20 +168,18 @@ class MortgageMarketCommunity(Community):
         return [DefaultConversion(self), MortgageMarketConversion(self)]
 
     def on_introduction_request(self, messages):
-        exitnode = self.become_exitnode()
-        extra_payload = [exitnode]
-        super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
+        extra_payload = [self.setting.user_type]
+        super(MortgageMarketCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
             self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
-        exitnode = self.become_exitnode()
-        extra_payload = [exitnode]
-        super(TunnelCommunity, self).create_introduction_request(destination, allow_sync, forward,
+        extra_payload = [self.setting.user_type]
+        super(MortgageMarketCommunity, self).create_introduction_request(destination, allow_sync, forward,
                                                                  is_fast_walker, extra_payload)
 
     def on_introduction_response(self, messages):
-        super(TunnelCommunity, self).on_introduction_response(messages)
+        super(MortgageMarketCommunity, self).on_introduction_response(messages)
         for message in messages:
             self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
