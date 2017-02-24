@@ -9,6 +9,7 @@ class MarketDataManager:
 
     def __init__(self):
         self.users = []
+        self.campaigns = []
 
     def get_user(self, id):
         """
@@ -29,3 +30,14 @@ class MarketDataManager:
         new_user = User.generate()
         self.users.append(new_user)
         return new_user
+
+    def get_campaign(self, campaign_id):
+        """
+        Get a specific campaign with a specified id
+        :param campaign_id: the id of the campaign to search for
+        :return: a Campaign object or None if no campaign could be found
+        """
+        for campaign in self.campaigns:
+            if campaign.id == campaign_id:
+                return campaign
+        return None

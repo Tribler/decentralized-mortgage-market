@@ -26,7 +26,16 @@ class SpecificUserEndpoint(resource.Resource):
 
     def __init__(self, market_community, pub_key):
         resource.Resource.__init__(self)
+        self.pub_key = pub_key
         self.putChild("profile", SpecificUserProfileEndpoint(market_community, pub_key))
+
+    def render_GET(self, request):
+        user = self.market_community.data_manager.get_user(self.pub_key)
+        if not user:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "user not found"})
+
+        return json.dumps({"user": user.to_dictionary()})
 
 
 class SpecificUserProfileEndpoint(resource.Resource):
@@ -40,7 +49,7 @@ class SpecificUserProfileEndpoint(resource.Resource):
         self.pub_key = pub_key
 
     def render_GET(self, request):
-        user = self.market_community.data_manager.get_user()
+        user = self.market_community.data_manager.get_user(self.pub_key)
         if not user:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "user not found"})

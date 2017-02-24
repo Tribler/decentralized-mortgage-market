@@ -15,6 +15,10 @@ class House(object):
         self._seller_email = seller_email
 
     @property
+    def id(self):
+        return self._postal_code + "_" + self._house_number
+
+    @property
     def postal_code(self):
         return self._postal_code
 
@@ -44,6 +48,7 @@ class House(object):
 
     def to_dictionary(self):
         return {
+            "id": self.id,
             "postal_code": self._postal_code,
             "house_number": self._house_number,
             "address": self._address,

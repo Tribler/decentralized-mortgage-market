@@ -13,10 +13,10 @@ class Mortgage(object):
     This class represents a mortgage of a specific user. Each mortgage is tied to a house.
     """
 
-    def __init__(self, user_id, house_id, bank, amount, mortgage_type, interest_rate, max_invest_rate, default_rate,
+    def __init__(self, user_id, house, bank, amount, mortgage_type, interest_rate, max_invest_rate, default_rate,
                  duration, risk, investors, status, campaign_id):
         self._user_id = user_id
-        self._house_id = house_id
+        self._house = house
         self._bank = bank
         self._amount = amount
         self._mortgage_type = mortgage_type
@@ -30,12 +30,16 @@ class Mortgage(object):
         self._campaign_id = campaign_id
 
     @property
+    def id(self):
+        return self._user_id + "_" + self._house.id
+
+    @property
     def user_id(self):
         return self._user_id
 
     @property
-    def house_id(self):
-        return self._house_id
+    def house(self):
+        return self._house
 
     @property
     def bank(self):
@@ -88,7 +92,7 @@ class Mortgage(object):
     def to_dictionary(self):
         return {
             "user_id": self._user_id,
-            "house_id": self._house_id,
+            "house_id": self.house.id,
             "bank": self._bank,
             "amount": self._amount,
             "mortgage_type": self._mortgage_type.name,

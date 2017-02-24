@@ -3,9 +3,9 @@ class Campaign(object):
     This class represents a campaign for a specific mortgage.
     """
 
-    def __init__(self, user_id, mortgage_id, amount, end_date, completed):
+    def __init__(self, user_id, mortgage, amount, end_date, completed):
         self._user_id = user_id
-        self._mortgage_id = mortgage_id
+        self._mortgage = mortgage
         self._amount = amount
         self._end_date = end_date
         self._completed = completed
@@ -17,8 +17,12 @@ class Campaign(object):
             self._completed = True
 
     @property
-    def mortgage_id(self):
-        return self._mortgage_id
+    def id(self):
+        return self._mortgage.id
+
+    @property
+    def mortgage(self):
+        return self._mortgage
 
     @property
     def amount(self):
@@ -34,8 +38,9 @@ class Campaign(object):
 
     def to_dictionary(self):
         return {
+            "id": self.id,
             "user_id": self._user_id,
-            "mortgage_id": self._mortgage_id,
+            "mortgage_id": self._mortgage.id,
             "amount": self._amount,
             "end_date": self._end_date,
             "completed": self._completed
