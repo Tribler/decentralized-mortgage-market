@@ -1,6 +1,6 @@
 from market import Global
 from market.api.api import STATUS
-from market.models.loans import Mortgage, Investment, Campaign, LoanRequest
+from market.models.loanrequest import Mortgage, Investment, Campaign, LoanRequest
 
 
 class BorrowersPortfolioController:

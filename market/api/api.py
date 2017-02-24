@@ -14,21 +14,11 @@ from market.community.queue import OutgoingMessageQueue, IncomingMessageQueue
 from market.database.database import Database
 from market.models.document import Document
 from market.models.house import House
-from market.models.loans import LoanRequest, Mortgage, Investment, Campaign
-from market.models.profiles import BorrowersProfile
-from market.models.profiles import Profile
+from market.models.loanrequest import LoanRequest, Mortgage, Investment, Campaign
+from market.models.profile import BorrowersProfile
+from market.models.profile import Profile
 from market.models.role import Role
 from market.models.user import User
-
-
-class STATUS(Enum):
-    """
-    Representation of the status of a LoanRequest or Mortgage.
-    """
-    NONE = 0
-    PENDING = 1
-    ACCEPTED = 2
-    REJECTED = 3
 
 
 CAMPAIGN_LENGTH_DAYS = 30

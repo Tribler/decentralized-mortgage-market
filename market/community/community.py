@@ -8,17 +8,22 @@ from dispersy.destination import CommunityDestination, CandidateDestination
 from dispersy.distribution import DirectDistribution, FullSyncDistribution
 from dispersy.message import Message, DelayMessageByProof
 from dispersy.resolution import PublicResolution
+from twisted.internet import reactor
+from twisted.web import server
 
 from conversion import MortgageMarketConversion
 from dispersy.authentication import MemberAuthentication, DoubleMemberAuthentication
 from market import Global
 from market.api.api import STATUS
+from market.api.datamanager import MarketDataManager
+from market.defs import REST_API_ENABLED, REST_API_PORT
 from market.models import DatabaseModel
 from market.models.house import House
-from market.models.loans import LoanRequest, Mortgage, Campaign, Investment
-from market.models.profiles import BorrowersProfile, Profile
+from market.models.loanrequest import LoanRequest, Mortgage, Campaign, Investment
+from market.models.profile import BorrowersProfile, Profile
 from market.models.user import User
 from market.database.backends import DatabaseBlock, BlockChain
+from market.restapi.root_endpoint import RootEndpoint
 from payload import DatabaseModelPayload, APIMessagePayload, SignedConfirmPayload
 
 logger = logging.getLogger(__name__)
@@ -35,9 +40,16 @@ class MortgageMarketCommunity(Community):
         super(MortgageMarketCommunity, self).__init__(dispersy, master, my_member)
         self._api = None
         self._user = None
+        self.market_api = None
+        self.data_manager = MarketDataManager()
 
     def initialize(self):
         super(MortgageMarketCommunity, self).initialize()
+
+        # Start the RESTful API if it's enabled
+        if REST_API_ENABLED:
+            self.market_api = reactor.listenTCP(REST_API_PORT, server.Site(resource=RootEndpoint(self)))
+
         logger.info("Example community initialized")
 
     def on_introduction_response(self, messages):

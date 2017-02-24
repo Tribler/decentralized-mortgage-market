@@ -1,16 +1,9 @@
-import mimetypes
-
-from market.models import DatabaseModel
-
-
-class Document(DatabaseModel):
-    type = 'document'
+class Document(object):
+    """
+    This class represents a document that is sent from borrowers to the bank.
+    """
 
     def __init__(self, mime, data, name):
-        super(Document, self).__init__()
-        assert isinstance(mime, str)
-        assert isinstance(data, str)
-
         self._mime = mime
         self._data = data
         self._name = name
@@ -27,10 +20,8 @@ class Document(DatabaseModel):
     def name(self):
         return self._name
 
-    def decode_document(self, path):
-        with open(path, 'wb') as f:
-            f.write(self.data.decode('base64'))
-
-    @staticmethod
-    def encode_document(name, path):
-        return Document(mimetypes.guess_type(path)[0], open(path, 'rb').read().encode('base64', 'strict'), name)
+    def to_dictionary(self):
+        return {
+            "mime": self._mime,
+            "name": self._name,
+        }
