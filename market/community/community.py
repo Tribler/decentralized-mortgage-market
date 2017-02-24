@@ -2,15 +2,16 @@ import base64
 import logging
 import time
 
-from dispersy.community import Community
-from dispersy.conversion import DefaultConversion
-from dispersy.destination import CommunityDestination, CandidateDestination
-from dispersy.distribution import DirectDistribution, FullSyncDistribution
-from dispersy.message import Message, DelayMessageByProof
-from dispersy.resolution import PublicResolution
+from market.dispersy.community import Community
+from market.dispersy.conversion import DefaultConversion
+from market.dispersy.destination import CommunityDestination, CandidateDestination
+from market.dispersy.distribution import DirectDistribution, FullSyncDistribution
+from market.dispersy.message import Message, DelayMessageByProof
+from market.dispersy.resolution import PublicResolution
+from market.dispersy.authentication import MemberAuthentication, DoubleMemberAuthentication
 
 from conversion import MortgageMarketConversion
-from dispersy.authentication import MemberAuthentication, DoubleMemberAuthentication
+
 from market import Global
 from market.api.api import STATUS
 from market.models import DatabaseModel
@@ -21,570 +22,213 @@ from market.models.user import User
 from market.database.backends import DatabaseBlock, BlockChain
 from payload import DatabaseModelPayload, APIMessagePayload, SignedConfirmPayload
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+
+class MortgageMarketSettings(object):
+
+    def __init__(self):
+        self.user_type = USER_TYPE_INVESTOR
 
 
 class MortgageMarketCommunity(Community):
-    @classmethod
-    def get_master_members(cls, dispersy):
-        master = dispersy.get_member(public_key=Global.MASTER_KEY)
-        return [master]
 
     def __init__(self, dispersy, master, my_member):
         super(MortgageMarketCommunity, self).__init__(dispersy, master, my_member)
-        self._api = None
-        self._user = None
+        self.logger = logging.getLogger(__name__)
 
-    def initialize(self):
-        super(MortgageMarketCommunity, self).initialize()
-        logger.info("Example community initialized")
-
-    def on_introduction_response(self, messages):
-        super(MortgageMarketCommunity, self).on_introduction_response(messages)
-        for message in messages:
-            self.user.sign(self.api)
-            self.send_introduce_user(['user', ], {'user': self.user}, message.candidate)
+    @classmethod
+    def get_master_members(cls, dispersy):
+        # generated: Fri Feb 24 11:22:22 2017
+        # curve: None
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407bacf5ae4d3fe94d49a7f94b7239e9c2d878b29f0fbdb7374d5b6a09d9d6fba80d3807affd0ba45ba1ac1c278ca59bec422d8a44b5fefaabcdd62c2778414c01da4578b304b104b00eec74de98dcda803b79fd1783d76cc1bd7aab75cfd8fff9827a9647ae3c59423c2a9a984700e7cb43b881a6455574032cc11dba806dba9699f54f2d30b10eed5c7c0381a0915a5
+        # pub-sha1 56553661e30b342b2fc39f1a425eb612ef8b8c33
+        # -----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQHus9a5NP+lNSaf5S3I56cLYeLKfD7
+        # 23N01bagnZ1vuoDTgHr/0LpFuhrBwnjKWb7EItikS1/vqrzdYsJ3hBTAHaRXizBL
+        # EEsA7sdN6Y3NqAO3n9F4PXbMG9eqt1z9j/+YJ6lkeuPFlCPCqamEcA58tDuIGmRV
+        # V0AyzBHbqAbbqWmfVPLTCxDu1cfAOBoJFaU=
+        # -----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000407bacf5ae4d3fe94d49a7f94b7239e9c2d878b29f0fbdb7374d5b6a09d9d6fba80d3807affd0ba45ba1ac1c278ca59bec422d8a44b5fefaabcdd62c2778414c01da4578b304b104b00eec74de98dcda803b79fd1783d76cc1bd7aab75cfd8fff9827a9647ae3c59423c2a9a984700e7cb43b881a6455574032cc11dba806dba9699f54f2d30b10eed5c7c0381a0915a5".decode("HEX")
+        master = dispersy.get_member(public_key=master_key)
+        return [master]
 
     def initiate_meta_messages(self):
-        return super(MortgageMarketCommunity, self).initiate_meta_messages() + [
-            Message(self, u"introduce_user",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    DatabaseModelPayload(),
-                    self.check_message,
-                    self.on_user_introduction),
-            Message(self, u"api_message_community",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    FullSyncDistribution(synchronization_direction=u"DESC", priority=200, enable_sequence_number=False),
-                    CommunityDestination(node_count=50),
-                    APIMessagePayload(),
-                    self.check_message,
-                    self.on_api_message),
-            Message(self, u"api_message_candidate",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    APIMessagePayload(),
-                    self.check_message,
-                    self.on_api_message),
-            Message(self, u"signed_confirm",
-                    DoubleMemberAuthentication(
-                        allow_signature_func=self.allow_signed_confirm_request),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    SignedConfirmPayload(),
-                    self._generic_timeline_check,
-                    self.received_signed_confirm_response),
-        ]
+        meta_messages = super(TunnelCommunity, self).initiate_meta_messages()
+        for i, mm in enumerate(meta_messages):
+            if mm.name == "dispersy-introduction-request":
+                meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
+                                           mm.destination, MortgageMarketIntroductionRequestPayload(),
+                                           mm.check_callback, mm.handle_callback)
+            elif mm.name == "dispersy-introduction-response":
+                meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
+                                           mm.destination, MortgageMarketIntroductionResponsePayload(),
+                                           mm.check_callback, mm.handle_callback)
+
+        return meta_messages + [Message(self, u"loan-request",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        LoanRequestPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_loan_request),
+                                Message(self, u"loan-reject",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        LoanRequestRejectPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_loan_reject),
+                                Message(self, u"mortgage-offer",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        MortgageOfferPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_mortgage_offer),
+                                Message(self, u"mortgage-accept",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        MortgageAcceptSignedPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_mortgage_accept),
+                                Message(self, u"mortgage-reject",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        MortgageRejectPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_mortgage_reject),
+                                Message(self, u"investment-offer",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        InvestmentOfferPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_investment_offer),
+                                Message(self, u"investment-accept",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        InvestmentAcceptPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_investment_accept),
+                                Message(self, u"investment-reject",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        MortgageAcceptSignedPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_investment_reject),
+                                Message(self, u"campaign-bid",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
+                                        CommunityDestination(node_count=10),
+                                        CampaignBidPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_campaign_bid),
+                                Message(self, u"signed-confirm",
+                                        DoubleMemberAuthentication(allow_signature_func=self.allow_signed_confirm_request),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        SignedConfirmPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_signed_confirm_response)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MortgageMarketConversion(self)]
 
-    def check_message(self, messages):
+    def on_introduction_request(self, messages):
+        exitnode = self.become_exitnode()
+        extra_payload = [exitnode]
+        super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
-            allowed, _ = self._timeline.check(message)
-            if allowed:
-                yield message
-            else:
-                yield DelayMessageByProof(message)
+            self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
-    @property
-    def api(self):
-        return self._api
+    def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
+        exitnode = self.become_exitnode()
+        extra_payload = [exitnode]
+        super(TunnelCommunity, self).create_introduction_request(destination, allow_sync, forward,
+                                                                 is_fast_walker, extra_payload)
 
-    @api.setter
-    def api(self, api):
-        self._api = api
-
-        # Also set the handlers now
-        api.incoming_queue.assign_message_handlers(self)
-
-    @property
-    def user(self):
-        return self._user
-
-    @user.setter
-    def user(self, user):
-        self._user = user
-
-    def send_api_message_candidate(self, request, fields, models, candidates, store=True, update=True, forward=True):
-        assert isinstance(request, int)
-        assert isinstance(fields, list)
-        assert isinstance(models, dict)
-
-        meta = self.get_meta_message(u"api_message_candidate")
-        message = meta.impl(authentication=(self.my_member,),
-                            distribution=(self.claim_global_time(),),
-                            destination=candidates,
-                            payload=(request, fields, models),
-                            )
-        self.dispersy.store_update_forward([message], store, update, forward)
-
-    def send_api_message_community(self, request, fields, models, store=True, update=True, forward=True):
-        assert isinstance(request, int)
-        assert isinstance(fields, list)
-        assert isinstance(models, dict)
-
-        meta = self.get_meta_message(u"api_message_community")
-        message = meta.impl(authentication=(self.my_member,),
-                            distribution=(self.claim_global_time(),),
-                            payload=(request, fields, models),
-                            )
-        self.dispersy.store_update_forward([message], store, update, forward)
-
-    def on_api_message(self, messages):
+    def on_introduction_response(self, messages):
+        super(TunnelCommunity, self).on_introduction_response(messages)
         for message in messages:
-            self.api.incoming_queue.push(message)
-
-
-    def send_introduce_user(self, fields, models, candidate, store=True, update=True, forward=True):
-        for field in fields:
-            assert isinstance(models[field], DatabaseModel)
-
-        meta = self.get_meta_message(u"introduce_user")
-        message = meta.impl(authentication=(self.my_member,),
-                            distribution=(self.claim_global_time(),),
-                            payload=(fields, models,),
-                            destination=(candidate,))
-        self.dispersy.store_update_forward([message], store, update, forward)
-
-    #######################################
-    ########### API MESSAGES
-
-    def on_loan_request_receive(self, payload):
-        user = payload.models[User.type]
-        loan_request = payload.models[LoanRequest.type]
-        house = payload.models[House.type]
-        profile = payload.models[BorrowersProfile.type]
-
-        assert isinstance(user, User)
-        assert isinstance(loan_request, LoanRequest)
-        assert isinstance(house, House)
-        assert isinstance(profile, BorrowersProfile)
-
-        user.post_or_put(self.api.db, check_time=True)
-        loan_request.post_or_put(self.api.db, check_time=True)
-        house.post_or_put(self.api.db, check_time=True)
-        profile.post_or_put(self.api.db, check_time=True)
-
-        # Save the loan request to the bank
-        if self.user.id in loan_request.banks:
-            self.user.update(self.api.db)
-            self.user.loan_request_ids.append(loan_request.id)
-            self.user.post_or_put(self.api.db)
-
-        return True
-
-    def on_loan_request_reject(self, payload):
-        user = payload.models[User.type]
-        loan_request = payload.models[LoanRequest.type]
-
-        assert isinstance(user, User)
-        assert isinstance(loan_request, LoanRequest)
-
-        user.post_or_put(self.api.db, check_time=True)
-        loan_request.post_or_put(self.api.db, check_time=True)
-
-        # If not all banks have rejected the loan request, do nothing
-        for items in loan_request.status.items():
-            status = items[1]
-            if status == STATUS.ACCEPTED or status == STATUS.PENDING:
-                return True
-
-        # If all banks have rejected the loan request, remove the request from the borrower
-        self.user.update(self.api.db)
-        self.user.loan_request_ids.remove(loan_request.id)
-        self.user.post_or_put(self.api.db)
-
-        return True
-
-    def on_mortgage_offer(self, payload):
-        loan_request = payload.models[LoanRequest.type]
-        mortgage = payload.models[Mortgage.type]
-
-        assert isinstance(loan_request, LoanRequest)
-        assert isinstance(mortgage, Mortgage)
-
-        loan_request.post_or_put(self.api.db, check_time=True)
-        mortgage.post_or_put(self.api.db, check_time=True)
-
-        # Add mortgage to the borrower
-        self.user.update(self.api.db)
-        if mortgage.id not in self.user.mortgage_ids:
-            self.user.mortgage_ids.append(mortgage.id)
-        self.user.post_or_put(self.api.db)
-
-        return True
-
-    def on_mortgage_accept_signed(self, payload):
-        """
-        This is a directed message to the bank. So now the bank starts the sign agreement procedure.
-        :param payload:
-        :return:
-        """
-        user = payload.models[User.type]
-        mortgage = payload.models[Mortgage.type]
-        campaign = payload.models[Campaign.type]
-
-        assert isinstance(user, User)
-        assert isinstance(campaign, Campaign)
-        assert isinstance(mortgage, Mortgage)
-
-        user.post_or_put(self.api.db, check_time=True)
-        mortgage.post_or_put(self.api.db, check_time=True)
-        campaign.post_or_put(self.api.db, check_time=True)
-
-        # The bank can now initiate a signing step.
-        if self.user.id == mortgage.bank:
-            # resign because the status has been changed.
-            self.publish_signed_confirm_request_message(user.id, mortgage)
-
-        # Save the started campaign to the bank
-        self.user.update(self.api.db)
-        self.user.campaign_ids.append(campaign.id)
-        self.user.post_or_put(self.api.db)
-
-        return True
-
-    def on_mortgage_accept_unsigned(self, payload):
-        user = payload.models[User.type]
-        loan_request = payload.models[LoanRequest.type]
-        mortgage = payload.models[Mortgage.type]
-        campaign = payload.models[Campaign.type]
-        house = payload.models[House.type]
-
-        assert isinstance(user, User)
-        assert isinstance(campaign, Campaign)
-        assert isinstance(mortgage, Mortgage)
-        assert isinstance(loan_request, LoanRequest)
-        assert isinstance(house, House)
-
-        user.post_or_put(self.api.db, check_time=True)
-        loan_request.post_or_put(self.api.db, check_time=True)
-        mortgage.post_or_put(self.api.db, check_time=True)
-        campaign.post_or_put(self.api.db, check_time=True)
-        house.post_or_put(self.api.db, check_time=True)
-
-        return True
-
-    def on_mortgage_reject(self, payload):
-        user = payload.models[User.type]
-        mortgage = payload.models[Mortgage.type]
-
-        assert isinstance(user, User)
-        assert isinstance(mortgage, Mortgage)
-
-        user.post_or_put(self.api.db, check_time=True)
-        mortgage.post_or_put(self.api.db, check_time=True)
-
-        # Remove the mortgage from the bank
-        self.user.update(self.api.db)
-        self.user.mortgage_ids.remove(mortgage.id)
-        self.user.post_or_put(self.api.db)
-
-        return True
-
-    def on_investment_offer(self, payload):
-        user = payload.models[User.type]
-        investment = payload.models[Investment.type]
-        profile = payload.models[Profile.type]
-
-        assert isinstance(user, User)
-        assert isinstance(investment, Investment)
-        assert isinstance(profile, Profile)
-
-        user.post_or_put(self.api.db, check_time=True)
-        investment.post_or_put(self.api.db, check_time=True)
-        profile.post_or_put(self.api.db, check_time=True)
-
-        # Save the investment to the borrower
-        self.user.update(self.api.db)
-        if self.user.id != investment.investor_key:
-            self.user.investment_ids.append(investment.id)
-        self.user.post_or_put(self.api.db)
-
-        return True
-
-    def on_campaign_bid(self, payload):
-        user = payload.models[User.type]
-        loan_request = payload.models[LoanRequest.type]
-        mortgage = payload.models[Mortgage.type]
-        campaign = payload.models[Campaign.type]
-        house = payload.models[House.type]
-        if Investment.type in payload.fields:
-            investment = payload.models[Investment.type]
-        else:
-            investment = None
-
-        assert isinstance(user, User)
-        assert isinstance(campaign, Campaign)
-        assert isinstance(mortgage, Mortgage)
-        assert isinstance(loan_request, LoanRequest)
-        assert isinstance(house, House)
-
-        # Investment can be None
-        if investment:
-            assert isinstance(investment, Investment)
-            investment.post_or_put(self.api.db, check_time=True)
-
-        user.post_or_put(self.api.db, check_time=True)
-        loan_request.post_or_put(self.api.db, check_time=True)
-        mortgage.post_or_put(self.api.db, check_time=True)
-        campaign.post_or_put(self.api.db, check_time=True)
-        house.post_or_put(self.api.db, check_time=True)
-
-        return True
-
-    def on_investment_accept(self, payload):
-        user = payload.models[User.type]
-        investment = payload.models[Investment.type]
-        profile = payload.models[BorrowersProfile.type]
-
-        assert isinstance(user, User)
-        assert isinstance(investment, Investment)
-        assert isinstance(profile, BorrowersProfile)
-
-        # The investor can now initiate a signing step.
-        if self.user.id == investment.investor_key:
-            self.publish_signed_confirm_request_message(user.id, investment)
-
-        user.post_or_put(self.api.db, check_time=True)
-        investment.post_or_put(self.api.db, check_time=True)
-        profile.post_or_put(self.api.db, check_time=True)
-
-        return True
-
-    def on_investment_reject(self, payload):
-        user = payload.models[User.type]
-        investment = payload.models[Investment.type]
-
-        assert isinstance(user, User)
-        assert isinstance(investment, Investment)
-
-        user.post_or_put(self.api.db, check_time=True)
-        investment.post_or_put(self.api.db, check_time=True)
-
-        # Remove the investment from the investor
-        self.user.update(self.api.db)
-        if self.user.id == investment.investor_key:
-            self.user.investment_ids.remove(investment.id)
-        self.user.post_or_put(self.api.db)
-
-        return True
-
-    ########## END API MESSAGES
-
-    def on_user_introduction(self, messages):
-        for message in messages:
-            for field in message.payload.fields:
-                obj = message.payload.models[field]
-                if isinstance(obj, User) and not obj == self.user:
-                    # Banks need to be overwritten
-                    if obj.role_id == 3:
-                        self.api.db.put(obj.type, obj.id, obj)
-                    else:
-                        self.api.db.post(obj.type, obj)
-
-                    # Add the candidate at the end to prevent a race condition where a message containing the user may be sent
-                    # before the model is saved.
-                    self.api.user_candidate[obj.id] = message.candidate
-
-    ##############
-    ##### SIGNED MESSAGES
-    ###############
-
-    def publish_signed_confirm_request_message(self, user_key, agreement_benefactor):
-        """
-        Creates and sends out a signed signature_request message
-        Returns true upon success
-        """
-        if user_key in self.api.user_candidate and isinstance(agreement_benefactor, DatabaseModel):
-            candidate = self.api.user_candidate[user_key]
-            message = self.create_signed_confirm_request_message(candidate, agreement_benefactor)
-            self.create_signature_request(candidate, message, self.allow_signed_confirm_response)
-            return True
-        else:
-            return False
-
-    def create_signed_confirm_request_message(self, candidate, agreement_benefactor):
-        """
-
-        """
-        # agreement_benefactor, 2
-        # agreement_beneficiary, 3
-        # sequence_number_benefactor, 4
-        # sequence_number_beneficiary, 5
-        # previous_hash_benefactor, 6
-        # previous_hash_beneficiary, 7
-        # signature_benefactor, 8
-        # signature_beneficiary, 9
-        # insert_time 10
-        benefactor = self.user.id
-
-        payload_list = []
-        for k in range(1, 12):
-            payload_list.append(None)
-
-        payload_list[0] = benefactor  # benefactor, 0
-        payload_list[1] = ''  # beneficiary, 1
-        payload_list[2] = agreement_benefactor
-        payload_list[3] = None  # agreement beneficiary
-        payload_list[4] = self._get_next_sequence_number()
-        payload_list[5] = 0  # sequence number beneficiary
-        payload_list[6] = self._get_latest_hash()
-        payload_list[7] = ''  # previous hash beneficiary
-        payload_list[8] = ''  # Signature benefactor
-        payload_list[9] = ''  # Signature beneficiary
-        payload_list[10] = int(time.time())
-
-        meta = self.get_meta_message(u"signed_confirm")
-
-        message = meta.impl(authentication=([self.my_member, candidate.get_member()],),
-                            distribution=(self.claim_global_time(),),
-                            payload=tuple(payload_list))
-
-        for signature in message.authentication.signed_members:
-            encoded_sig = signature[1].public_key.encode("HEX")
-            if encoded_sig == benefactor:
-                message.payload._benefactor_signature = signature[0].encode("HEX")
-
-        self.persist_signature(message)
-
-        return message
-
-    def allow_signed_confirm_request(self, message):
-        """
-        We've received a signature request message, we must either:
-            a. Create and sign the response part of the message, send it back, and persist the block.
-            b. Drop the message. (Future work: notify the sender of dropping)
-            :param message The message containing the received signature request.
-        """
-        payload = message.payload
-
-        agreement = payload.agreement_benefactor
-        agreement_local = self.api.db.get(agreement.type, agreement.id)
-
-        if agreement == agreement_local:
-            sequence_number_beneficiary = self._get_next_sequence_number()
-            previous_hash_beneficiary = self._get_latest_hash()
-
-            new_payload = (
-                payload.benefactor,
-                self.user.id,
-                agreement,
-                agreement_local,
-                payload.sequence_number_benefactor,
-                sequence_number_beneficiary,
-                payload.previous_hash_benefactor,
-                previous_hash_beneficiary,
-                '',
-                '',
-                payload.insert_time,
-            )
-
-            meta = self.get_meta_message(u"signed_confirm")
-            message = meta.impl(authentication=(message.authentication.members, message.authentication.signatures),
-                                distribution=(message.distribution.global_time,),
-                                payload=new_payload)
-
-            for signature in message.authentication.signed_members:
-                encoded_sig = signature[1].public_key.encode("HEX")
-                if encoded_sig == payload.benefactor:
-                    message.payload.signature_benefactor = signature[0].encode("HEX")
-                elif encoded_sig == self.user.id:
-                    message.payload.signature_beneficiary = signature[0].encode("HEX")
-
-            self.persist_signature(message)
-
-            return message
-        else:
-            return None
-
-    def allow_signed_confirm_response(self, request, response, modified):
-        """
-        We've received a signature response message after sending a request, we must return either:
-            a. True, if we accept this message
-            b. False, if not (because of inconsistencies in the payload)
-        """
-
-        if not response:
-            print "Timeout received for signature request."
-            return False
-        else:
-            agreement = response.payload.agreement_beneficiary
-            agreement_local = request.payload.agreement_benefactor
-
-            if agreement_local == agreement:
-                if isinstance(agreement, Investment):
-                    mortgage = self.api.db.get(Mortgage.type, agreement.mortgage_id)
-                elif isinstance(agreement, Mortgage):
-                    mortgage = agreement
-                else:
-                    return False
-
-                loan_request = self.api.db.get(LoanRequest.type, mortgage.request_id)
-                beneficiary = self.api.db.get(User.type, loan_request.user_key)
-
-                return (response.payload.beneficiary == beneficiary.id and response.payload.benefactor == self.user.id
-                        and modified)
-            else:
-                return False
-
-    def received_signed_confirm_response(self, messages):
-        """
-        We've received a valid signature response and must process this message.
-        :param messages The received, and validated signature response messages
-        """
-        print "Valid %s signature response(s) received." % len(messages)
-        for message in messages:
-            # for signature in message.authentication.signed_members:
-            #     encoded_sig = signature[1].public_key.encode("HEX")
-            #     if encoded_sig == message.payload.beneficiary:
-            #         message.payload.signature_beneficiary = signature[0].encode("HEX")
-
-            self.update_signature(message)
-
-
-    def persist_signature(self, message):
-        """
-        Persist the signature message, when this node has not yet persisted the corresponding block.
-        A hash will be created from the message.
-        :param message:
-        """
-        assert isinstance(self.api.db.backend, BlockChain), "Not using a BlockChain enabled backend"
-
-        self.api.db.backend.check_add_genesis_block()
-
-        block = DatabaseBlock.from_signed_confirm_message(message)
-        logger.info("Persisting sr: %s", base64.encodestring(block.hash_block).strip())
-        self.api.db.backend.add_block(block)
-
-    def update_signature(self, message):
-        """
-        Update the signature response message, when this node has already persisted the corresponding request block.
-        A hash will be created from the message.
-        :param message:
-        """
-        assert isinstance(self.api.db.backend, BlockChain), "Not using a BlockChain enabled backend"
-
-        block = DatabaseBlock.from_signed_confirm_message(message)
-        block.sequence_number = self.api.db.backend.get_latest_sequence_number()
-
-        logger.info("Persisting sr: %s", base64.encodestring(block.hash_block).strip())
-        self.api.db.backend.update_block_with_beneficiary(block)
-
-    def _get_next_sequence_number(self):
-        assert isinstance(self.api.db.backend, BlockChain), "Not using a BlockChain enabled backend"
-        return self.api.db.backend.get_latest_sequence_number() + 1
-
-    def _get_latest_hash(self):
-        assert isinstance(self.api.db.backend, BlockChain), "Not using a BlockChain enabled backend"
-
-        previous_hash = self.api.db.backend.get_latest_hash()
-        return previous_hash
+            self.update_exit_candidates(message.candidate, message.payload.exitnode)
+
+    def on_loan_request(self, message):
+        for message in message:
+            pass
+
+    def on_loan_reject(self, message):
+        for message in message:
+            pass
+
+    def on_mortgage_offer(self, message):
+        for message in message:
+            pass
+
+    def on_mortgage_accept(self, message):
+        for message in message:
+            pass
+
+    def on_mortgage_reject(self, message):
+        for message in message:
+            pass
+
+    def on_investment_offer(self, message):
+        for message in message:
+            pass
+
+    def on_investment_accept(self, message):
+        for message in message:
+            pass
+
+    def on_investment_reject(self, message):
+        for message in message:
+            pass
+
+    def on_campaign_bid(self, message):
+        for message in message:
+            pass
+
+    def on_signed_confirm_response(self, message):
+        for message in message:
+            pass
+
+    def send_loan_request(self, loan_request, house, borrowers_profile):
+           pass
+
+    def send_loan_reject(self, load_request):
+           pass
+
+    def send_mortgage_offer(self, load_request, mortgage):
+           pass
+
+    def send_mortgage_accept(self, mortgage, campaign):
+           pass
+
+    def send_mortgage_reject(self, mortgage):
+           pass
+
+    def send_investment_offer(self, investment, invester_profile):
+           pass
+
+    def send_investment_accept(self, investment, borrower_profile):
+           pass
+
+    def send_investment_reject(self, investment):
+           pass
+
+    def send_campaign_bid(self, investment, campaign, loan_request, house, mortgage):
+           pass

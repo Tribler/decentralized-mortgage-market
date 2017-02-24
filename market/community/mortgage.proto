@@ -1,0 +1,10 @@
+package mortgage;
+
+message MortgageMarketIntroResponse {
+    required uint32 user_type = 1;
+}
+
+message MortgageMarketIntroRequest {
+    required uint32 user_type = 1;
+}
+

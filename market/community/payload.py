@@ -2,6 +2,33 @@ from dispersy.payload import Payload
 from market.models import DatabaseModel
 
 
+class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
+
+    class Implementation(IntroductionRequestPayload.Implementation):
+
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, user_type=False):
+            super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+            assert isinstance(user_type, int), type(user_type)
+            self._user_type = user_type
+
+        @property
+        def user_type(self):
+            return self._user_type
+
+
+class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
+
+    class Implementation(IntroductionResponsePayload.Implementation):
+
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, user_type=False):
+            super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
+            assert isinstance(user_type, int), type(user_type)
+            self._user_type = user_type
+
+        @property
+        def user_type(self):
+            return self._user_type
+
 class DatabaseModelPayload(Payload):
     """
     This is a DatabaseModelPayload, a generic payload that can be used to pass an arbitrary number of models to other
