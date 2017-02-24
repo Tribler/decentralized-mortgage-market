@@ -1,107 +1,46 @@
-from dispersy.payload import Payload
-from market.models import DatabaseModel
+from market.dispersy.payload import Payload, IntroductionRequestPayload, IntroductionResponsePayload
+
+from market.models.user import User
 
 
-class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
+class MortgageIntroductionRequestPayload(IntroductionRequestPayload):
 
     class Implementation(IntroductionRequestPayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, user_type=False):
-            super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
-            assert isinstance(user_type, int), type(user_type)
-            self._user_type = user_type
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, user=None):
+            super(MortgageIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+            self._user = user
 
         @property
-        def user_type(self):
-            return self._user_type
+        def user(self):
+            return self._user
 
 
-class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
+class MortgageIntroductionResponsePayload(IntroductionResponsePayload):
 
     class Implementation(IntroductionResponsePayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, user_type=False):
-            super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
-            assert isinstance(user_type, int), type(user_type)
-            self._user_type = user_type
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, user=None):
+            super(MortgageIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
+            self._user = user
 
         @property
-        def user_type(self):
-            return self._user_type
-
-class DatabaseModelPayload(Payload):
-    """
-    This is a DatabaseModelPayload, a generic payload that can be used to pass an arbitrary number of models to other
-    users on the network.
-
-    `fields' is a list of fields being based in the `models` dictionary. Thus the amount of models transfered is determined by the amount of fields defined.
-    """
-
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, fields, models):
-            assert isinstance(fields, list)
-            assert isinstance(models, dict)
-            for field in fields:
-                assert field in models
-                assert isinstance(models[field], DatabaseModel)
-
-            super(DatabaseModelPayload.Implementation, self).__init__(meta)
-
-            self._fields = fields
-            self._models = models
-
-        @property
-        def models(self):
-            return self._models
-
-        @property
-        def fields(self):
-            return self._fields
-
-        def get(self, field):
-            if field in self._models:
-                return self._models[field]
+        def user(self):
+            return self._user
 
 
-class APIMessagePayload(Payload):
-    """
-    This is a DatabaseModelPayload, a generic payload that can be used to pass an arbitrary number of models to other
-    users on the network.
 
-    `fields' is a list of fields being based in the `models` dictionary. Thus the amount of models transfered is determined by the amount of fields defined.
-    """
 
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, request, fields, models):
-            assert isinstance(request, int)
-            assert isinstance(fields, list)
-            assert isinstance(models, dict)
 
-            for field in fields:
-                assert field in models
-                assert isinstance(models[field], DatabaseModel), "%s is %s which is not a DatabaseModel" % (field, models[field])
 
-            super(APIMessagePayload.Implementation, self).__init__(meta)
 
-            self._request = request
-            self._fields = fields
-            self._models = models
 
-        @property
-        def request(self):
-            return self._request
 
-        @property
-        def models(self):
-            return self._models
 
-        @property
-        def fields(self):
-            return self._fields
 
-        def get(self, field):
-            if field in self._models:
-                return self._models[field]
+
+
+
 
 
 class SignedConfirmPayload(Payload):

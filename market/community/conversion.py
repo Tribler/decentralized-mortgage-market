@@ -1,48 +1,115 @@
-from dispersy.conversion import BinaryConversion
-from dispersy.conversion import DropPacket
-from market.community.encoding import encode, decode
-from market.models import DatabaseModel
+import json
+
+import mortgage_pb2 as pb
+
+from struct import pack, unpack_from
+from protobuf_to_dict import protobuf_to_dict
+
+from market.dispersy.conversion import BinaryConversion
+from market.dispersy.conversion import DropPacket
+
+from google.protobuf.json_format import MessageToJson
+from market.models.user import User
 
 
-class MortgageMarketConversion(BinaryConversion):
+class MortgageConversion(BinaryConversion):
+
     def __init__(self, community):
-        super(MortgageMarketConversion, self).__init__(community, "\x05")
-        self.define_meta_message(chr(13), community.get_meta_message(u"introduce_user"), self._encode_model, self._decode_model)
-        self.define_meta_message(chr(14), community.get_meta_message(u"api_message_community"), self._encode_api_message, self._decode_api_message)
-        self.define_meta_message(chr(15), community.get_meta_message(u"api_message_candidate"), self._encode_api_message, self._decode_api_message)
-        self.define_meta_message(chr(16), community.get_meta_message(u"signed_confirm"), self._encode_signed_confirm, self._decode_signed_confirm)
+        super(MortgageConversion, self).__init__(community, "\x02")
 
-    def _encode_api_message(self, message):
-        encoded_models = dict()
+        self.define_meta_message(chr(1),
+                                 community.get_meta_message(u"loan-request"),
+                                 self._encode_loan_request,
+                                 self._decode_loan_request)
+        self.define_meta_message(chr(2),
+                                 community.get_meta_message(u"loan-reject"),
+                                 self._encode_loan_reject,
+                                 self._decode_loan_reject)
+        self.define_meta_message(chr(3),
+                                 community.get_meta_message(u"mortgage-offer"),
+                                 self._encode_mortgage_offer,
+                                 self._decode_mortgage_offer)
+        self.define_meta_message(chr(4),
+                                 community.get_meta_message(u"mortgage-accept"),
+                                 self._encode_mortgage_accept,
+                                 self._decode_mortgage_accept)
+        self.define_meta_message(chr(5),
+                                 community.get_meta_message(u"mortgage-reject"),
+                                 self._encode_mortgage_reject,
+                                 self._decode_mortgage_reject)
+        self.define_meta_message(chr(6),
+                                 community.get_meta_message(u"investment-offer"),
+                                 self._encode_investment_offer,
+                                 self._decode_investment_offer)
+        self.define_meta_message(chr(7),
+                                 community.get_meta_message(u"investment-accept"),
+                                 self._encode_investment_accept,
+                                 self._decode_investment_accept)
+        self.define_meta_message(chr(8),
+                                 community.get_meta_message(u"investment-reject"),
+                                 self._encode_investment_reject,
+                                 self._decode_investment_reject)
+        self.define_meta_message(chr(9),
+                                 community.get_meta_message(u"campaign-bid"),
+                                 self._encode_campaign_bid,
+                                 self._decode_campaign_bid)
+        self.define_meta_message(chr(10),
+                                 community.get_meta_message(u"signed-confirm"),
+                                 self._encode_signed_confirm,
+                                 self._decode_signed_confirm)
 
-        for field in message.payload.fields:
-            encoded_models[field] = message.payload.models[field].encode()
+    def _dict2proto(self, proto_dict, proto_msg_cls):
+        return proto_msg_cls(**proto_dict).SerializeToString()
 
-        packet = encode((message.payload.request, message.payload.fields, encoded_models))
-        return packet,
+    def _proto2dict(self, proto_msg, proto_msg_cls):
+        return json.loads(MessageToJson(proto_msg_cls.ParseFromString(proto_msg)))
 
-    def _decode_api_message(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the example-payload")
+    def _encode_introduction_response(self, message):
+        user_str = _dict2proto(message.payload.user.to_dictionary(), pb.IntroductionResponseMessage)
+        data = [pack("!I", len(user_str),), user_str]
+        data += list(super(TunnelConversion, self)._encode_introduction_response(message))
+        return tuple(data)
 
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid payload type")
+    def _decode_introduction_response(self, placeholder, offset, data):
+        user_len, = unpack_from('!I', data, offset)
+        offset += 4
+        user_str = data[offset:offset + user_len]
+        offset += user_len
+        offset, payload = super(TunnelConversion, self)._decode_introduction_response(placeholder, offset, data)
+        payload._user = _proto2dict(user_str, pb.IntroductionResponseMessage)
+        return (offset, payload)
 
-        request, fields, encoded_models = payload
-        if not isinstance(request, int):
-            raise DropPacket("Invalid 'request' type")
-        if not isinstance(fields, list):
-            raise DropPacket("Invalid 'fields' type")
-        if not isinstance(encoded_models, dict):
-            raise DropPacket("Invalid 'models' type")
+    def _encode_introduction_response(self, message):
+        user_str = _dict2proto(message.payload.user.to_dictionary(), pb.IntroductionRequestMessage)
+        data = [pack("!I", len(user_str),), user_str]
+        data += list(super(MortgageConversion, self)._encode_introduction_response(message))
+        return tuple(data)
 
-        decoded_models = dict()
-        for field in fields:
-            decoded_models[field] = DatabaseModel.decode(encoded_models[field])
+    def _decode_introduction_response(self, placeholder, offset, data):
+        user_len, = unpack_from('!I', data, offset)
+        offset += 4
+        user_str = data[offset:offset + user_len]
+        offset += user_len
+        offset, payload = super(MortgageConversion, self)._decode_introduction_response(placeholder, offset, data)
+        payload._user = _proto2dict(user_str, pb.IntroductionRequestMessage)
+        return (offset, payload)
 
-        return offset, placeholder.meta.payload.implement(request, fields, decoded_models)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def _encode_signed_confirm(self, message):
         packet = encode(
@@ -88,7 +155,7 @@ class MortgageMarketConversion(BinaryConversion):
             raise DropPacket("Invalid 'benefactor' type")
         if not isinstance(payload[1], str):
             raise DropPacket("Invalid 'beneficiary' type")
-        #TODO: Do the rest.
+        # TODO: Do the rest.
 
         agreement_benefactor = DatabaseModel.decode(payload[2])
         agreement_beneficiary = DatabaseModel.decode(payload[3])

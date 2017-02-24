@@ -134,6 +134,6 @@ message User {
     required Profile profile = 3;
     repeated LoanRequest loan_requests = 4;
     repeated Campaign campaigns = 5;
-	repeated Mortgage mortgages = 6;
-	repeated Investment investment = 7;
+    repeated Mortgage mortgages = 6;
+    repeated Investment investment = 7;
 }
