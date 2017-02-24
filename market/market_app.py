@@ -1,6 +1,6 @@
 import logging
 import os
-
+import sys
 
 import time
 
@@ -48,7 +48,8 @@ class MarketApplication(QApplication):
         self.identify()
         #
         signal.signal(signal.SIGINT, self.close)
-        signal.signal(signal.SIGQUIT, self.close)
+        if sys.platform != 'win32':
+            signal.signal(signal.SIGQUIT, self.close)
         self.aboutToQuit.connect(self.close)
 
     def run(self):

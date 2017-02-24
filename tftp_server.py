@@ -58,7 +58,7 @@ class Server:
         :param level: Desired level of logging.
         """
         tftpy.setLogLevel(level)
-        fh = logging.FileHandler(write_path+'log_server_'+time.strftime('%d-%m-%Y_%H:%M:%S'))
+        fh = logging.FileHandler(write_path + 'log_server_%d' % time.time())
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         tftpy.log.addHandler(fh)
