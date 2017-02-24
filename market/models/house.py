@@ -1,20 +1,18 @@
-from market.models import DatabaseModel
 
 
-class House(DatabaseModel):
-    type = 'house'
+class House(object):
+    """
+    This class represents a house for which a mortgage is created.
+    """
 
-    def __init__(self, postal_code, house_number, address, price):
-        super(House, self).__init__()
-        assert isinstance(postal_code, str)
-        assert isinstance(house_number, str)
-        assert isinstance(address, str)
-        assert isinstance(price, int)
-
+    def __init__(self, postal_code, house_number, address, price, url, seller_phone_number, seller_email):
         self._postal_code = postal_code
         self._house_number = house_number
         self._address = address
         self._price = price
+        self._url = url
+        self._seller_phone_number = seller_phone_number
+        self._seller_email = seller_email
 
     @property
     def postal_code(self):
@@ -31,3 +29,26 @@ class House(DatabaseModel):
     @property
     def price(self):
         return self._price
+
+    @property
+    def url(self):
+        return self._url
+
+    @property
+    def seller_phone_number(self):
+        return self._seller_phone_number
+
+    @property
+    def seller_email(self):
+        return self._seller_email
+
+    def to_dictionary(self):
+        return {
+            "postal_code": self._postal_code,
+            "house_number": self._house_number,
+            "address": self._address,
+            "price": self._price,
+            "url": self._url,
+            "seller_phone_number": self._seller_phone_number,
+            "seller_email": self._seller_email
+        }
