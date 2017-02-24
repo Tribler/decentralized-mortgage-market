@@ -4,11 +4,11 @@ package mortgage;
 
 // Dispersy messages
 message IntroductionResponseMessage {
-    required uint32 user_type = 1;
+    required User user = 1;
 }
 
 message IntroductionRequestMessage {
-    required uint32 user_type = 1;
+    required User user = 1;
 }
 
 message LoanRequestMessage {
@@ -126,4 +126,14 @@ message Campaign {
     required double amount = 3;
     required int64 end_date = 4;
     required string completed = 5;
+}
+
+message User {
+    required string user_id = 1;
+    required uint32 role = 2;
+    required Profile profile = 3;
+    repeated LoanRequest loan_requests = 4;
+    repeated Campaign campaigns = 5;
+	repeated Mortgage mortgages = 6;
+	repeated Investment investment = 7;
 }
