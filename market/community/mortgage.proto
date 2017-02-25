@@ -57,7 +57,7 @@ message CampaignBidMessage {
     required Mortgage mortgage = 5;
 }
 
-// Object that are included in the Dispersy messages
+// Objects that are included in the Dispersy messages
 message LoanRequest {
     required string user_id = 1;
     required string house_id = 2;

@@ -1,6 +1,5 @@
-import base64
 import logging
-import time
+import mortgage_pb2 as pb
 
 from market.dispersy.community import Community
 from market.dispersy.conversion import DefaultConversion
@@ -16,31 +15,22 @@ from twisted.web import server
 from conversion import MortgageConversion
 from payload import MortgageIntroductionRequestPayload, MortgageIntroductionResponsePayload
 
-from market import Global
 # from market.api.api import STATUS
 from market.api.datamanager import MarketDataManager
 from market.defs import REST_API_ENABLED, REST_API_PORT
 # from market.database.backends import DatabaseBlock, BlockChain
 from market.restapi.root_endpoint import RootEndpoint
 
-from market.models.user import User
-from market.models.loanrequest import LoanRequest
-from market.models.house import House
-from market.models.mortgage import Mortgage
-from market.models.campaign import Campaign
-from market.models.investment import Investment
-from market.models.profile import InvestorProfile, BorrowersProfile
-
+from market.community import ROLE_INVESTOR, ROLE_BANK
 from market.community.payload import (LoanRequestPayload, LoanRejectPayload, MortgageOfferPayload,
                                       MortgageAcceptPayload, MortgageRejectPayload, InvestmentOfferPayload,
                                       InvestmentAcceptPayload, InvestmentRejectPayload, CampaignBidPayload)
-from market.community import USER_TYPE_INVESTOR
 
 
 class MortgageSettings(object):
 
     def __init__(self):
-        self.user_type = USER_TYPE_INVESTOR
+        self.role = ROLE_INVESTOR
 
 
 class MortgageCommunity(Community):
@@ -66,12 +56,13 @@ class MortgageCommunity(Community):
 
         # TEST USER..
         # self.user = User(self.my_member.public_key.encode('hex'))
-        import mortgage_pb2 as pb
-        self.user = pb.User(user_id='123', role=USER_TYPE_INVESTOR, profile=pb.Profile(first_name='firstname',
-                                                                                       last_name='lastname',
-                                                                                       email='email',
-                                                                                       iban='iban',
-                                                                                       phone_number='phone'))
+        self.my_user = pb.User(user_id=self.my_member.public_key.encode('hex'), role=self.settings.role,
+                               profile=pb.Profile(first_name='firstname',
+                                                  last_name='lastname',
+                                                  email='email',
+                                                  iban='iban',
+                                                  phone_number='phone'))
+        self.users = {}
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -187,16 +178,20 @@ class MortgageCommunity(Community):
         return [DefaultConversion(self), MortgageConversion(self)]
 
     def on_introduction_request(self, messages):
-        print "intro-request", messages[0].payload.user
-        super(MortgageCommunity, self).on_introduction_request(messages, [self.user])
+        for message in messages:
+            print "intro-request", message.payload.user
+            self.users[message.candidate] = message.payload.user
+        super(MortgageCommunity, self).on_introduction_request(messages, [self.my_user])
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
         print destination
         super(MortgageCommunity, self).create_introduction_request(destination, allow_sync, forward,
-                                                                   is_fast_walker, [self.user])
+                                                                   is_fast_walker, [self.my_user])
 
     def on_introduction_response(self, messages):
-        print "intro-response", messages[0].payload.user
+        for message in messages:
+            print "intro-response", message.payload.user
+            self.users[message.candidate] = message.payload.user
         super(MortgageCommunity, self).on_introduction_response(messages)
 
     def on_loan_request(self, message):
@@ -240,12 +235,15 @@ class MortgageCommunity(Community):
             pass
 
     def send_loan_request(self, loan_request, house, borrowers_profile):
+        meta = self.get_meta_message(u"load-request")
+        msg = meta.impl(authentication=(self._my_member,),
+                        distribution=(self.global_time,), payload=(loan_request, house, borrowers_profile))
+        self.send_packet([c for c, u in self.users.iteritems() if u.role & ROLE_BANK], meta.name, msg.packet)
+
+    def send_loan_reject(self, loan_request):
            pass
 
-    def send_loan_reject(self, load_request):
-           pass
-
-    def send_mortgage_offer(self, load_request, mortgage):
+    def send_mortgage_offer(self, loan_request, mortgage):
            pass
 
     def send_mortgage_accept(self, mortgage, campaign):
