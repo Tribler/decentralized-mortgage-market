@@ -8,7 +8,6 @@ from twisted.internet import reactor
 
 from market.dispersy.dispersy import Dispersy
 from market.dispersy.endpoint import StandaloneEndpoint
-from market.dispersy.crypto import M2CryptoSK
 from market.community.community import MortgageCommunity
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
