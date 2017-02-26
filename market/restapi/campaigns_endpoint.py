@@ -16,6 +16,10 @@ class CampaignsEndpoint(resource.Resource):
     def render_GET(self, request):
         return json.dumps({"campaigns": [user.to_dictionary() for user in self.data_manager.campaigns]})
 
+    # def render_POST(self, request):
+    #     parameters = http.parse_qs(request.content.read(), 1)
+    #     required_params = ['']
+
     def getChild(self, path, request):
         return SpecificCampaignEndpoint(self.market_community, path)
 

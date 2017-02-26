@@ -7,7 +7,8 @@ class MarketDataManager:
     It should be replaced by a nice ORM database at one point in the future.
     """
 
-    def __init__(self):
+    def __init__(self, your_member):
+        self.you = your_member
         self.users = []
         self.campaigns = []
 
