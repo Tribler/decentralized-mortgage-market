@@ -42,3 +42,15 @@ class MarketDataManager:
             if campaign.id == campaign_id:
                 return campaign
         return None
+
+    def get_mortgage(self, mortgage_id):
+        """
+        Get a specific mortgage with a specified id
+        :param mortgage_id: the id of the mortgage to search for
+        :return: a Mortgage object or None if no mortgage could be found
+        """
+        for user in self.users:
+            for mortgage in user.mortgages:
+                if mortgage.id == mortgage_id:
+                    return mortgage
+        return None

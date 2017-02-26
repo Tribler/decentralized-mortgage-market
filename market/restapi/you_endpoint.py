@@ -77,4 +77,7 @@ class YouProfileEndpoint(resource.Resource):
 
         you = self.market_community.data_manager.you
         you.profile = profile
+
+        # TODO(Martijn): broadcast it in the network
+
         return json.dumps({"success": True})

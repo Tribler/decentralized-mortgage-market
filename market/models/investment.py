@@ -1,15 +1,24 @@
+from enum import Enum
+
+
+class InvestmentStatus(Enum):
+    NONE = 0
+    PENDING = 1
+    ACCEPTED = 2
+    REJECTED = 3
+
+
 class Investment(object):
     """
     This class represents an investment of someone in a specific mortgage.
     """
 
-    def __init__(self, investor_id, amount, duration, interest_rate, borrower_id, mortgage_id, status):
+    def __init__(self, investor_id, amount, duration, interest_rate, mortgage, status):
         self._investor_id = investor_id
         self._amount = amount
         self._duration = duration
         self._interest_rate = interest_rate
-        self._borrower_id = borrower_id
-        self._mortgage_id = mortgage_id
+        self._mortgage = mortgage
         self._status = status
 
     @property
@@ -33,12 +42,8 @@ class Investment(object):
         return self._interest_rate
 
     @property
-    def borrower_id(self):
-        return self._borrower_id
-
-    @property
-    def mortgage_id(self):
-        return self._mortgage_id
+    def mortgage(self):
+        return self._mortgage
 
     @status.setter
     def status(self, value):
@@ -50,7 +55,6 @@ class Investment(object):
             "amount": self._amount,
             "duration": self._duration,
             "interest_rate": self._interest_rate,
-            "borrower_id": self._borrower_id,
-            "mortgage_id": self._mortgage_id,
+            "mortgage_id": self._mortgage.id,
             "status": self._status
         }

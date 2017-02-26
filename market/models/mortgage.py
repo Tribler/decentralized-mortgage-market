@@ -14,7 +14,7 @@ class Mortgage(object):
     """
 
     def __init__(self, user_id, house, bank, amount, mortgage_type, interest_rate, max_invest_rate, default_rate,
-                 duration, risk, investors, status, campaign_id):
+                 duration, risk, investments, status, campaign_id):
         self._user_id = user_id
         self._house = house
         self._bank = bank
@@ -25,7 +25,7 @@ class Mortgage(object):
         self._default_rate = default_rate
         self._duration = duration
         self._risk = risk
-        self._investors = investors
+        self._investments = investments
         self._status = status
         self._campaign_id = campaign_id
 
@@ -78,8 +78,8 @@ class Mortgage(object):
         return self._status
 
     @property
-    def investors(self):
-        return self._investors
+    def investments(self):
+        return self._investments
 
     @status.setter
     def status(self, value):
