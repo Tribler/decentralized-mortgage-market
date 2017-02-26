@@ -1,5 +1,3 @@
-import mortgage_pb2 as pb
-
 from market.dispersy.payload import Payload, IntroductionRequestPayload, IntroductionResponsePayload
 
 
@@ -29,181 +27,15 @@ class MortgageIntroductionResponsePayload(IntroductionResponsePayload):
             return self._user
 
 
-class LoanRequestPayload(Payload):
+class ProtobufPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, investment, campaign, loan_request, house, borrowers_profile):
-            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
-            assert isinstance(house, pb.House), type(house)
-            assert isinstance(borrowers_profile, pb.BorrowersProfile), type(borrowers_profile)
-
+        def __init__(self, meta, dictionary):
             super(Payload.Implementation, self).__init__(meta)
-            self._loan_request = loan_request
-            self._house = house
-            self._borrowers_profile = borrowers_profile
+            self._dictionary = dictionary
 
         @property
-        def loan_request(self):
-            return self._loan_request
-
-        @property
-        def house(self):
-            return self._house
-
-        @property
-        def borrowers_profile(self):
-            return self._borrowers_profile
-
-
-class LoanRejectPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, loan_request):
-            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._loan_request = loan_request
-
-        @property
-        def loan_request(self):
-            return self._loan_request
-
-
-class MortgageOfferPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, loan_request, mortgage):
-            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
-            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._loan_request = loan_request
-            self._mortgage = mortgage
-
-        @property
-        def loan_request(self):
-            return self._loan_request
-
-        @property
-        def mortgage(self):
-            return self._mortgage
-
-
-class MortgageAcceptPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, campaign, mortgage):
-            assert isinstance(campaign, pb.Campaign), type(campaign)
-            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._campaign = campaign
-            self._mortgage = mortgage
-
-        @property
-        def campaign(self):
-            return self._campaign
-
-        @property
-        def mortgage(self):
-            return self._mortgage
-
-
-class MortgageRejectPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, mortgage):
-            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._mortgage = mortgage
-
-        @property
-        def mortgage(self):
-            return self._mortgage
-
-
-class InvestmentOfferPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, investment, ivestor_profile):
-            assert isinstance(investment, pb.Investment), type(investment)
-            assert isinstance(ivestor_profile, pb.Profile), type(ivestor_profile)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._investment = investment
-            self._ivestor_profile = ivestor_profile
-
-        @property
-        def investment(self):
-            return self._investment
-
-        @property
-        def ivestor_profile(self):
-            return self._ivestor_profile
-
-
-class InvestmentAcceptPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, investment, borrowers_profile):
-            assert isinstance(investment, pb.Investment), type(investment)
-            assert isinstance(borrowers_profile, pb.BorrowersProfile), type(borrowers_profile)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._investment = investment
-            self._borrowers_profile = borrowers_profile
-
-        @property
-        def investment(self):
-            return self._investment
-
-        @property
-        def borrowers_profile(self):
-            return self._borrowers_profile
-
-
-class InvestmentRejectPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, investment):
-            assert isinstance(investment, pb.Investment), type(investment)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._investment = investment
-
-        @property
-        def investment(self):
-            return self._investment
-
-
-class CampaignBidPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, investment, campaign, loan_request, house, mortgage):
-            assert isinstance(investment, pb.Investment), type(investment)
-            assert isinstance(campaign, pb.Campaign), type(campaign)
-            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
-            assert isinstance(house, pb.House), type(house)
-            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
-
-            super(Payload.Implementation, self).__init__(meta)
-            self._investment = investment
-            self._campaign = campaign
-            self._loan_request = loan_request
-            self._house = house
-            self._mortgage = mortgage
-
-        @property
-        def investment(self):
-            return self._investment
-
-        @property
-        def campaign(self):
-            return self._campaign
-
-        @property
-        def loan_request(self):
-            return self._loan_request
-
-        @property
-        def house(self):
-            return self._house
-
-        @property
-        def mortgage(self):
-            return self._mortgage
+        def dictionary(self):
+            return self._dictionary
 
 
 # class SignedConfirmPayload(Payload):

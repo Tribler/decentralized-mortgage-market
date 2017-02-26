@@ -3,6 +3,7 @@ import mortgage_pb2 as pb
 from struct import pack, unpack_from
 
 from market.dispersy.conversion import BinaryConversion
+from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
 
 class MortgageConversion(BinaryConversion):
@@ -52,7 +53,7 @@ class MortgageConversion(BinaryConversion):
 #                                  self._decode_signed_confirm)
 
     def _encode_introduction_request(self, message):
-        user_str = pb.IntroductionRequestMessage(user=message.payload.user).SerializeToString()
+        user_str = dict_to_protobuf(pb.User, message.payload.user).SerializeToString()
         data = [pack("!I", len(user_str),), user_str]
         data += list(super(MortgageConversion, self)._encode_introduction_request(message))
         return tuple(data)
@@ -63,13 +64,13 @@ class MortgageConversion(BinaryConversion):
         user_str = data[offset:offset + user_len]
         offset += user_len
         offset, payload = super(MortgageConversion, self)._decode_introduction_request(placeholder, offset, data)
-        msg = pb.IntroductionRequestMessage()
+        msg = pb.User()
         msg.ParseFromString(user_str)
-        payload._user = msg.user
+        payload._user = protobuf_to_dict(msg)
         return (offset, payload)
 
     def _encode_introduction_response(self, message):
-        user_str = pb.IntroductionResponseMessage(user=message.payload.user).SerializeToString()
+        user_str = dict_to_protobuf(pb.User, message.payload.user).SerializeToString()
         data = [pack("!I", len(user_str),), user_str]
         data += list(super(MortgageConversion, self)._encode_introduction_response(message))
         return tuple(data)
@@ -80,133 +81,72 @@ class MortgageConversion(BinaryConversion):
         user_str = data[offset:offset + user_len]
         offset += user_len
         offset, payload = super(MortgageConversion, self)._decode_introduction_response(placeholder, offset, data)
-        msg = pb.IntroductionResponseMessage()
+        msg = pb.User()
         msg.ParseFromString(user_str)
-        payload._user = msg.user
+        payload._user = protobuf_to_dict(msg)
         return (offset, payload)
 
-    def _encode_loan_request(self, message):
-        payload = message.payload
-        return pb.LoanRequestMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+    def _encode_protobuf(self, message_cls, message):
+        return dict_to_protobuf(message_cls, message.payload.dictionary).SerializeToString(),
 
+    def _decode_protobuf(self, message_cls, placeholder, offset, data):
+        msg = message_cls()
+        msg.ParseFromString(data[offset:])
+        return len(data), placeholder.meta.payload.implement(protobuf_to_dict(msg))
+
+    def _encode_loan_request(self, message):
+        return self._encode_protobuf(pb.LoanRequestMessage, message)
 
     def _decode_loan_request(self, placeholder, offset, data):
-        msg = pb.LoanRequestMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.investment,
-                                                             msg.campaign,
-                                                             msg.loan_request,
-                                                             msg.house,
-                                                             msg.borrowers_profile)
+        return self._decode_protobuf(pb.LoanRequestMessage, placeholder, offset, data)
 
     def _encode_loan_reject(self, message):
-        payload = message.payload
-        return pb.LoanRejectMessage(loan_request=payload.loan_request).SerializeToString(),
+        return self._encode_protobuf(pb.LoanRejectMessage, message)
 
     def _decode_loan_reject(self, placeholder, offset, data):
-        msg = pb.LoanRejectMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.loan_request)
+        return self._decode_protobuf(pb.LoanRejectMessage, placeholder, offset, data)
 
     def _encode_mortgage_offer(self, message):
-        payload = message.payload
-        return pb.MortgageOfferMessage(loan_request=payload.loan_request,
-                                       mortgage=payload.mortgage).SerializeToString(),
+        return self._encode_protobuf(pb.MortgageOfferMessage, message)
 
     def _decode_mortgage_offer(self, placeholder, offset, data):
-        msg = pb.MortgageOfferMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.loan_request,
-                                                             msg.mortgage)
+        return self._decode_protobuf(pb.MortgageOfferMessage, placeholder, offset, data)
 
     def _encode_mortgage_accept(self, message):
-        payload = message.payload
-        return pb.MortgageAcceptMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+        return self._encode_protobuf(pb.MortgageAcceptMessage, message)
 
     def _decode_mortgage_accept(self, placeholder, offset, data):
-        msg = pb.MortgageAcceptMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.campaign,
-                                                             msg.mortgage)
+        return self._decode_protobuf(pb.MortgageAcceptMessage, placeholder, offset, data)
 
     def _encode_mortgage_reject(self, message):
-        payload = message.payload
-        return pb.MortgageRejectMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+        return self._encode_protobuf(pb.MortgageRejectMessage, message)
 
     def _decode_mortgage_reject(self, placeholder, offset, data):
-        msg = pb.MortgageRejectMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.mortgage)
+        return self._decode_protobuf(pb.MortgageRejectMessage, placeholder, offset, data)
 
     def _encode_investment_offer(self, message):
-        payload = message.payload
-        return pb.InvestmentOfferMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+        return self._encode_protobuf(pb.InvestmentOfferMessage, message)
 
     def _decode_investment_offer(self, placeholder, offset, data):
-        msg = pb.InvestmentOfferMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.investment,
-                                                             msg.ivestor_profile)
+        return self._decode_protobuf(pb.InvestmentOfferMessage, placeholder, offset, data)
 
     def _encode_investment_accept(self, message):
-        payload = message.payload
-        return pb.InvestmentAcceptMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+        return self._encode_protobuf(pb.InvestmentAcceptMessage, message)
 
     def _decode_investment_accept(self, placeholder, offset, data):
-        msg = pb.InvestmentAcceptMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.investment,
-                                                             msg.borrowers_profile)
+        return self._decode_protobuf(pb.InvestmentAcceptMessage, placeholder, offset, data)
 
     def _encode_investment_reject(self, message):
-        payload = message.payload
-        return pb.InvestmentRejectMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+        return self._encode_protobuf(pb.InvestmentRejectMessage, message)
 
     def _decode_investment_reject(self, placeholder, offset, data):
-        msg = pb.InvestmentRejectMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.investment)
+        return self._decode_protobuf(pb.InvestmentRejectMessage, placeholder, offset, data)
 
     def _encode_campaign_bid(self, message):
-        payload = message.payload
-        return pb.CampaignBidMessage(investment=payload.investment,
-                                     campaign=payload.campaign,
-                                     loan_request=payload.loan_request,
-                                     house=payload.house,
-                                     borrowers_profile=payload.borrower_profile).SerializeToString(),
+        return self._encode_protobuf(pb.CampaignBidMessage, message)
 
     def _decode_campaign_bid(self, placeholder, offset, data):
-        msg = pb.CampaignBidMessage()
-        msg.ParseFromString(data[offset:])
-        return len(data), placeholder.meta.payload.implement(msg.investment,
-                                                             msg.campaign,
-                                                             msg.loan_request,
-                                                             msg.house,
-                                                             msg.mortgage)
+        return self._decode_protobuf(pb.CampaignBidMessage, placeholder, offset, data)
 
 
 

@@ -1,5 +1,4 @@
 import logging
-import mortgage_pb2 as pb
 
 from market.dispersy.community import Community
 from market.dispersy.conversion import DefaultConversion
@@ -23,9 +22,7 @@ from market.defs import REST_API_ENABLED, REST_API_PORT
 from market.restapi.root_endpoint import RootEndpoint
 
 from market.community import ROLE_INVESTOR, ROLE_BANK
-from market.community.payload import (LoanRequestPayload, LoanRejectPayload, MortgageOfferPayload,
-                                      MortgageAcceptPayload, MortgageRejectPayload, InvestmentOfferPayload,
-                                      InvestmentAcceptPayload, InvestmentRejectPayload, CampaignBidPayload)
+from market.community.payload import ProtobufPayload
 
 
 class MortgageSettings(object):
@@ -55,15 +52,43 @@ class MortgageCommunity(Community):
 
         self.logger.info("MortgageCommunity initialized")
 
-        # TEST USER..
-        # self.user = User(self.my_member.public_key.encode('hex'))
-        self.my_user = pb.User(user_id=self.my_member.public_key.encode('hex'), role=self.settings.role,
-                               profile=pb.Profile(first_name='firstname',
-                                                  last_name='lastname',
-                                                  email='email',
-                                                  iban='iban',
-                                                  phone_number='phone'))
+        # SOME TESTING CODE..
         self.users = {}
+        self.my_user = {'user_id': self.my_member.public_key.encode('hex'),
+                        'role': self.settings.role,
+                        'profile': {'first_name': 'firstname',
+                                    'last_name': 'lastname',
+                                    'email': 'email',
+                                    'iban': 'iban',
+                                    'phone_number': 'phone'}}
+
+        loan_request = {'user_id': '123',
+                        'house_id': '0',
+                        'mortgage_type': 0,
+                        'banks': [''],
+                        'description': '',
+                        'amount_wanted': 0,
+                        'status': ''}
+
+        house = {'postal_code': '',
+                 'house_number': '',
+                 'address': '',
+                 'price': 0,
+                 'url': '',
+                 'seller_phone_number': '',
+                 'seller_email': ''}
+
+        borrowers_profile = {'profile': {'first_name': '',
+                                          'last_name': '',
+                                          'email': '',
+                                          'iban': '',
+                                          'phone_number': ''},
+                             'current_postal_code': '',
+                             'current_house_number': '',
+                             'current_address': '',
+                             'document_list': ['']}
+
+        reactor.callLater(300, self.send_loan_request, loan_request, house, borrowers_profile)
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -99,7 +124,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        LoanRequestPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_loan_request),
                                 Message(self, u"loan-reject",
@@ -107,7 +132,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        LoanRejectPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_loan_reject),
                                 Message(self, u"mortgage-offer",
@@ -115,7 +140,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        MortgageOfferPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_mortgage_offer),
                                 Message(self, u"mortgage-accept",
@@ -123,7 +148,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        MortgageAcceptPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_mortgage_accept),
                                 Message(self, u"mortgage-reject",
@@ -131,7 +156,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        MortgageRejectPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_mortgage_reject),
                                 Message(self, u"investment-offer",
@@ -139,7 +164,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        InvestmentOfferPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_investment_offer),
                                 Message(self, u"investment-accept",
@@ -147,7 +172,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        InvestmentAcceptPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_investment_accept),
                                 Message(self, u"investment-reject",
@@ -155,7 +180,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        InvestmentRejectPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_investment_reject),
                                 Message(self, u"campaign-bid",
@@ -163,7 +188,7 @@ class MortgageCommunity(Community):
                                         PublicResolution(),
                                         FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
                                         CommunityDestination(node_count=10),
-                                        CampaignBidPayload(),
+                                        ProtobufPayload(),
                                         self._generic_timeline_check,
                                         self.on_campaign_bid)]
 #                                 Message(self, u"signed-confirm",
@@ -180,7 +205,7 @@ class MortgageCommunity(Community):
 
     def on_introduction_request(self, messages):
         for message in messages:
-            self.logger.debug('Got intro-request from %s (role=%d)', message.candidate, message.payload.user.role)
+            self.logger.debug('Got intro-request from %s (role=%d)', message.candidate, message.payload.user['role'])
             self.users[message.candidate] = message.payload.user
         super(MortgageCommunity, self).on_introduction_request(messages, [self.my_user])
 
@@ -191,55 +216,61 @@ class MortgageCommunity(Community):
 
     def on_introduction_response(self, messages):
         for message in messages:
-            self.logger.debug('Got intro-response from %s (role=%d)', message.candidate.sock_addr, message.payload.user.role)
+            self.logger.debug('Got intro-response from %s (role=%d)', message.candidate.sock_addr, message.payload.user['role'])
             self.users[message.candidate] = message.payload.user
         super(MortgageCommunity, self).on_introduction_response(messages)
 
     def on_loan_request(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got loan-request from %s', message.candidate.sock_addr)
 
     def on_loan_reject(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got loan-reject from %s', message.candidate.sock_addr)
 
     def on_mortgage_offer(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got mortgage-offer from %s', message.candidate.sock_addr)
 
     def on_mortgage_accept(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
 
     def on_mortgage_reject(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got mortgage-reject from %s', message.candidate.sock_addr)
 
     def on_investment_offer(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got investment-offer from %s', message.candidate.sock_addr)
 
     def on_investment_accept(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
 
     def on_investment_reject(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got investment-reject from %s', message.candidate.sock_addr)
 
     def on_campaign_bid(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got campaign-bid from %s', message.candidate.sock_addr)
 
     def on_signed_confirm_response(self, message):
         for message in message:
-            pass
+            self.logger.debug('Got signed-confirm-response from %s', message.candidate.sock_addr)
 
     def send_loan_request(self, loan_request, house, borrowers_profile):
-        meta = self.get_meta_message(u"load-request")
-        msg = meta.impl(authentication=(self._my_member,),
-                        distribution=(self.global_time,), payload=(loan_request, house, borrowers_profile))
-        self.send_packet([c for c, u in self.users.iteritems() if u.role & ROLE_BANK], meta.name, msg.packet)
+        msg_dict = {'loan_request': loan_request,
+                    'house': house,
+                    'borrowers_profile': borrowers_profile}
+
+        meta = self.get_meta_message(u"loan-request")
+        message = meta.impl(authentication=(self.my_member,),
+                            distribution=(self.claim_global_time(),),
+                            destination=tuple([c for c, u in self.users.iteritems() if u['role'] & ROLE_BANK]),
+                            payload=(msg_dict,))
+        self.dispersy.store_update_forward([message], False, False, True)
 
     def send_loan_reject(self, loan_request):
            pass
