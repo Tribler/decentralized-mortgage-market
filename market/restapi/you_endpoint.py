@@ -6,6 +6,7 @@ from twisted.web import http, resource
 from market.models.house import House
 from market.models.investment import Investment, InvestmentStatus
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
+from market.models.mortgage import MortgageStatus
 from market.models.profile import InvestorProfile, BorrowersProfile
 from market.models.user import Role
 from market.restapi import get_param
@@ -22,6 +23,7 @@ class YouEndpoint(resource.Resource):
 
         self.putChild("profile", YouProfileEndpoint(market_community))
         self.putChild("investments", YouInvestmentsEndpoint(market_community))
+        self.putChild("mortgages", YouMortgagesEndpoint(market_community))
 
     def render_GET(self, request):
         return json.dumps({"you": self.market_community.data_manager.you.to_dictionary()})
@@ -191,5 +193,64 @@ class YouLoanRequestsEndpoint(resource.Resource):
 
         #TODO(Martijn): broadcast it into the network
         #TODO(Martijn): Invoke TFTP here to send the documents to the banks
+
+        return json.dumps({"success": True})
+
+
+class YouMortgagesEndpoint(resource.Resource):
+    """
+    This class handles requests regarding your mortgages.
+    """
+
+    def __init__(self, market_community):
+        resource.Resource.__init__(self)
+        self.market_community = market_community
+
+    def getChild(self, path, request):
+        return YouSpecificMortageEndpoint(self.market_community, path)
+
+    def render_GET(self, request):
+        you = self.market_community.data_manager.you
+        return json.dumps({"mortgages": [mortgage.to_dictionary() for mortgage in you.mortgages]})
+
+
+class YouSpecificMortageEndpoint(resource.Resource):
+    """
+    This class handles requests regarding a specific mortgage.
+    """
+    def __init__(self, market_community, mortgage_id):
+        resource.Resource.__init__(self)
+        self.market_community = market_community
+        self.mortgage_id = mortgage_id
+
+    def render_PATCH(self, request):
+        """
+        Accept/reject a mortgage offer
+        """
+        mortgage = self.market_community.data_manager.get_mortgage(self.mortgage_id)
+        if not mortgage:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "mortgage not found"})
+
+        parameters = http.parse_qs(request.content.read(), 1)
+        status = get_param(parameters, 'status')
+        if not status:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "missing status parameter"})
+
+        if status not in ['ACCEPT', 'REJECT']:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "invalid status value"})
+
+        if mortgage.status != MortgageStatus.PENDING:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "mortgage is already accepted/rejected"})
+
+        if status == "ACCEPT":
+            mortgage.status = InvestmentStatus.ACCEPTED
+        else:
+            mortgage.status = InvestmentStatus.REJECTED
+
+        #TODO(Martijn) broadcast this into the network
 
         return json.dumps({"success": True})
