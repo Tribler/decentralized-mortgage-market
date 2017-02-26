@@ -12,6 +12,6 @@ class RootEndpoint(resource.Resource):
     def __init__(self, market_community):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"users": UsersEndpoint, "campaigns": CampaignsEndpoint}
+        child_handler_dict = {"users": UsersEndpoint, "campaigns": CampaignsEndpoint, "you": YouEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(market_community))

@@ -13,6 +13,7 @@ from twisted.internet import reactor
 from twisted.web import server
 
 from conversion import MortgageConversion
+from market.models.user import User
 from payload import MortgageIntroductionRequestPayload, MortgageIntroductionResponsePayload
 
 # from market.api.api import STATUS
@@ -41,7 +42,7 @@ class MortgageCommunity(Community):
         self._api = None
         self._user = None
         self.market_api = None
-        self.data_manager = MarketDataManager()
+        self.data_manager = MarketDataManager(User(None))
 
     def initialize(self, settings=None):
         super(MortgageCommunity, self).initialize()
