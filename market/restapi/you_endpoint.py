@@ -11,9 +11,9 @@ from market.models.user import Role
 from market.restapi import get_param
 
 
-class UsersEndpoint(resource.Resource):
+class YouEndpoint(resource.Resource):
     """
-    This class handles requests regarding users in the mortgage market community.
+    This class handles requests regarding your user in the mortgage market community.
     """
 
     def __init__(self, market_community):

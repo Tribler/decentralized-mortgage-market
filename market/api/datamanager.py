@@ -54,3 +54,14 @@ class MarketDataManager:
                 if mortgage.id == mortgage_id:
                     return mortgage
         return None
+
+    def get_loan_requests(self):
+        """
+        Get all loan requests in the market.
+        :return: a list with LoanRequest objects
+        """
+        loan_requests = []
+        for user in self.users:
+            for loan_request in user.loan_requests:
+                loan_requests.append(loan_request)
+        return loan_requests
