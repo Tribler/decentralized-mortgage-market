@@ -13,8 +13,8 @@ class Investment(object):
     This class represents an investment of someone in a specific mortgage.
     """
 
-    def __init__(self, investor_id, amount, duration, interest_rate, mortgage, status):
-        self._investor_id = investor_id
+    def __init__(self, investor, amount, duration, interest_rate, mortgage, status):
+        self._investor = investor
         self._amount = amount
         self._duration = duration
         self._interest_rate = interest_rate
@@ -22,8 +22,8 @@ class Investment(object):
         self._status = status
 
     @property
-    def investor_id(self):
-        return self._investor_id
+    def investor(self):
+        return self._investor
 
     @property
     def status(self):
@@ -51,7 +51,7 @@ class Investment(object):
 
     def to_dictionary(self):
         return {
-            "investor_id": self._investor_id,
+            "investor_id": self._investor.id,
             "amount": self._amount,
             "duration": self._duration,
             "interest_rate": self._interest_rate,

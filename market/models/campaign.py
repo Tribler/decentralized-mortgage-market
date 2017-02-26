@@ -21,6 +21,10 @@ class Campaign(object):
         return self._mortgage.id
 
     @property
+    def user(self):
+        return self._user
+
+    @property
     def mortgage(self):
         return self._mortgage
 
@@ -39,7 +43,7 @@ class Campaign(object):
     def to_dictionary(self):
         return {
             "id": self.id,
-            "user_id": self._user.id,
+            "user": self._user.id,
             "mortgage": self._mortgage.to_dictionary(),
             "amount": self._amount,
             "end_date": self._end_date,

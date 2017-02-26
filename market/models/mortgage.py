@@ -91,6 +91,12 @@ class Mortgage(object):
     def investments(self):
         return self._investments
 
+    def get_investment(self, investment_id):
+        for investment in self._investments:
+            if investment.id == investment_id:
+                return investment
+        return None
+
     @status.setter
     def status(self, value):
         self._status = value
