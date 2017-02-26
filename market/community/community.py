@@ -1,58 +1,68 @@
-import base64
 import logging
-import time
+import mortgage_pb2 as pb
 
 from market.dispersy.community import Community
 from market.dispersy.conversion import DefaultConversion
 from market.dispersy.destination import CommunityDestination, CandidateDestination
 from market.dispersy.distribution import DirectDistribution, FullSyncDistribution
-from market.dispersy.message import Message, DelayMessageByProof
+from market.dispersy.message import Message
 from market.dispersy.resolution import PublicResolution
 from market.dispersy.authentication import MemberAuthentication, DoubleMemberAuthentication
 
 from twisted.internet import reactor
 from twisted.web import server
 
-from conversion import MortgageMarketConversion
+from conversion import MortgageConversion
+from payload import MortgageIntroductionRequestPayload, MortgageIntroductionResponsePayload
 
-from market import Global
-from market.api.api import STATUS
+# from market.api.api import STATUS
 from market.api.datamanager import MarketDataManager
 from market.defs import REST_API_ENABLED, REST_API_PORT
-from market.models import DatabaseModel
-from market.models.house import House
-from market.models.loanrequest import LoanRequest, Mortgage, Campaign, Investment
-from market.models.profile import BorrowersProfile, Profile
-from market.models.user import User
-from market.database.backends import DatabaseBlock, BlockChain
+# from market.database.backends import DatabaseBlock, BlockChain
 from market.restapi.root_endpoint import RootEndpoint
-from payload import DatabaseModelPayload, APIMessagePayload, SignedConfirmPayload
+
+from market.community import ROLE_INVESTOR, ROLE_BANK
+from market.community.payload import (LoanRequestPayload, LoanRejectPayload, MortgageOfferPayload,
+                                      MortgageAcceptPayload, MortgageRejectPayload, InvestmentOfferPayload,
+                                      InvestmentAcceptPayload, InvestmentRejectPayload, CampaignBidPayload)
 
 
-class MortgageMarketSettings(object):
+class MortgageSettings(object):
 
     def __init__(self):
-        self.user_type = USER_TYPE_INVESTOR
+        self.role = ROLE_INVESTOR
 
 
-class MortgageMarketCommunity(Community):
+class MortgageCommunity(Community):
 
     def __init__(self, dispersy, master, my_member):
-        super(MortgageMarketCommunity, self).__init__(dispersy, master, my_member)
+        super(MortgageCommunity, self).__init__(dispersy, master, my_member)
         self.logger = logging.getLogger(__name__)
         self._api = None
         self._user = None
         self.market_api = None
         self.data_manager = MarketDataManager()
 
-    def initialize(self):
-        super(MortgageMarketCommunity, self).initialize()
+    def initialize(self, settings=None):
+        super(MortgageCommunity, self).initialize()
+
+        self.settings = settings or MortgageSettings()
 
         # Start the RESTful API if it's enabled
         if REST_API_ENABLED:
             self.market_api = reactor.listenTCP(REST_API_PORT, server.Site(resource=RootEndpoint(self)))
 
-        logger.info("MortgageMarketCommunity initialized")
+        self.logger.info("MortgageCommunity initialized")
+
+        # TEST USER..
+        # self.user = User(self.my_member.public_key.encode('hex'))
+        self.my_user = pb.User(user_id=self.my_member.public_key.encode('hex'), role=self.settings.role,
+                               profile=pb.Profile(first_name='firstname',
+                                                  last_name='lastname',
+                                                  email='email',
+                                                  iban='iban',
+                                                  phone_number='phone'))
+        self.users = {}
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -72,15 +82,15 @@ class MortgageMarketCommunity(Community):
         return [master]
 
     def initiate_meta_messages(self):
-        meta_messages = super(MortgageMarketCommunity, self).initiate_meta_messages()
+        meta_messages = super(MortgageCommunity, self).initiate_meta_messages()
         for i, mm in enumerate(meta_messages):
             if mm.name == "dispersy-introduction-request":
                 meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
-                                           mm.destination, MortgageMarketIntroductionRequestPayload(),
+                                           mm.destination, MortgageIntroductionRequestPayload(),
                                            mm.check_callback, mm.handle_callback)
             elif mm.name == "dispersy-introduction-response":
                 meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
-                                           mm.destination, MortgageMarketIntroductionResponsePayload(),
+                                           mm.destination, MortgageIntroductionResponsePayload(),
                                            mm.check_callback, mm.handle_callback)
 
         return meta_messages + [Message(self, u"loan-request",
@@ -96,7 +106,7 @@ class MortgageMarketCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        LoanRequestRejectPayload(),
+                                        LoanRejectPayload(),
                                         self._generic_timeline_check,
                                         self.on_loan_reject),
                                 Message(self, u"mortgage-offer",
@@ -112,7 +122,7 @@ class MortgageMarketCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        MortgageAcceptSignedPayload(),
+                                        MortgageAcceptPayload(),
                                         self._generic_timeline_check,
                                         self.on_mortgage_accept),
                                 Message(self, u"mortgage-reject",
@@ -144,7 +154,7 @@ class MortgageMarketCommunity(Community):
                                         PublicResolution(),
                                         DirectDistribution(),
                                         CandidateDestination(),
-                                        MortgageAcceptSignedPayload(),
+                                        InvestmentRejectPayload(),
                                         self._generic_timeline_check,
                                         self.on_investment_reject),
                                 Message(self, u"campaign-bid",
@@ -154,34 +164,35 @@ class MortgageMarketCommunity(Community):
                                         CommunityDestination(node_count=10),
                                         CampaignBidPayload(),
                                         self._generic_timeline_check,
-                                        self.on_campaign_bid),
-                                Message(self, u"signed-confirm",
-                                        DoubleMemberAuthentication(allow_signature_func=self.allow_signed_confirm_request),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        SignedConfirmPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_signed_confirm_response)]
+                                        self.on_campaign_bid)]
+#                                 Message(self, u"signed-confirm",
+#                                         DoubleMemberAuthentication(allow_signature_func=self.allow_signed_confirm_request),
+#                                         PublicResolution(),
+#                                         DirectDistribution(),
+#                                         CandidateDestination(),
+#                                         SignedConfirmPayload(),
+#                                         self._generic_timeline_check,
+#                                         self.on_signed_confirm_response)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), MortgageMarketConversion(self)]
+        return [DefaultConversion(self), MortgageConversion(self)]
 
     def on_introduction_request(self, messages):
-        extra_payload = [self.setting.user_type]
-        super(MortgageMarketCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
-            self.update_exit_candidates(message.candidate, message.payload.exitnode)
+            print "intro-request", message.payload.user
+            self.users[message.candidate] = message.payload.user
+        super(MortgageCommunity, self).on_introduction_request(messages, [self.my_user])
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
-        extra_payload = [self.setting.user_type]
-        super(MortgageMarketCommunity, self).create_introduction_request(destination, allow_sync, forward,
-                                                                 is_fast_walker, extra_payload)
+        print destination
+        super(MortgageCommunity, self).create_introduction_request(destination, allow_sync, forward,
+                                                                   is_fast_walker, [self.my_user])
 
     def on_introduction_response(self, messages):
-        super(MortgageMarketCommunity, self).on_introduction_response(messages)
         for message in messages:
-            self.update_exit_candidates(message.candidate, message.payload.exitnode)
+            print "intro-response", message.payload.user
+            self.users[message.candidate] = message.payload.user
+        super(MortgageCommunity, self).on_introduction_response(messages)
 
     def on_loan_request(self, message):
         for message in message:
@@ -224,12 +235,15 @@ class MortgageMarketCommunity(Community):
             pass
 
     def send_loan_request(self, loan_request, house, borrowers_profile):
+        meta = self.get_meta_message(u"load-request")
+        msg = meta.impl(authentication=(self._my_member,),
+                        distribution=(self.global_time,), payload=(loan_request, house, borrowers_profile))
+        self.send_packet([c for c, u in self.users.iteritems() if u.role & ROLE_BANK], meta.name, msg.packet)
+
+    def send_loan_reject(self, loan_request):
            pass
 
-    def send_loan_reject(self, load_request):
-           pass
-
-    def send_mortgage_offer(self, load_request, mortgage):
+    def send_mortgage_offer(self, loan_request, mortgage):
            pass
 
     def send_mortgage_accept(self, mortgage, campaign):
@@ -249,3 +263,5 @@ class MortgageMarketCommunity(Community):
 
     def send_campaign_bid(self, investment, campaign, loan_request, house, mortgage):
            pass
+
+

@@ -1,191 +1,293 @@
-from dispersy.payload import Payload
-from market.models import DatabaseModel
+import mortgage_pb2 as pb
+
+from market.dispersy.payload import Payload, IntroductionRequestPayload, IntroductionResponsePayload
 
 
-class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
+class MortgageIntroductionRequestPayload(IntroductionRequestPayload):
 
     class Implementation(IntroductionRequestPayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, user_type=False):
-            super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
-            assert isinstance(user_type, int), type(user_type)
-            self._user_type = user_type
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, user=None):
+            super(MortgageIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+            self._user = user
 
         @property
-        def user_type(self):
-            return self._user_type
+        def user(self):
+            return self._user
 
 
-class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
+class MortgageIntroductionResponsePayload(IntroductionResponsePayload):
 
     class Implementation(IntroductionResponsePayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, user_type=False):
-            super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
-            assert isinstance(user_type, int), type(user_type)
-            self._user_type = user_type
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, user=None):
+            super(MortgageIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
+            self._user = user
 
         @property
-        def user_type(self):
-            return self._user_type
+        def user(self):
+            return self._user
 
-class DatabaseModelPayload(Payload):
-    """
-    This is a DatabaseModelPayload, a generic payload that can be used to pass an arbitrary number of models to other
-    users on the network.
 
-    `fields' is a list of fields being based in the `models` dictionary. Thus the amount of models transfered is determined by the amount of fields defined.
-    """
-
+class LoanRequestPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, fields, models):
-            assert isinstance(fields, list)
-            assert isinstance(models, dict)
-            for field in fields:
-                assert field in models
-                assert isinstance(models[field], DatabaseModel)
+        def __init__(self, meta, investment, campaign, loan_request, house, borrowers_profile):
+            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
+            assert isinstance(house, pb.House), type(house)
+            assert isinstance(borrowers_profile, pb.BorrowersProfile), type(borrowers_profile)
 
-            super(DatabaseModelPayload.Implementation, self).__init__(meta)
-
-            self._fields = fields
-            self._models = models
+            super(Payload.Implementation, self).__init__(meta)
+            self._loan_request = loan_request
+            self._house = house
+            self._borrowers_profile = borrowers_profile
 
         @property
-        def models(self):
-            return self._models
+        def loan_request(self):
+            return self._loan_request
 
         @property
-        def fields(self):
-            return self._fields
+        def house(self):
+            return self._house
 
-        def get(self, field):
-            if field in self._models:
-                return self._models[field]
+        @property
+        def borrowers_profile(self):
+            return self._borrowers_profile
 
 
-class APIMessagePayload(Payload):
-    """
-    This is a DatabaseModelPayload, a generic payload that can be used to pass an arbitrary number of models to other
-    users on the network.
-
-    `fields' is a list of fields being based in the `models` dictionary. Thus the amount of models transfered is determined by the amount of fields defined.
-    """
-
+class LoanRejectPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, request, fields, models):
-            assert isinstance(request, int)
-            assert isinstance(fields, list)
-            assert isinstance(models, dict)
+        def __init__(self, meta, loan_request):
+            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
 
-            for field in fields:
-                assert field in models
-                assert isinstance(models[field], DatabaseModel), "%s is %s which is not a DatabaseModel" % (field, models[field])
-
-            super(APIMessagePayload.Implementation, self).__init__(meta)
-
-            self._request = request
-            self._fields = fields
-            self._models = models
+            super(Payload.Implementation, self).__init__(meta)
+            self._loan_request = loan_request
 
         @property
-        def request(self):
-            return self._request
-
-        @property
-        def models(self):
-            return self._models
-
-        @property
-        def fields(self):
-            return self._fields
-
-        def get(self, field):
-            if field in self._models:
-                return self._models[field]
+        def loan_request(self):
+            return self._loan_request
 
 
-class SignedConfirmPayload(Payload):
+class MortgageOfferPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, benefactor, beneficiary, agreement_benefactor, agreement_beneficiary,
-                     sequence_number_benefactor, sequence_number_beneficiary, previous_hash_benefactor,
-                     previous_hash_beneficiary, signature_benefactor, signature_beneficiary, insert_time):
-            assert isinstance(benefactor, str)
-            assert isinstance(beneficiary, str)
-            assert isinstance(agreement_benefactor, DatabaseModel)
-            if agreement_beneficiary:
-                assert isinstance(agreement_beneficiary, DatabaseModel)
-            assert isinstance(sequence_number_benefactor, int)
-            assert isinstance(sequence_number_beneficiary, int)
-            assert isinstance(previous_hash_benefactor, str), "Previous has not a string, rather %s with type %s" % (
-            previous_hash_benefactor, type(previous_hash_benefactor))
-            assert isinstance(previous_hash_beneficiary, str)
-            assert isinstance(signature_benefactor, str)
-            assert isinstance(signature_beneficiary, str)
-            assert isinstance(insert_time, int)
+        def __init__(self, meta, loan_request, mortgage):
+            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
+            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
 
-            super(SignedConfirmPayload.Implementation, self).__init__(meta)
-
-            self._benefactor = benefactor
-            self._beneficiary = beneficiary
-            self._agreement_benefactor = agreement_benefactor
-            self._agreement_beneficiary = agreement_beneficiary
-            self._sequence_number_benefactor = sequence_number_benefactor
-            self._sequence_number_beneficiary = sequence_number_beneficiary
-            self._previous_hash_benefactor = previous_hash_benefactor
-            self._previous_hash_beneficiary = previous_hash_beneficiary
-            self._signature_benefactor = signature_benefactor
-            self._signature_beneficiary = signature_beneficiary
-            self._insert_time = insert_time
+            super(Payload.Implementation, self).__init__(meta)
+            self._loan_request = loan_request
+            self._mortgage = mortgage
 
         @property
-        def benefactor(self):
-            return self._benefactor
+        def loan_request(self):
+            return self._loan_request
 
         @property
-        def beneficiary(self):
-            return self._beneficiary
+        def mortgage(self):
+            return self._mortgage
+
+
+class MortgageAcceptPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, campaign, mortgage):
+            assert isinstance(campaign, pb.Campaign), type(campaign)
+            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
+
+            super(Payload.Implementation, self).__init__(meta)
+            self._campaign = campaign
+            self._mortgage = mortgage
 
         @property
-        def agreement_benefactor(self):
-            return self._agreement_benefactor
+        def campaign(self):
+            return self._campaign
 
         @property
-        def agreement_beneficiary(self):
-            return self._agreement_beneficiary
+        def mortgage(self):
+            return self._mortgage
+
+
+class MortgageRejectPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, mortgage):
+            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
+
+            super(Payload.Implementation, self).__init__(meta)
+            self._mortgage = mortgage
 
         @property
-        def sequence_number_benefactor(self):
-            return self._sequence_number_benefactor
+        def mortgage(self):
+            return self._mortgage
+
+
+class InvestmentOfferPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, investment, ivestor_profile):
+            assert isinstance(investment, pb.Investment), type(investment)
+            assert isinstance(ivestor_profile, pb.Profile), type(ivestor_profile)
+
+            super(Payload.Implementation, self).__init__(meta)
+            self._investment = investment
+            self._ivestor_profile = ivestor_profile
 
         @property
-        def sequence_number_beneficiary(self):
-            return self._sequence_number_beneficiary
+        def investment(self):
+            return self._investment
 
         @property
-        def previous_hash_benefactor(self):
-            return self._previous_hash_benefactor
+        def ivestor_profile(self):
+            return self._ivestor_profile
+
+
+class InvestmentAcceptPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, investment, borrowers_profile):
+            assert isinstance(investment, pb.Investment), type(investment)
+            assert isinstance(borrowers_profile, pb.BorrowersProfile), type(borrowers_profile)
+
+            super(Payload.Implementation, self).__init__(meta)
+            self._investment = investment
+            self._borrowers_profile = borrowers_profile
 
         @property
-        def previous_hash_beneficiary(self):
-            return self._previous_hash_beneficiary
+        def investment(self):
+            return self._investment
 
         @property
-        def signature_benefactor(self):
-            return self._signature_benefactor
+        def borrowers_profile(self):
+            return self._borrowers_profile
+
+
+class InvestmentRejectPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, investment):
+            assert isinstance(investment, pb.Investment), type(investment)
+
+            super(Payload.Implementation, self).__init__(meta)
+            self._investment = investment
 
         @property
-        def signature_beneficiary(self):
-            return self._signature_beneficiary
+        def investment(self):
+            return self._investment
 
-        @signature_benefactor.setter
-        def signature_benefactor(self, value):
-            self._signature_benefactor = value
 
-        @signature_beneficiary.setter
-        def signature_beneficiary(self, value):
-            self._signature_beneficiary = value
+class CampaignBidPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, investment, campaign, loan_request, house, mortgage):
+            assert isinstance(investment, pb.Investment), type(investment)
+            assert isinstance(campaign, pb.Campaign), type(campaign)
+            assert isinstance(loan_request, pb.LoanRequest), type(loan_request)
+            assert isinstance(house, pb.House), type(house)
+            assert isinstance(mortgage, pb.Mortgage), type(mortgage)
+
+            super(Payload.Implementation, self).__init__(meta)
+            self._investment = investment
+            self._campaign = campaign
+            self._loan_request = loan_request
+            self._house = house
+            self._mortgage = mortgage
 
         @property
-        def insert_time(self):
-            return self._insert_time
+        def investment(self):
+            return self._investment
+
+        @property
+        def campaign(self):
+            return self._campaign
+
+        @property
+        def loan_request(self):
+            return self._loan_request
+
+        @property
+        def house(self):
+            return self._house
+
+        @property
+        def mortgage(self):
+            return self._mortgage
+
+
+# class SignedConfirmPayload(Payload):
+#     class Implementation(Payload.Implementation):
+#         def __init__(self, meta, benefactor, beneficiary, agreement_benefactor, agreement_beneficiary,
+#                      sequence_number_benefactor, sequence_number_beneficiary, previous_hash_benefactor,
+#                      previous_hash_beneficiary, signature_benefactor, signature_beneficiary, insert_time):
+#             assert isinstance(benefactor, str)
+#             assert isinstance(beneficiary, str)
+#             assert isinstance(agreement_benefactor, DatabaseModel)
+#             if agreement_beneficiary:
+#                 assert isinstance(agreement_beneficiary, DatabaseModel)
+#             assert isinstance(sequence_number_benefactor, int)
+#             assert isinstance(sequence_number_beneficiary, int)
+#             assert isinstance(previous_hash_benefactor, str), "Previous has not a string, rather %s with type %s" % (
+#             previous_hash_benefactor, type(previous_hash_benefactor))
+#             assert isinstance(previous_hash_beneficiary, str)
+#             assert isinstance(signature_benefactor, str)
+#             assert isinstance(signature_beneficiary, str)
+#             assert isinstance(insert_time, int)
+#
+#             super(SignedConfirmPayload.Implementation, self).__init__(meta)
+#
+#             self._benefactor = benefactor
+#             self._beneficiary = beneficiary
+#             self._agreement_benefactor = agreement_benefactor
+#             self._agreement_beneficiary = agreement_beneficiary
+#             self._sequence_number_benefactor = sequence_number_benefactor
+#             self._sequence_number_beneficiary = sequence_number_beneficiary
+#             self._previous_hash_benefactor = previous_hash_benefactor
+#             self._previous_hash_beneficiary = previous_hash_beneficiary
+#             self._signature_benefactor = signature_benefactor
+#             self._signature_beneficiary = signature_beneficiary
+#             self._insert_time = insert_time
+#
+#         @property
+#         def benefactor(self):
+#             return self._benefactor
+#
+#         @property
+#         def beneficiary(self):
+#             return self._beneficiary
+#
+#         @property
+#         def agreement_benefactor(self):
+#             return self._agreement_benefactor
+#
+#         @property
+#         def agreement_beneficiary(self):
+#             return self._agreement_beneficiary
+#
+#         @property
+#         def sequence_number_benefactor(self):
+#             return self._sequence_number_benefactor
+#
+#         @property
+#         def sequence_number_beneficiary(self):
+#             return self._sequence_number_beneficiary
+#
+#         @property
+#         def previous_hash_benefactor(self):
+#             return self._previous_hash_benefactor
+#
+#         @property
+#         def previous_hash_beneficiary(self):
+#             return self._previous_hash_beneficiary
+#
+#         @property
+#         def signature_benefactor(self):
+#             return self._signature_benefactor
+#
+#         @property
+#         def signature_beneficiary(self):
+#             return self._signature_beneficiary
+#
+#         @signature_benefactor.setter
+#         def signature_benefactor(self, value):
+#             self._signature_benefactor = value
+#
+#         @signature_beneficiary.setter
+#         def signature_beneficiary(self, value):
+#             self._signature_beneficiary = value
+#
+#         @property
+#         def insert_time(self):
+#             return self._insert_time
 

@@ -57,7 +57,7 @@ message CampaignBidMessage {
     required Mortgage mortgage = 5;
 }
 
-// Object that are included in the Dispersy messages
+// Objects that are included in the Dispersy messages
 message LoanRequest {
     required string user_id = 1;
     required string house_id = 2;
@@ -134,6 +134,6 @@ message User {
     required Profile profile = 3;
     repeated LoanRequest loan_requests = 4;
     repeated Campaign campaigns = 5;
-	repeated Mortgage mortgages = 6;
-	repeated Investment investment = 7;
+    repeated Mortgage mortgages = 6;
+    repeated Investment investment = 7;
 }
