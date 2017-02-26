@@ -2,8 +2,9 @@ import os
 import sys
 import argparse
 import signal
-import logging
+import logging.config
 
+from twisted.python import log
 from twisted.internet import reactor
 
 from market.dispersy.dispersy import Dispersy
@@ -12,7 +13,6 @@ from market.community.community import MortgageCommunity, MortgageSettings
 from market.community import ROLE_BANK, ROLE_BORROWER, ROLE_INVESTOR
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-
 
 class DispersyManager(object):
 
@@ -68,10 +68,15 @@ def main(argv):
     settings = MortgageSettings()
     settings.role = role
 
+    logging.config.fileConfig(os.path.join(BASE_DIR, 'logger.conf'))
 
     manager = DispersyManager(dispersy_port, state_dir)
 
     def start():
+        # Redirect twisted log to standard python logging
+        observer = log.PythonLoggingObserver()
+        observer.start()
+
         manager.start_dispersy()
         manager.start_market(settings=settings)
 

@@ -63,8 +63,9 @@ class MortgageConversion(BinaryConversion):
         user_str = data[offset:offset + user_len]
         offset += user_len
         offset, payload = super(MortgageConversion, self)._decode_introduction_request(placeholder, offset, data)
-        payload._user = pb.IntroductionRequestMessage()
-        payload._user.ParseFromString(user_str)
+        msg = pb.IntroductionRequestMessage()
+        msg.ParseFromString(user_str)
+        payload._user = msg.user
         return (offset, payload)
 
     def _encode_introduction_response(self, message):
@@ -79,8 +80,9 @@ class MortgageConversion(BinaryConversion):
         user_str = data[offset:offset + user_len]
         offset += user_len
         offset, payload = super(MortgageConversion, self)._decode_introduction_response(placeholder, offset, data)
-        payload._user = pb.IntroductionResponseMessage()
-        payload._user.ParseFromString(user_str)
+        msg = pb.IntroductionResponseMessage()
+        msg.ParseFromString(user_str)
+        payload._user = msg.user
         return (offset, payload)
 
     def _encode_loan_request(self, message):

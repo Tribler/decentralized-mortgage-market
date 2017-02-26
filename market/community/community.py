@@ -38,7 +38,7 @@ class MortgageCommunity(Community):
 
     def __init__(self, dispersy, master, my_member):
         super(MortgageCommunity, self).__init__(dispersy, master, my_member)
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger('MortgageLogger')
         self._api = None
         self._user = None
         self.market_api = None
@@ -180,18 +180,18 @@ class MortgageCommunity(Community):
 
     def on_introduction_request(self, messages):
         for message in messages:
-            print "intro-request", message.payload.user
+            self.logger.debug('Got intro-request from %s (role=%d)', message.candidate, message.payload.user.role)
             self.users[message.candidate] = message.payload.user
         super(MortgageCommunity, self).on_introduction_request(messages, [self.my_user])
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
-        print destination
+        self.logger.debug('Sending intro-request to %s', destination)
         super(MortgageCommunity, self).create_introduction_request(destination, allow_sync, forward,
                                                                    is_fast_walker, [self.my_user])
 
     def on_introduction_response(self, messages):
         for message in messages:
-            print "intro-response", message.payload.user
+            self.logger.debug('Got intro-response from %s (role=%d)', message.candidate.sock_addr, message.payload.user.role)
             self.users[message.candidate] = message.payload.user
         super(MortgageCommunity, self).on_introduction_response(messages)
 
