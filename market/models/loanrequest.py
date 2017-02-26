@@ -13,8 +13,8 @@ class LoanRequest(object):
     This class represents a request for a loan.
     """
 
-    def __init__(self, user_id, house, mortgage_type, banks, description, amount_wanted, status):
-        self._user_id = user_id
+    def __init__(self, user, house, mortgage_type, banks, description, amount_wanted, status):
+        self._user = user
         self._house = house
         self._mortgage_type = mortgage_type
         self._banks = banks
@@ -24,11 +24,11 @@ class LoanRequest(object):
 
     @property
     def id(self):
-        return self._user_id + "_" + self._house
+        return self._user.id + "_" + self._house
 
     @property
-    def user_id(self):
-        return self._user_id
+    def user(self):
+        return self._user
 
     @property
     def house(self):
@@ -61,7 +61,7 @@ class LoanRequest(object):
     def to_dictionary(self):
         return {
             "id": self.id,
-            "user_id": self._user_id,
+            "user_id": self._user.id,
             "house_id": self._house.id,
             "mortgage_type": self._mortgage_type.name,
             "banks": self._banks,

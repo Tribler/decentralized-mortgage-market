@@ -8,13 +8,18 @@ class MortgageStatus(Enum):
     REJECTED = 3
 
 
+class MortgageType(Enum):
+    LINEAR = 0
+    FIXEDRATE = 1
+
+
 class Mortgage(object):
     """
     This class represents a mortgage of a specific user. Each mortgage is tied to a house.
     """
 
     def __init__(self, user_id, house, bank, amount, mortgage_type, interest_rate, max_invest_rate, default_rate,
-                 duration, risk, investments, status, campaign_id):
+                 duration, risk, investments, status, campaign=None):
         self._user_id = user_id
         self._house = house
         self._bank = bank
@@ -27,7 +32,7 @@ class Mortgage(object):
         self._risk = risk
         self._investments = investments
         self._status = status
-        self._campaign_id = campaign_id
+        self._campaign = campaign
 
     @property
     def id(self):
@@ -86,13 +91,13 @@ class Mortgage(object):
         self._status = value
 
     @property
-    def campaign_id(self):
-        return self._campaign_id
+    def campaign(self):
+        return self._campaign
 
     def to_dictionary(self):
         return {
             "user_id": self._user_id,
-            "house_id": self.house.id,
+            "house": self.house.to_dictionary(),
             "bank": self._bank,
             "amount": self._amount,
             "mortgage_type": self._mortgage_type.name,
@@ -102,5 +107,5 @@ class Mortgage(object):
             "duration": self._duration,
             "risk": self._risk,
             "status": self._status,
-            "campaign_id": self._campaign_id
+            "campaign": self._campaign.to_dictionary()
         }
