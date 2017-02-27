@@ -119,5 +119,4 @@ class Mortgage(object):
             "duration": self._duration,
             "risk": self._risk,
             "status": self._status,
-            "campaign": self._campaign.to_dictionary()
         }

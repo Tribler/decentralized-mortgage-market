@@ -19,7 +19,53 @@ class CampaignsEndpoint(resource.Resource):
         self.market_community = market_community
 
     def render_GET(self, request):
-        return json.dumps({"campaigns": [user.to_dictionary() for user in self.data_manager.campaigns]})
+        """
+        .. http:get:: /campaigns
+
+        A GET request to this endpoint returns information about the ongoing campaigns.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/campaigns
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "campaigns": [{
+                        "id": 8593AB_23,
+                        "mortgage": {
+                            "user_id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                            "house": {
+                                "postal_code": "8593AB",
+                                "house_number": "23",
+                                "address": "Teststraat, Rotterdam",
+                                "price": 395000,
+                                "url": "http://www.funda.nl/koop/hollandscheveld/huis-49981036-3e-zandwijkje-8/",
+                                "seller_phone_number": "+31685938573",
+                                "seller_email": "seller@gmail.com"
+                            },
+                            "bank": "ABN",
+                            "amount": 395000,
+                            "bank_amount": 200000,
+                            "mortgage_type": "FIXEDRATE",
+                            "interest_rate": 5.3,
+                            "max_investment_rate": 4.3,
+                            "default_rate": 4.3,
+                            "duration": 120,
+                            "risk": 300000,
+                            "status": "ACCEPTED",
+                        },
+                        "amount": "195000",
+                        "end_date": "23-08-2017",
+                        "completed": False
+                    }, ...]
+                }
+        """
+        return json.dumps({"campaigns": [campaign.to_dictionary() for campaign in self.data_manager.campaigns]})
 
     def render_PUT(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
