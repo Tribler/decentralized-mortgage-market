@@ -88,7 +88,7 @@ class MortgageCommunity(Community):
                              'current_address': '',
                              'document_list': ['']}
 
-        reactor.callLater(300, self.send_loan_request, loan_request, house, borrowers_profile)
+        reactor.callLater(30, self.send_loan_request, loan_request, house, borrowers_profile)
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -109,17 +109,24 @@ class MortgageCommunity(Community):
 
     def initiate_meta_messages(self):
         meta_messages = super(MortgageCommunity, self).initiate_meta_messages()
-        for i, mm in enumerate(meta_messages):
-            if mm.name == "dispersy-introduction-request":
-                meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
-                                           mm.destination, MortgageIntroductionRequestPayload(),
-                                           mm.check_callback, mm.handle_callback)
-            elif mm.name == "dispersy-introduction-response":
-                meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
-                                           mm.destination, MortgageIntroductionResponsePayload(),
-                                           mm.check_callback, mm.handle_callback)
 
-        return meta_messages + [Message(self, u"loan-request",
+        return meta_messages + [Message(self, u"user-request",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        ProtobufPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_user_request),
+                                Message(self, u"user-response",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        ProtobufPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_user_response),
+                                Message(self, u"loan-request",
                                         MemberAuthentication(),
                                         PublicResolution(),
                                         DirectDistribution(),
@@ -203,21 +210,37 @@ class MortgageCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MortgageConversion(self)]
 
+    def on_user_request(self, messages):
+        for message in messages:
+            self.logger.debug('Got user-request from %s (role=%d)',
+                              message.candidate.sock_addr,
+                              message.payload.dictionary['user']['role'])
+
+            # Store the user
+            self.users[message.candidate] = message.payload.dictionary['user']
+            # Send a response
+            self.send_user_response(message.candidate)
+
+    def on_user_response(self, messages):
+        for message in messages:
+            self.logger.debug('Got user-response from %s (role=%d)',
+                              message.candidate.sock_addr,
+                              message.payload.dictionary['user']['role'])
+            self.users[message.candidate] = message.payload.dictionary['user']
+
     def on_introduction_request(self, messages):
         for message in messages:
-            self.logger.debug('Got intro-request from %s (role=%d)', message.candidate, message.payload.user['role'])
-            self.users[message.candidate] = message.payload.user
-        super(MortgageCommunity, self).on_introduction_request(messages, [self.my_user])
+            self.logger.debug('Got intro-request from %s)', message.candidate)
+        super(MortgageCommunity, self).on_introduction_request(messages)
 
-    def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
+    def create_introduction_request(self, destination, *args, **kwargs):
         self.logger.debug('Sending intro-request to %s', destination)
-        super(MortgageCommunity, self).create_introduction_request(destination, allow_sync, forward,
-                                                                   is_fast_walker, [self.my_user])
+        super(MortgageCommunity, self).create_introduction_request(destination, *args, **kwargs)
 
     def on_introduction_response(self, messages):
         for message in messages:
-            self.logger.debug('Got intro-response from %s (role=%d)', message.candidate.sock_addr, message.payload.user['role'])
-            self.users[message.candidate] = message.payload.user
+            self.logger.debug('Got intro-response from %s)', message.candidate.sock_addr)
+            self.send_user_request(message.candidate)
         super(MortgageCommunity, self).on_introduction_response(messages)
 
     def on_loan_request(self, message):
@@ -259,6 +282,20 @@ class MortgageCommunity(Community):
     def on_signed_confirm_response(self, message):
         for message in message:
             self.logger.debug('Got signed-confirm-response from %s', message.candidate.sock_addr)
+
+    def send_message(self, msg_type, candidates, payload_dict):
+            meta = self.get_meta_message(msg_type)
+            message = meta.impl(authentication=(self.my_member,),
+                                distribution=(self.claim_global_time(),),
+                                destination=candidates,
+                                payload=(payload_dict,))
+            self.dispersy.store_update_forward([message], False, False, True)
+
+    def send_user_request(self, candidate):
+        self.send_message(u'user-request', (candidate,), {'user': self.my_user})
+
+    def send_user_response(self, candidate):
+        self.send_message(u'user-response', (candidate,), {'user': self.my_user})
 
     def send_loan_request(self, loan_request, house, borrowers_profile):
         msg_dict = {'loan_request': loan_request,

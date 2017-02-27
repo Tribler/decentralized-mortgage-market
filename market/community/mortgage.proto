@@ -3,6 +3,14 @@ syntax = "proto2";
 package mortgage;
 
 // Dispersy messages
+message UserRequestMessage {
+    required User user = 1;
+}
+
+message UserResponseMessage {
+    required User user = 1;
+}
+
 message LoanRequestMessage {
     required LoanRequest loan_request = 1;
     required House house = 2;
