@@ -12,79 +12,53 @@ class MortgageConversion(BinaryConversion):
         super(MortgageConversion, self).__init__(community, "\x02")
 
         self.define_meta_message(chr(1),
-                                 community.get_meta_message(u"loan-request"),
-                                 self._encode_loan_request,
-                                 self._decode_loan_request)
+                                 community.get_meta_message(u"user-request"),
+                                 lambda msg: self._encode_protobuf(pb.UserRequestMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.UserRequestMessage, *args))
         self.define_meta_message(chr(2),
-                                 community.get_meta_message(u"loan-reject"),
-                                 self._encode_loan_reject,
-                                 self._decode_loan_reject)
+                                 community.get_meta_message(u"user-response"),
+                                 lambda msg: self._encode_protobuf(pb.UserResponseMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.UserResponseMessage, *args))
         self.define_meta_message(chr(3),
-                                 community.get_meta_message(u"mortgage-offer"),
-                                 self._encode_mortgage_offer,
-                                 self._decode_mortgage_offer)
+                                 community.get_meta_message(u"loan-request"),
+                                 lambda msg: self._encode_protobuf(pb.LoanRequestMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.LoanRequestMessage, *args))
         self.define_meta_message(chr(4),
-                                 community.get_meta_message(u"mortgage-accept"),
-                                 self._encode_mortgage_accept,
-                                 self._decode_mortgage_accept)
+                                 community.get_meta_message(u"loan-reject"),
+                                 lambda msg: self._encode_protobuf(pb.LoanRejectMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.LoanRejectMessage, *args))
         self.define_meta_message(chr(5),
-                                 community.get_meta_message(u"mortgage-reject"),
-                                 self._encode_mortgage_reject,
-                                 self._decode_mortgage_reject)
+                                 community.get_meta_message(u"mortgage-offer"),
+                                 lambda msg: self._encode_protobuf(pb.MortgageOfferMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.MortgageOfferMessage, *args))
         self.define_meta_message(chr(6),
-                                 community.get_meta_message(u"investment-offer"),
-                                 self._encode_investment_offer,
-                                 self._decode_investment_offer)
+                                 community.get_meta_message(u"mortgage-accept"),
+                                 lambda msg: self._encode_protobuf(pb.MortgageAcceptMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.MortgageAcceptMessage, *args))
         self.define_meta_message(chr(7),
-                                 community.get_meta_message(u"investment-accept"),
-                                 self._encode_investment_accept,
-                                 self._decode_investment_accept)
+                                 community.get_meta_message(u"mortgage-reject"),
+                                 lambda msg: self._encode_protobuf(pb.MortgageRejectMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.MortgageRejectMessage, *args))
         self.define_meta_message(chr(8),
-                                 community.get_meta_message(u"investment-reject"),
-                                 self._encode_investment_reject,
-                                 self._decode_investment_reject)
+                                 community.get_meta_message(u"investment-offer"),
+                                 lambda msg: self._encode_protobuf(pb.InvestmentOfferMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.InvestmentOfferMessage, *args))
         self.define_meta_message(chr(9),
+                                 community.get_meta_message(u"investment-accept"),
+                                 lambda msg: self._encode_protobuf(pb.InvestmentAcceptMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.InvestmentAcceptMessage, *args))
+        self.define_meta_message(chr(10),
+                                 community.get_meta_message(u"investment-reject"),
+                                 lambda msg: self._encode_protobuf(pb.InvestmentRejectMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.InvestmentRejectMessage, *args))
+        self.define_meta_message(chr(11),
                                  community.get_meta_message(u"campaign-bid"),
-                                 self._encode_campaign_bid,
-                                 self._decode_campaign_bid)
+                                 lambda msg: self._encode_protobuf(pb.CampaignBidMessage, msg),
+                                 lambda *args: self._decode_protobuf(pb.CampaignBidMessage, *args))
 #         self.define_meta_message(chr(10),
 #                                  community.get_meta_message(u"signed-confirm"),
 #                                  self._encode_signed_confirm,
 #                                  self._decode_signed_confirm)
-
-    def _encode_introduction_request(self, message):
-        user_str = dict_to_protobuf(pb.User, message.payload.user).SerializeToString()
-        data = [pack("!I", len(user_str),), user_str]
-        data += list(super(MortgageConversion, self)._encode_introduction_request(message))
-        return tuple(data)
-
-    def _decode_introduction_request(self, placeholder, offset, data):
-        user_len, = unpack_from('!I', data, offset)
-        offset += 4
-        user_str = data[offset:offset + user_len]
-        offset += user_len
-        offset, payload = super(MortgageConversion, self)._decode_introduction_request(placeholder, offset, data)
-        msg = pb.User()
-        msg.ParseFromString(user_str)
-        payload._user = protobuf_to_dict(msg)
-        return (offset, payload)
-
-    def _encode_introduction_response(self, message):
-        user_str = dict_to_protobuf(pb.User, message.payload.user).SerializeToString()
-        data = [pack("!I", len(user_str),), user_str]
-        data += list(super(MortgageConversion, self)._encode_introduction_response(message))
-        return tuple(data)
-
-    def _decode_introduction_response(self, placeholder, offset, data):
-        user_len, = unpack_from('!I', data, offset)
-        offset += 4
-        user_str = data[offset:offset + user_len]
-        offset += user_len
-        offset, payload = super(MortgageConversion, self)._decode_introduction_response(placeholder, offset, data)
-        msg = pb.User()
-        msg.ParseFromString(user_str)
-        payload._user = protobuf_to_dict(msg)
-        return (offset, payload)
 
     def _encode_protobuf(self, message_cls, message):
         return dict_to_protobuf(message_cls, message.payload.dictionary).SerializeToString(),
@@ -93,65 +67,6 @@ class MortgageConversion(BinaryConversion):
         msg = message_cls()
         msg.ParseFromString(data[offset:])
         return len(data), placeholder.meta.payload.implement(protobuf_to_dict(msg))
-
-    def _encode_loan_request(self, message):
-        return self._encode_protobuf(pb.LoanRequestMessage, message)
-
-    def _decode_loan_request(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.LoanRequestMessage, placeholder, offset, data)
-
-    def _encode_loan_reject(self, message):
-        return self._encode_protobuf(pb.LoanRejectMessage, message)
-
-    def _decode_loan_reject(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.LoanRejectMessage, placeholder, offset, data)
-
-    def _encode_mortgage_offer(self, message):
-        return self._encode_protobuf(pb.MortgageOfferMessage, message)
-
-    def _decode_mortgage_offer(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.MortgageOfferMessage, placeholder, offset, data)
-
-    def _encode_mortgage_accept(self, message):
-        return self._encode_protobuf(pb.MortgageAcceptMessage, message)
-
-    def _decode_mortgage_accept(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.MortgageAcceptMessage, placeholder, offset, data)
-
-    def _encode_mortgage_reject(self, message):
-        return self._encode_protobuf(pb.MortgageRejectMessage, message)
-
-    def _decode_mortgage_reject(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.MortgageRejectMessage, placeholder, offset, data)
-
-    def _encode_investment_offer(self, message):
-        return self._encode_protobuf(pb.InvestmentOfferMessage, message)
-
-    def _decode_investment_offer(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.InvestmentOfferMessage, placeholder, offset, data)
-
-    def _encode_investment_accept(self, message):
-        return self._encode_protobuf(pb.InvestmentAcceptMessage, message)
-
-    def _decode_investment_accept(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.InvestmentAcceptMessage, placeholder, offset, data)
-
-    def _encode_investment_reject(self, message):
-        return self._encode_protobuf(pb.InvestmentRejectMessage, message)
-
-    def _decode_investment_reject(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.InvestmentRejectMessage, placeholder, offset, data)
-
-    def _encode_campaign_bid(self, message):
-        return self._encode_protobuf(pb.CampaignBidMessage, message)
-
-    def _decode_campaign_bid(self, placeholder, offset, data):
-        return self._decode_protobuf(pb.CampaignBidMessage, placeholder, offset, data)
-
-
-
-
-
 
 
 
