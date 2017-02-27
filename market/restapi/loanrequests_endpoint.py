@@ -17,6 +17,33 @@ class LoanRequests(resource.Resource):
         self.market_community = market_community
 
     def render_GET(self, request):
+        """
+        .. http:get:: /loanrequests
+
+        A GET request to this endpoint returns a list of loan requests. Only accessible by financial institutions.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/loanrequests
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "loan_requests": [{
+                        "id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3_8948AB_16",
+                        "user_id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                        "mortgage_type": "FIXEDRATE",
+                        "banks": ["ABN", "RABO"],
+                        "description": "...",
+                        "amount_wanted": 395000,
+                        "status": "PENDING"
+                    }, ...]
+                }
+        """
         return json.dumps({"loan_requests": [loan_request.to_dictionary() for
                                              loan_request in self.market_community.data_manager.get_loan_requests()]})
 
@@ -36,7 +63,23 @@ class SpecificLoanRequestEndpoint(resource.Resource):
 
     def render_PATCH(self, request):
         """
-        Accept/reject a loan request offer
+        .. http:patch:: /loanrequests/(string: loan_request_id)
+
+        A PATCH request to this endpoint will accept/reject a loan request.
+        This is performed by a financial institution.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X PATCH http://localhost:8085/loanrequests/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3_8948AB_16
+                    --data "state=ACCEPT"
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"success": True}
         """
         loan_request = self.market_community.data_manager.get_loan_request(self.loan_request_id)
         if not loan_request:

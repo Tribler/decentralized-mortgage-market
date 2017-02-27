@@ -24,7 +24,7 @@ class LoanRequest(object):
 
     @property
     def id(self):
-        return self._user.id + "_" + self._house
+        return self._user.id + "_" + self._house.id
 
     @property
     def user(self):
