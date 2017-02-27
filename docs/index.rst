@@ -12,11 +12,7 @@ Contents:
    :maxdepth: 1
 
    Introduction <introduction>
-   Models <models>
-   API <api>
-
-
-
+   UML Diagram <class_diagram>
 
 Indices and tables
 ==================
