@@ -13,6 +13,29 @@ class UsersEndpoint(resource.Resource):
         self.market_community = market_community
 
     def render_GET(self, request):
+        """
+        .. http:get:: /users
+
+        A GET request to this endpoint returns information about the known users in the system.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/users
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "users": [{
+                        "id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                        "role": "BORROWER",
+                        "time_added": "29-03-2017 13:59:39"
+                    }, ...]
+                }
+        """
         return json.dumps({"users": [user.to_dictionary() for user in self.data_manager.users]})
 
     def getChild(self, path, request):
@@ -30,6 +53,29 @@ class SpecificUserEndpoint(resource.Resource):
         self.putChild("profile", SpecificUserProfileEndpoint(market_community, pub_key))
 
     def render_GET(self, request):
+        """
+        .. http:get:: /user/(string: user_id)
+
+        A GET request to this endpoint returns information about a particular user in the system.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/user/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "user": {
+                        "id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                        "role": "BORROWER",
+                        "time_added": "29-03-2017 13:59:39"
+                    }
+                }
+        """
         user = self.market_community.data_manager.get_user(self.pub_key)
         if not user:
             request.setResponseCode(http.NOT_FOUND)
@@ -49,6 +95,32 @@ class SpecificUserProfileEndpoint(resource.Resource):
         self.pub_key = pub_key
 
     def render_GET(self, request):
+        """
+        .. http:get:: /user/(string: user_id)
+
+        A GET request to this endpoint returns information about a profile of a user.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/user/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3/profile
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "profile": {
+                        "type": "investor",
+                        "first_name": "Piet",
+                        "last_name": "Tester",
+                        "email": "piettester@gmail.com",
+                        "iban": "NL90RABO0759395830",
+                        "phone_number": "06685985936"
+                    }
+                }
+        """
         user = self.market_community.data_manager.get_user(self.pub_key)
         if not user:
             request.setResponseCode(http.NOT_FOUND)

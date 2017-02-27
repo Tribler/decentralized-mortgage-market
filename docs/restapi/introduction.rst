@@ -14,3 +14,5 @@ Endpoints
    :maxdepth: 2
 
    campaigns
+   loanrequests
+   users
