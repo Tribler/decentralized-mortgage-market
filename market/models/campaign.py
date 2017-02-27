@@ -43,7 +43,7 @@ class Campaign(object):
     def to_dictionary(self):
         return {
             "id": self.id,
-            "user": self._user.id,
+            "user_id": self._user.id,
             "mortgage": self._mortgage.to_dictionary(),
             "amount": self._amount,
             "end_date": self._end_date,

@@ -57,7 +57,7 @@ class CampaignsEndpoint(resource.Resource):
                             "default_rate": 4.3,
                             "duration": 120,
                             "risk": 300000,
-                            "status": "ACCEPTED",
+                            "status": "ACCEPTED"
                         },
                         "amount": "195000",
                         "end_date": "23-08-2017",
@@ -68,11 +68,29 @@ class CampaignsEndpoint(resource.Resource):
         return json.dumps({"campaigns": [campaign.to_dictionary() for campaign in self.data_manager.campaigns]})
 
     def render_PUT(self, request):
+        """
+        .. http:put:: /campaigns
+
+        A PUT request to this endpoint will create a new campaign. Various parameters are required:
+        - mortgage_id: the identifier of the mortgage. This mortgage should be yours and be accepted.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X PUT http://localhost:8085/campaign --data "mortgage_id=8593AB_89"
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"success": True}
+        """
         parameters = http.parse_qs(request.content.read(), 1)
         mortgage_id = get_param(parameters, 'mortgage_id')
         if not mortgage_id:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "missing mortage id"})
+            return json.dumps({"error": "missing mortgage id"})
 
         mortgage = self.market_community.data_manager.get_mortgage(mortgage_id)
         if not mortgage:
@@ -114,6 +132,53 @@ class SpecificCampaignEndpoint(resource.Resource):
         self.putChild("investments", CampaignInvestmentsEndpoint(market_community, campaign_id))
 
     def render_GET(self, request):
+        """
+        .. http:get:: /campaigns/(string: campaign_id)
+
+        A GET request to this endpoint returns detailled information about a specific campaign.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/campaigns/8593AB_89
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "campaign": {
+                        "id": "8593AB_89",
+                        "user_id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                        "mortgage": {
+                            "user_id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                            "house": {
+                                "postal_code": "8593AB",
+                                "house_number": "23",
+                                "address": "Teststraat, Rotterdam",
+                                "price": 395000,
+                                "url": "http://www.funda.nl/koop/hollandscheveld/huis-49981036-3e-zandwijkje-8/",
+                                "seller_phone_number": "+31685938573",
+                                "seller_email": "seller@gmail.com"
+                            },
+                            "bank": "ABN",
+                            "amount": 395000,
+                            "bank_amount": 200000,
+                            "mortgage_type": "FIXEDRATE",
+                            "interest_rate": 5.3,
+                            "max_investment_rate": 4.3,
+                            "default_rate": 4.3,
+                            "duration": 120,
+                            "risk": 300000,
+                            "status": "ACCEPTED"
+                        },
+                        "amount": "195000",
+                        "end_date": "23-08-2017",
+                        "completed": False
+                    }
+                }
+        """
         campaign = self.market_community.data_manager.get_campaign(self.campaign_id)
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
@@ -135,6 +200,32 @@ class CampaignInvestmentsEndpoint(resource.Resource):
         return SpecificCampaignInvestmentEndpoint(self.market_community, self.campaign_id, path)
 
     def render_GET(self, request):
+        """
+        .. http:get:: /campaigns/(string: campaign_id)/investments
+
+        A GET request to this endpoint returns a list of investments of a campaign.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/campaigns/8593AB_89/investments
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "investments": [{
+                        "investor_id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                        "amount": 9000,
+                        "duration": 24,
+                        "interest_rate": 4.9,
+                        "mortgage_id": "8593AB_89",
+                        "status": "ACCEPTED"
+                    }, ...]
+                }
+        """
         campaign = self.market_community.data_manager.get_campaign(self.campaign_id)
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
@@ -155,7 +246,23 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
 
     def render_PATCH(self, request):
         """
-        Accept/reject an investment offer
+        .. http:patch:: /campaigns/(string: campaign_id)/investments/(string: investment_id)
+
+        A PATCH request to this endpoint will accept/reject an investment offer. This is performed by the borrower
+        of a mortgage.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X PATCH http://localhost:8085/campaigns/8948EE_43/investments/4344503b7e797ebf31582327a5baae35b11bda01
+                    --data "state=ACCEPT"
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"success": True}
         """
         campaign = self.market_community.data_manager.get_campaign(self.campaign_id)
         if not campaign:
