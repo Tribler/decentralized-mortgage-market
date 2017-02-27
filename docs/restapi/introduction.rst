@@ -16,3 +16,4 @@ Endpoints
    campaigns
    loanrequests
    users
+   you

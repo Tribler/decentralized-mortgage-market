@@ -39,6 +39,32 @@ class YouProfileEndpoint(resource.Resource):
         self.market_community = market_community
 
     def render_GET(self, request):
+        """
+        .. http:get:: /user/(string: user_id)/profile
+
+        A GET request to this endpoint returns information about your profile. Returns 404 if no profile is created.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/you/profile
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "profile": {
+                        "type": "investor",
+                        "first_name": "Piet",
+                        "last_name": "Tester",
+                        "email": "piettester@gmail.com",
+                        "iban": "NL90RABO0759395830",
+                        "phone_number": "06685985936"
+                    }
+                }
+        """
         you = self.market_community.data_manager.you
 
         if not you.profile:
@@ -48,6 +74,35 @@ class YouProfileEndpoint(resource.Resource):
         return json.dumps({"profile": you.profile.to_dictionary()})
 
     def render_PUT(self, request):
+        """
+        .. http:put:: /you/profile
+
+        A PUT request to this endpoint will create a profile. Various parameters are required:
+        - role: the role of the user, can be BORROWER or INVESTOR
+        - first_name: the first name of the user
+        - last_name: the last name of the user
+        - email: the email address of the user
+        - iban: the iban number of the user
+        - phone_number: the phone number of the user
+
+        If the user is a borrower, additional information is required:
+        - current_postal_code: the postal code of the current address of the borrower
+        - current_house_number: the house number of the current address of the borrower
+        - current_address: the current address of the borrower
+        - document_list: an array with base64-encoded files
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X PUT http://localhost:8085/you/profile --data "role=BORROWER&first_name=..."
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"success": True}
+        """
         parameters = http.parse_qs(request.content.read(), 1)
         if not get_param(parameters, 'role'):
             request.setResponseCode(http.BAD_REQUEST)
@@ -101,6 +156,32 @@ class YouInvestmentsEndpoint(resource.Resource):
         self.market_community = market_community
 
     def render_GET(self, request):
+        """
+        .. http:get:: /you/investments
+
+        A GET request to this endpoint returns a list of investments that you have made.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/you/investments
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "investments": [{
+                        "investor_id": "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+                        "amount": 9000,
+                        "duration": 24,
+                        "interest_rate": 4.9,
+                        "mortgage_id": "8593AB_89",
+                        "status": "ACCEPTED"
+                    }, ...]
+                }
+        """
         you = self.market_community.data_manager.you
         if not you.role == Role.INVESTOR:
             request.setResponseCode(http.BAD_REQUEST)

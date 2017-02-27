@@ -96,7 +96,7 @@ class SpecificUserProfileEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /user/(string: user_id)
+        .. http:get:: /user/(string: user_id)/profile
 
         A GET request to this endpoint returns information about a profile of a user.
 
