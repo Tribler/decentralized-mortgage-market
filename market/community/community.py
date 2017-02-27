@@ -210,6 +210,21 @@ class MortgageCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MortgageConversion(self)]
 
+    def on_introduction_request(self, messages):
+        for message in messages:
+            self.logger.debug('Got intro-request from %s)', message.candidate)
+        super(MortgageCommunity, self).on_introduction_request(messages)
+
+    def create_introduction_request(self, destination, *args, **kwargs):
+        self.logger.debug('Sending intro-request to %s', destination)
+        super(MortgageCommunity, self).create_introduction_request(destination, *args, **kwargs)
+
+    def on_introduction_response(self, messages):
+        for message in messages:
+            self.logger.debug('Got intro-response from %s)', message.candidate.sock_addr)
+            self.send_user_request(message.candidate)
+        super(MortgageCommunity, self).on_introduction_response(messages)
+
     def on_user_request(self, messages):
         for message in messages:
             self.logger.debug('Got user-request from %s (role=%d)',
@@ -227,21 +242,6 @@ class MortgageCommunity(Community):
                               message.candidate.sock_addr,
                               message.payload.dictionary['user']['role'])
             self.users[message.candidate] = message.payload.dictionary['user']
-
-    def on_introduction_request(self, messages):
-        for message in messages:
-            self.logger.debug('Got intro-request from %s)', message.candidate)
-        super(MortgageCommunity, self).on_introduction_request(messages)
-
-    def create_introduction_request(self, destination, *args, **kwargs):
-        self.logger.debug('Sending intro-request to %s', destination)
-        super(MortgageCommunity, self).create_introduction_request(destination, *args, **kwargs)
-
-    def on_introduction_response(self, messages):
-        for message in messages:
-            self.logger.debug('Got intro-response from %s)', message.candidate.sock_addr)
-            self.send_user_request(message.candidate)
-        super(MortgageCommunity, self).on_introduction_response(messages)
 
     def on_loan_request(self, message):
         for message in message:
@@ -284,12 +284,12 @@ class MortgageCommunity(Community):
             self.logger.debug('Got signed-confirm-response from %s', message.candidate.sock_addr)
 
     def send_message(self, msg_type, candidates, payload_dict):
-            meta = self.get_meta_message(msg_type)
-            message = meta.impl(authentication=(self.my_member,),
-                                distribution=(self.claim_global_time(),),
-                                destination=candidates,
-                                payload=(payload_dict,))
-            self.dispersy.store_update_forward([message], False, False, True)
+        meta = self.get_meta_message(msg_type)
+        message = meta.impl(authentication=(self.my_member,),
+                            distribution=(self.claim_global_time(),),
+                            destination=candidates,
+                            payload=(payload_dict,))
+        self.dispersy.store_update_forward([message], False, False, True)
 
     def send_user_request(self, candidate):
         self.send_message(u'user-request', (candidate,), {'user': self.my_user})
@@ -302,12 +302,7 @@ class MortgageCommunity(Community):
                     'house': house,
                     'borrowers_profile': borrowers_profile}
 
-        meta = self.get_meta_message(u"loan-request")
-        message = meta.impl(authentication=(self.my_member,),
-                            distribution=(self.claim_global_time(),),
-                            destination=tuple([c for c, u in self.users.iteritems() if u['role'] & ROLE_BANK]),
-                            payload=(msg_dict,))
-        self.dispersy.store_update_forward([message], False, False, True)
+        self.send_message(u"loan-request", tuple([c for c, u in self.users.iteritems() if u['role'] & ROLE_BANK]), msg_dict)
 
     def send_loan_reject(self, loan_request):
            pass
