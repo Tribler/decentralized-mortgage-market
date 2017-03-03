@@ -1,0 +1,8 @@
+nose
+cryptography
+twisted
+m2crypto
+netifaces
+mock
+protobuf
+protobuf_to_dict
