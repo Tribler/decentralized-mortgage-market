@@ -6,7 +6,7 @@ from market.models.loanrequest import LoanRequestStatus
 from market.restapi import get_param
 
 
-class LoanRequests(resource.Resource):
+class LoanRequestsEndpoint(resource.Resource):
     """
     This class handles requests regarding loan requests in the mortgage market community.
     Only accessible by financial institutions.

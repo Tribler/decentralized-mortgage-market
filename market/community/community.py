@@ -17,7 +17,6 @@ from payload import MortgageIntroductionRequestPayload, MortgageIntroductionResp
 
 # from market.api.api import STATUS
 from market.api.datamanager import MarketDataManager
-from market.defs import REST_API_ENABLED, REST_API_PORT
 # from market.database.backends import DatabaseBlock, BlockChain
 from market.restapi.root_endpoint import RootEndpoint
 
@@ -25,37 +24,30 @@ from market.community import ROLE_INVESTOR, ROLE_BANK
 from market.community.payload import ProtobufPayload
 
 
-class MortgageSettings(object):
-
-    def __init__(self):
-        self.role = ROLE_INVESTOR
-
-
-class MortgageCommunity(Community):
+class MarketCommunity(Community):
 
     def __init__(self, dispersy, master, my_member):
-        super(MortgageCommunity, self).__init__(dispersy, master, my_member)
+        super(MarketCommunity, self).__init__(dispersy, master, my_member)
         self.logger = logging.getLogger('MortgageLogger')
         self._api = None
         self._user = None
         self.market_api = None
         self.data_manager = MarketDataManager(User(None))
 
-    def initialize(self, settings=None):
-        super(MortgageCommunity, self).initialize()
+    def initialize(self, role, rest_api_port):
+        super(MarketCommunity, self).initialize()
 
-        self.settings = settings or MortgageSettings()
+        self.role = role
+        self.market_api = reactor.listenTCP(rest_api_port,
+                                            server.Site(resource=RootEndpoint(self)),
+                                            interface="127.0.0.1")
 
-        # Start the RESTful API if it's enabled
-        if REST_API_ENABLED:
-            self.market_api = reactor.listenTCP(REST_API_PORT, server.Site(resource=RootEndpoint(self)))
-
-        self.logger.info("MortgageCommunity initialized")
+        self.logger.info("MarketCommunity initialized")
 
         # SOME TESTING CODE..
         self.users = {}
         self.my_user = {'user_id': self.my_member.public_key.encode('hex'),
-                        'role': self.settings.role,
+                        'role': self.role,
                         'profile': {'first_name': 'firstname',
                                     'last_name': 'lastname',
                                     'email': 'email',
@@ -108,7 +100,7 @@ class MortgageCommunity(Community):
         return [master]
 
     def initiate_meta_messages(self):
-        meta_messages = super(MortgageCommunity, self).initiate_meta_messages()
+        meta_messages = super(MarketCommunity, self).initiate_meta_messages()
 
         return meta_messages + [Message(self, u"user-request",
                                         MemberAuthentication(),
@@ -213,17 +205,17 @@ class MortgageCommunity(Community):
     def on_introduction_request(self, messages):
         for message in messages:
             self.logger.debug('Got intro-request from %s)', message.candidate)
-        super(MortgageCommunity, self).on_introduction_request(messages)
+        super(MarketCommunity, self).on_introduction_request(messages)
 
     def create_introduction_request(self, destination, *args, **kwargs):
         self.logger.debug('Sending intro-request to %s', destination)
-        super(MortgageCommunity, self).create_introduction_request(destination, *args, **kwargs)
+        super(MarketCommunity, self).create_introduction_request(destination, *args, **kwargs)
 
     def on_introduction_response(self, messages):
         for message in messages:
             self.logger.debug('Got intro-response from %s)', message.candidate.sock_addr)
             self.send_user_request(message.candidate)
-        super(MortgageCommunity, self).on_introduction_response(messages)
+        super(MarketCommunity, self).on_introduction_response(messages)
 
     def on_user_request(self, messages):
         for message in messages:

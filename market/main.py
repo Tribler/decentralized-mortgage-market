@@ -9,10 +9,10 @@ from twisted.internet import reactor
 
 from market.dispersy.dispersy import Dispersy
 from market.dispersy.endpoint import StandaloneEndpoint
-from market.community.community import MortgageCommunity, MortgageSettings
+from market.community.community import MarketCommunity
 from market.community import ROLE_BANK, ROLE_BORROWER, ROLE_INVESTOR
+from market.defs import DEFAULT_REST_API_PORT, DEFAULT_DISPERSY_PORT, BASE_DIR
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
 class DispersyManager(object):
 
@@ -32,11 +32,11 @@ class DispersyManager(object):
         self.dispersy = Dispersy(endpoint, self.state_dir)
         return self.dispersy.start(autoload_discovery=True)
 
-    def start_market(self, **kwargs):
-        self.logger.info('Starting MortgageCommunity')
+    def start_market(self, *args, **kwargs):
+        self.logger.info('Starting MarketCommunity')
         # TODO: get member from file
         self.member = self.dispersy.get_new_member(u"curve25519")
-        self.community = self.dispersy.define_auto_load(MortgageCommunity, self.member, load=True, kargs=kwargs)[0]
+        self.community = self.dispersy.define_auto_load(MarketCommunity, self.member, load=True, args=args, kargs=kwargs)[0]
 
     def stop_dispersy(self):
         self.logger.info('Stopping Dispersy')
@@ -44,19 +44,17 @@ class DispersyManager(object):
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(add_help=False, description=('Run the MortgageCommunity'))
-    parser.add_argument('--dispersy', help='Dispersy port')
-    parser.add_argument('--api', help='API port')
-    parser.add_argument('--state', help='State directory')
+    type_unicode = lambda s : unicode(s, sys.getfilesystemencoding())
+
+    parser = argparse.ArgumentParser(add_help=False, description=('Run the MarketCommunity'))
+    parser.add_argument('--dispersy', help='Dispersy port', type=int, default=DEFAULT_DISPERSY_PORT)
+    parser.add_argument('--api', help='API port', type=int, default=DEFAULT_REST_API_PORT)
+    parser.add_argument('--state', help='State directory', type=type_unicode, default=os.path.join(BASE_DIR, 'State'))
     parser.add_argument('--bank', action='store_true', help='Run as bank')
     parser.add_argument('--investor', action='store_true', help='Run as investor')
     parser.add_argument('--borrower', action='store_true', help='Run as borrower')
 
     args = parser.parse_args(sys.argv[1:])
-
-    dispersy_port = int(args.dispersy) if args.dispersy else 7759
-    api_port = int(args.api) if args.api else 7760
-    state_dir = unicode(args.state or os.path.join(BASE_DIR, 'State'))
 
     role = 0
     if args.bank:
@@ -65,12 +63,10 @@ def main(argv):
         role |= ROLE_INVESTOR
     if args.borrower:
         role |= ROLE_BORROWER
-    settings = MortgageSettings()
-    settings.role = role
 
-    logging.config.fileConfig(os.path.join(BASE_DIR, 'logger.conf'))
+    logging.config.fileConfig(os.path.join(os.path.dirname(BASE_DIR), 'logger.conf'))
 
-    manager = DispersyManager(dispersy_port, state_dir)
+    manager = DispersyManager(args.dispersy, args.state)
 
     def start():
         # Redirect twisted log to standard python logging
@@ -78,7 +74,7 @@ def main(argv):
         observer.start()
 
         manager.start_dispersy()
-        manager.start_market(settings=settings)
+        manager.start_market(role, args.api)
 
         signal.signal(signal.SIGINT, lambda signum, stack: stop())
 
