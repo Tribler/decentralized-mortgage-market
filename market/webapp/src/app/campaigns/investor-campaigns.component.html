@@ -8,7 +8,11 @@
         <ngx-datatable-column prop="investment" name="Amount invested"></ngx-datatable-column>
         <ngx-datatable-column prop="user_id" name="User"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage.id" name="Mortgage id"></ngx-datatable-column>
-        <ngx-datatable-column prop="end_time" name="End time"></ngx-datatable-column>
+        <ngx-datatable-column prop="end_time" name="End time">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value * 1000 | date:'shortDate' }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="mortgage.id" name="Actions">
             <template let-value="value" ngx-datatable-cell-template>
                 <i class="glyphicon glyphicon-plus accept clickable" (click)="request['mortgage_id']=value; staticModal.show();"></i>
