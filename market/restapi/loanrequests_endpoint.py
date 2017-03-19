@@ -3,7 +3,7 @@ import json
 from twisted.web import http, resource
 
 from market.models.loanrequest import LoanRequestStatus
-from market.restapi import get_param
+from market.models.mortgage import Mortgage, MortgageStatus
 
 
 class LoanRequestsEndpoint(resource.Resource):
@@ -44,7 +44,7 @@ class LoanRequestsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"loan_requests": [loan_request.to_dictionary() for
+        return json.dumps({"loan_requests": [loan_request.to_dict() for
                                              loan_request in self.market_community.data_manager.get_loan_requests()]})
 
     def getChild(self, path, request):
@@ -73,7 +73,7 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                 .. sourcecode:: none
 
                     curl -X PATCH http://localhost:8085/loanrequests/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3_8948AB_16
-                    --data "state=ACCEPT"
+                    --data "status=ACCEPT"
 
             **Example response**:
 
@@ -86,8 +86,8 @@ class SpecificLoanRequestEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "loan request not found"})
 
-        parameters = http.parse_qs(request.content.read(), 1)
-        status = get_param(parameters, 'status')
+        parameters = json.loads(request.content.read())
+        status = parameters.get('status')
         if not status:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "missing status parameter"})
@@ -96,15 +96,30 @@ class SpecificLoanRequestEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "invalid status value"})
 
-        if loan_request.status[self.market_community.data_manager.you.id] != LoanRequestStatus.PENDING:
+        if loan_request.status != LoanRequestStatus.PENDING:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "loan request is already accepted/rejected"})
 
         if status == "ACCEPT":
-            loan_request.status[self.market_community.data_manager.you.id] = LoanRequestStatus.ACCEPTED
+            loan_request.status = LoanRequestStatus.ACCEPTED
+            # TODO: give the bank the opportunity to create a mortgage offer
+            mortgage = Mortgage(loan_request.id,
+                                loan_request.user_id,
+                                self.market_community.my_user.id,
+                                loan_request.house,
+                                loan_request.amount_wanted,
+                                loan_request.amount_wanted * 0.7,
+                                loan_request.mortgage_type,
+                                2.0,
+                                2.0,
+                                2.0,
+                                120,
+                                '',
+                                MortgageStatus.PENDING)
+            self.market_community.data_manager.you.mortgages.append(mortgage)
+            self.market_community.send_mortgage_offer(loan_request, mortgage)
         else:
-            loan_request.status[self.market_community.data_manager.you.id] = LoanRequestStatus.REJECTED
-
-        # TODO broadcast this into the network
+            loan_request.status = LoanRequestStatus.REJECTED
+            self.market_community.send_loan_reject(loan_request)
 
         return json.dumps({"success": True})

@@ -60,14 +60,17 @@ class CampaignsEndpoint(resource.Resource):
                             "status": "ACCEPTED"
                         },
                         "amount": "195000",
-                        "end_date": "23-08-2017",
+                        "end_time": "1489934141",
                         "completed": False
                     }, ...]
                 }
         """
-        return json.dumps({"campaigns": [campaign.to_dictionary() for campaign in self.data_manager.campaigns]})
+        return json.dumps({"campaigns": [campaign.to_dict(include_investment=True)
+                                         for campaign in self.market_community.data_manager.campaigns.values()]})
 
     def render_PUT(self, request):
+        # TODO: remove? currently a campaign is created implicitly by the community
+
         """
         .. http:put:: /campaigns
 
@@ -108,10 +111,10 @@ class CampaignsEndpoint(resource.Resource):
         # Create the campaign
         end_date = datetime.now() + timedelta(days=30)
         finance_goal = mortgage.amount - mortgage.bank_amount
-        campaign = Campaign(self.market_community.data_manager.you, mortgage, finance_goal, end_date, False)
+        campaign = Campaign(self.market_community.data_manager.you.id, mortgage, finance_goal, end_date, False)
         self.data_manager.campaigns.append(campaign)
 
-        #TODO(Martijn): broadcast it into the network
+        # TODO(Martijn): broadcast it into the network
 
         return json.dumps({"success": True})
 
@@ -174,7 +177,7 @@ class SpecificCampaignEndpoint(resource.Resource):
                             "status": "ACCEPTED"
                         },
                         "amount": "195000",
-                        "end_date": "23-08-2017",
+                        "end_time": "1489934141",
                         "completed": False
                     }
                 }
@@ -184,7 +187,7 @@ class SpecificCampaignEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"campaign": campaign.to_dictionary()})
+        return json.dumps({"campaign": campaign.to_dict(include_investment=True)})
 
 
 class CampaignInvestmentsEndpoint(resource.Resource):
@@ -231,7 +234,7 @@ class CampaignInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"investments": [investment.to_dictionary() for investment in campaign.mortage.investments]})
+        return json.dumps({"investments": [investment.to_dict() for investment in campaign.mortgage.investments]})
 
 
 class SpecificCampaignInvestmentEndpoint(resource.Resource):
@@ -274,8 +277,8 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "investment not found"})
 
-        parameters = http.parse_qs(request.content.read(), 1)
-        status = get_param(parameters, 'status')
+        parameters = json.loads(request.content.read())
+        status = parameters.get('status')
         if not status:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "missing status parameter"})
@@ -284,15 +287,16 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "invalid status value"})
 
-        if investment.status[self.market_community.data_manager.you.id] != InvestmentStatus.PENDING:
+        if investment.status != InvestmentStatus.PENDING:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "loan request is already accepted/rejected"})
 
         if status == "ACCEPT":
             investment.status = InvestmentStatus.ACCEPTED
+            self.market_community.send_investment_accept(investment)
+            self.market_community.send_campaign_update(campaign, investment)
         else:
             investment.status = InvestmentStatus.REJECTED
-
-        # TODO broadcast this into the network
+            self.market_community.send_investment_reject(investment)
 
         return json.dumps({"success": True})

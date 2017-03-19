@@ -36,7 +36,7 @@ class UsersEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"users": [user.to_dictionary() for user in self.data_manager.users]})
+        return json.dumps({"users": [user.to_dict() for user in self.market_community.data_manager.users.values()]})
 
     def getChild(self, path, request):
         return SpecificUserEndpoint(self.market_community, path)
@@ -50,6 +50,7 @@ class SpecificUserEndpoint(resource.Resource):
     def __init__(self, market_community, pub_key):
         resource.Resource.__init__(self)
         self.pub_key = pub_key
+        self.market_community = market_community
         self.putChild("profile", SpecificUserProfileEndpoint(market_community, pub_key))
 
     def render_GET(self, request):
@@ -81,7 +82,7 @@ class SpecificUserEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "user not found"})
 
-        return json.dumps({"user": user.to_dictionary()})
+        return json.dumps({"user": user.to_dict()})
 
 
 class SpecificUserProfileEndpoint(resource.Resource):
@@ -130,4 +131,4 @@ class SpecificUserProfileEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "user does not have a profile"})
 
-        return json.dumps({"profile": user.profile.to_dictionary()})
+        return json.dumps({"profile": user.profile.to_dict()})

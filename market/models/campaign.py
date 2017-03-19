@@ -1,28 +1,29 @@
+from market.models.mortgage import Mortgage
+from market.models.investment import InvestmentStatus
+
+
 class Campaign(object):
     """
     This class represents a campaign for a specific mortgage.
     """
 
-    def __init__(self, user, mortgage, amount, end_date, completed):
-        self._user = user
+    def __init__(self, user_id, mortgage, amount, end_time, completed):
+        self._user_id = user_id
         self._mortgage = mortgage
         self._amount = amount
-        self._end_date = end_date
+        self._end_time = end_time
         self._completed = completed
 
-    def subtract_amount(self, investment):
-        self._amount = self._amount - investment
-
-        if self._amount <= 0:
+    def calc_investment(self):
+        investment = sum([investment.amount for investment in self._mortgage.investments
+                          if investment.status == InvestmentStatus.ACCEPTED])
+        if investment >= self._amount:
             self._completed = True
+        return investment
 
     @property
-    def id(self):
-        return self._mortgage.id
-
-    @property
-    def user(self):
-        return self._user
+    def user_id(self):
+        return self._user_id
 
     @property
     def mortgage(self):
@@ -33,19 +34,38 @@ class Campaign(object):
         return self._amount
 
     @property
-    def end_date(self):
-        return self._end_date
+    def end_time(self):
+        return self._end_time
 
     @property
     def completed(self):
         return self._completed
 
-    def to_dictionary(self):
-        return {
-            "id": self.id,
-            "user_id": self._user.id,
-            "mortgage": self._mortgage.to_dictionary(),
+    def to_dict(self, include_investment=False):
+        investment_dict = {}
+
+        if include_investment:
+            # Calculate investment first, since it could affect completed
+            investment_dict['investment'] = self.calc_investment()
+
+        investment_dict.update({
+            "user_id": self._user_id,
+            "mortgage": self._mortgage.to_dict(),
             "amount": self._amount,
-            "end_date": self._end_date,
+            "end_time": self._end_time,
             "completed": self._completed
-        }
+        })
+        return investment_dict
+
+    @staticmethod
+    def from_dict(campaign_dict):
+        mortgage = Mortgage.from_dict(campaign_dict['mortgage'])
+
+        if mortgage is None:
+            return None
+
+        return Campaign(campaign_dict['user_id'],
+                        mortgage,
+                        campaign_dict['amount'],
+                        campaign_dict['end_time'],
+                        campaign_dict['completed'])

@@ -10,8 +10,8 @@ from twisted.internet import reactor
 from market.dispersy.dispersy import Dispersy
 from market.dispersy.endpoint import StandaloneEndpoint
 from market.community.community import MarketCommunity
-from market.community import ROLE_BANK, ROLE_BORROWER, ROLE_INVESTOR
 from market.defs import DEFAULT_REST_API_PORT, DEFAULT_DISPERSY_PORT, BASE_DIR
+from market.models.user import Role
 
 
 class DispersyManager(object):
@@ -44,29 +44,23 @@ class DispersyManager(object):
 
 
 def main(argv):
+    logging.config.fileConfig(os.path.join(os.path.dirname(BASE_DIR), 'logger.conf'))
+
     type_unicode = lambda s : unicode(s, sys.getfilesystemencoding())
 
     parser = argparse.ArgumentParser(add_help=False, description=('Run the MarketCommunity'))
     parser.add_argument('--dispersy', help='Dispersy port', type=int, default=DEFAULT_DISPERSY_PORT)
     parser.add_argument('--api', help='API port', type=int, default=DEFAULT_REST_API_PORT)
     parser.add_argument('--state', help='State directory', type=type_unicode, default=os.path.join(BASE_DIR, 'State'))
-    parser.add_argument('--bank', action='store_true', help='Run as bank')
-    parser.add_argument('--investor', action='store_true', help='Run as investor')
-    parser.add_argument('--borrower', action='store_true', help='Run as borrower')
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--bank', action='store_const', const=Role.FINANCIAL_INSTITUTION, help='Run as bank')
+    group.add_argument('--investor', action='store_const', const=Role.INVESTOR, help='Run as investor')
+    group.add_argument('--borrower', action='store_const', const=Role.BORROWER, help='Run as borrower')
 
     args = parser.parse_args(sys.argv[1:])
-
-    role = 0
-    if args.bank:
-        role |= ROLE_BANK
-    if args.investor:
-        role |= ROLE_INVESTOR
-    if args.borrower:
-        role |= ROLE_BORROWER
-
-    logging.config.fileConfig(os.path.join(os.path.dirname(BASE_DIR), 'logger.conf'))
-
     manager = DispersyManager(args.dispersy, args.state)
+    role = args.bank or args.investor or args.borrower
 
     def start():
         # Redirect twisted log to standard python logging

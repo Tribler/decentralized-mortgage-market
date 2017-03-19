@@ -1,0 +1,137 @@
+syntax = "proto2";
+
+package market;
+
+// Dispersy messages
+message UserRequestMessage {
+    required User user = 1;
+}
+
+message UserResponseMessage {
+    required User user = 1;
+}
+
+message LoanRequestMessage {
+    required LoanRequest loan_request = 1;
+    required BorrowersProfile borrowers_profile = 2;
+}
+
+message LoanRejectMessage {
+    required string loan_request_id = 1;
+}
+
+message MortgageOfferMessage {
+    required string loan_request_id = 1;
+    required Mortgage mortgage = 2;
+}
+
+message MortgageAcceptMessage {
+    required string mortgage_id = 1;
+}
+
+message MortgageRejectMessage {
+    required string mortgage_id = 1;
+}
+
+message InvestmentOfferMessage {
+    required Investment investment = 1;
+    required Profile investor_profile = 2;
+}
+
+message InvestmentAcceptMessage {
+    required string investment_id = 1;
+    required BorrowersProfile borrowers_profile = 2;
+}
+
+message InvestmentRejectMessage {
+    required string investment_id = 1;
+}
+
+message CampaignUpdateMessage {
+    required Campaign campaign = 1;
+    optional Investment investment = 2;
+}
+
+// Objects that are included in the Dispersy messages
+message LoanRequest {
+    required string id = 1;
+    required string user_id = 2;
+    required House house = 3;
+    required string mortgage_type = 4;
+    repeated string bank_ids = 5;
+    required string description = 6;
+    required double amount_wanted = 7;
+    required string status = 8;
+}
+
+message House {
+    required string postal_code = 1;
+    required string house_number = 2;
+    required string address = 3;
+    required double price = 4;
+    required string url = 5;
+    required string seller_phone_number = 6;
+    required string seller_email = 7;
+}
+
+message Profile {
+    required string first_name = 1;
+    required string last_name = 2;
+    required string email = 3;
+    required string iban = 4;
+    required string phone_number = 5;
+}
+
+message BorrowersProfile {
+    required string first_name = 1;
+    required string last_name = 2;
+    required string email = 3;
+    required string iban = 4;
+    required string phone_number = 5;
+    required string current_postal_code = 6;
+    required string current_house_number = 7;
+    required string current_address = 8;
+    repeated string document_list = 9;
+}
+
+message Investment {
+    required string id = 1;
+    required string user_id = 2;
+    required double amount = 3;
+    required uint32 duration = 4;
+    required double interest_rate = 5;
+    required string mortgage_id = 6;
+    required string status = 7;
+}
+
+message Mortgage {
+    required string id = 1;
+    required string user_id = 2;
+    required string bank_id = 3;
+    required House house = 4;
+    required double amount = 5;
+    required double bank_amount = 6;
+    required string  mortgage_type = 7;
+    required double interest_rate = 8;
+    required double max_invest_rate = 9;
+    required double default_rate = 10;
+    required uint32 duration = 11;
+    required string risk = 12;
+    repeated Investment investments = 13;
+    required string status = 14;
+    optional Campaign campaign = 15;
+}
+
+message Campaign {
+    required string user_id = 1;
+    required Mortgage mortgage = 2;
+    required double amount = 3;
+    required int64 end_time = 4;
+    required bool completed = 5;
+}
+
+message User {
+    required string id = 1;
+    required string role = 2;
+    optional Profile profile = 3;
+}

@@ -5,11 +5,11 @@ from twisted.web.static import File
 from twisted.web.util import Redirect
 
 from market.defs import BASE_DIR
-from market.community import ROLE_BANK
 from market.restapi.campaigns_endpoint import CampaignsEndpoint
 from market.restapi.users_endpoint import UsersEndpoint
 from market.restapi.you_endpoint import YouEndpoint
 from market.restapi.loanrequests_endpoint import LoanRequestsEndpoint
+from market.models.user import Role
 
 
 class APIEndpoint(resource.Resource):
@@ -21,10 +21,9 @@ class APIEndpoint(resource.Resource):
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(market_community))
 
-        if market_community.role == ROLE_BANK:
+        if market_community.my_role == Role.FINANCIAL_INSTITUTION:
             # Only activate this endpoint if we are a bank. Used to accept/reject loan requests offers.
-            self.putChild("loanrequests", LoanRequestsEndpoint)
-
+            self.putChild("loanrequests", LoanRequestsEndpoint(market_community))
 
 
 class RootEndpoint(resource.Resource):
@@ -37,4 +36,4 @@ class RootEndpoint(resource.Resource):
 
         self.putChild('', Redirect('/gui'))
         self.putChild('api', APIEndpoint(market_community))
-        self.putChild('gui', File(os.path.join(BASE_DIR, 'webapp')))
+        self.putChild('gui', File(os.path.join(BASE_DIR, 'webapp', 'dist')))

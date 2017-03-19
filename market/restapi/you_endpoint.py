@@ -6,10 +6,9 @@ from twisted.web import http, resource
 from market.models.house import House
 from market.models.investment import Investment, InvestmentStatus
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
-from market.models.mortgage import MortgageStatus
+from market.models.mortgage import MortgageStatus, MortgageType
 from market.models.profile import InvestorProfile, BorrowersProfile
 from market.models.user import Role
-from market.restapi import get_param
 
 
 class YouEndpoint(resource.Resource):
@@ -24,9 +23,11 @@ class YouEndpoint(resource.Resource):
         self.putChild("profile", YouProfileEndpoint(market_community))
         self.putChild("investments", YouInvestmentsEndpoint(market_community))
         self.putChild("mortgages", YouMortgagesEndpoint(market_community))
+        self.putChild("loanrequests", YouLoanRequestsEndpoint(market_community))
+        self.putChild("campaigns", YouCampaignsEndpoint(market_community))
 
     def render_GET(self, request):
-        return json.dumps({"you": self.market_community.data_manager.you.to_dictionary()})
+        return json.dumps({"you": self.market_community.data_manager.you.to_dict()})
 
 
 class YouProfileEndpoint(resource.Resource):
@@ -71,7 +72,7 @@ class YouProfileEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "you do not have a profile"})
 
-        return json.dumps({"profile": you.profile.to_dictionary()})
+        return json.dumps({"profile": you.profile.to_dict()})
 
     def render_PUT(self, request):
         """
@@ -103,34 +104,34 @@ class YouProfileEndpoint(resource.Resource):
 
                     {"success": True}
         """
-        parameters = http.parse_qs(request.content.read(), 1)
-        if not get_param(parameters, 'role'):
+        parameters = json.loads(request.content.getvalue())
+        if 'role' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "missing role parameter"})
 
-        role = get_param(parameters, 'role')
+        role = parameters['role']
         required_fields = ['first_name', 'last_name', 'email', 'iban', 'phone_number']
         if role == "BORROWER":
             required_fields += ['current_postal_code', 'current_house_number', 'current_address', 'document_list']
 
         for field in required_fields:
-            if not get_param(parameters, field):
+            if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing %s parameter" % field})
 
         # Build the profile
-        first_name = get_param(parameters, 'first_name')
-        last_name = get_param(parameters, 'last_name')
-        email = get_param(parameters, 'email')
-        iban = get_param(parameters, 'phone_number')
-        phone_number = get_param(parameters, 'phone_number')
+        first_name = parameters['first_name']
+        last_name = parameters['last_name']
+        email = parameters['email']
+        iban = parameters['phone_number']
+        phone_number = parameters['phone_number']
 
         if role == "INVESTOR":
             profile = InvestorProfile(first_name, last_name, email, iban, phone_number)
         else:
-            current_postal_code = get_param(parameters, 'current_postal_code')
-            current_house_number = get_param(parameters, 'current_house_number')
-            current_address = get_param(parameters, 'current_address')
+            current_postal_code = parameters['current_postal_code']
+            current_house_number = parameters['current_house_number']
+            current_address = parameters['current_address']
             documents = []
             for document in parameters['document_list']:
                 documents.append(base64.decodestring(document))
@@ -187,7 +188,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not an investor"})
 
-        return json.dumps({"investments": [investment.to_dictionary() for investment in you.investments]})
+        return json.dumps({"investments": [investment.to_dict() for investment in you.investments]})
 
     def render_PUT(self, request):
         you = self.market_community.data_manager.you
@@ -196,28 +197,33 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "only investors can create new investments"})
 
-        parameters = http.parse_qs(request.content.read(), 1)
+        if you.profile is None:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "please create a profile prior to creating an investment offer"})
+
+        parameters = json.loads(request.content.read())
         required_fields = ['amount', 'duration', 'interest_rate', 'mortgage_id']
         for field in required_fields:
-            if not get_param(parameters, field):
+            if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing %s parameter" % field})
 
-        amount = get_param(parameters, 'amount')
-        duration = get_param(parameters, 'duration')
-        interest_rate = get_param(parameters, 'interest_rate')
-        mortgage_id = get_param(parameters, 'mortgage_id')
+        amount = parameters['amount']
+        duration = parameters['duration']
+        interest_rate = parameters['interest_rate']
+        mortgage_id = parameters['mortgage_id']
 
         mortgage = self.market_community.data_manager.get_mortgage(mortgage_id)
         if not mortgage:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        investment = Investment(self.pub_key, amount, duration, interest_rate, mortgage, InvestmentStatus.PENDING)
+        investment = Investment(("%s_%s" % (mortgage.id, len(mortgage.investments))), you.id, amount, duration,
+                                interest_rate, mortgage.id, InvestmentStatus.PENDING)
         you.investments.append(investment)
         mortgage.investments.append(investment)
 
-        #TODO(Martijn): broadcast it into the network
+        self.market_community.send_investment_offer(investment)
 
         return json.dumps({"success": True})
 
@@ -238,7 +244,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not a borrower"})
 
-        return json.dumps({"loan_requests": [loan_request.to_dictionary() for loan_request in you.loan_requests]})
+        return json.dumps({"loan_requests": [loan_request.to_dict() for loan_request in you.loan_requests]})
 
     def render_PUT(self, request):
         you = self.market_community.data_manager.you
@@ -247,33 +253,45 @@ class YouLoanRequestsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "only borrowers can create new loan requests"})
 
-        parameters = http.parse_qs(request.content.read(), 1)
+        if you.profile is None:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "please create a profile prior to creating a loan request"})
+
+        parameters = json.loads(request.content.read())
         required_fields = ['postal_code', 'house_number', 'address', 'price', 'url', 'seller_phone_number',
-                           'seller_email', 'mortgage_type', 'banks', 'description', 'amount_wanted']
+                           'seller_email', 'mortgage_type', 'bank_ids', 'description', 'amount_wanted']
         for field in required_fields:
-            if not get_param(parameters, field):
+            if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing %s parameter" % field})
 
-        postal_code = get_param(parameters, 'postal_code')
-        house_number = get_param(parameters, 'house_number')
-        address = get_param(parameters, 'address')
-        price = get_param(parameters, 'price')
-        url = get_param(parameters, 'url')
-        seller_phone_number = get_param(parameters, 'seller_phone_number')
-        seller_email = get_param(parameters, 'seller_email')
-        mortgage_type = get_param(parameters, 'mortgage_type')
-        banks = get_param(parameters, 'banks')
-        description = get_param(parameters, 'description')
-        amount_wanted = get_param(parameters, 'amount_wanted')
+        if parameters['mortgage_type'] not in MortgageType.__members__:
+            return json.dumps({"error": "unknown mortgage type"})
+
+        mortgage_type = MortgageType[parameters['mortgage_type']]
+
+        postal_code = parameters['postal_code']
+        house_number = parameters['house_number']
+        address = parameters['address']
+        price = parameters['price']
+        url = parameters['url']
+        seller_phone_number = parameters['seller_phone_number']
+        seller_email = parameters['seller_email']
+        bank_ids = parameters['bank_ids']
+        description = parameters['description']
+        amount_wanted = parameters['amount_wanted']
 
         house = House(postal_code, house_number, address, price, url, seller_phone_number, seller_email)
-        loan_request = LoanRequest(you, house, mortgage_type, banks, description,
-                                   amount_wanted, LoanRequestStatus.PENDING)
+
+        loan_request_id = '%s_%s_%s' % (you.id, house.id, len(you.loan_requests))
+        loan_request = LoanRequest(loan_request_id, you.id, house, mortgage_type, bank_ids,
+                                   description, amount_wanted, LoanRequestStatus.PENDING)
+
         you.loan_requests.append(loan_request)
 
-        #TODO(Martijn): broadcast it into the network
-        #TODO(Martijn): Invoke TFTP here to send the documents to the banks
+        self.market_community.send_loan_request(loan_request)
+
+        # TODO(Martijn): Invoke TFTP here to send the documents to the banks
 
         return json.dumps({"success": True})
 
@@ -292,7 +310,7 @@ class YouMortgagesEndpoint(resource.Resource):
 
     def render_GET(self, request):
         you = self.market_community.data_manager.you
-        return json.dumps({"mortgages": [mortgage.to_dictionary() for mortgage in you.mortgages]})
+        return json.dumps({"mortgages": [mortgage.to_dict() for mortgage in you.mortgages]})
 
 
 class YouSpecificMortageEndpoint(resource.Resource):
@@ -313,8 +331,8 @@ class YouSpecificMortageEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        parameters = http.parse_qs(request.content.read(), 1)
-        status = get_param(parameters, 'status')
+        parameters = json.loads(request.content.read())
+        status = parameters.get('status')
         if not status:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "missing status parameter"})
@@ -329,9 +347,28 @@ class YouSpecificMortageEndpoint(resource.Resource):
 
         if status == "ACCEPT":
             mortgage.status = InvestmentStatus.ACCEPTED
+            self.market_community.send_mortgage_accept(mortgage)
         else:
             mortgage.status = InvestmentStatus.REJECTED
-
-        #TODO(Martijn) broadcast this into the network
+            self.market_community.send_mortgage_reject(mortgage)
 
         return json.dumps({"success": True})
+
+
+class YouCampaignsEndpoint(resource.Resource):
+    """
+    This class handles requests regarding your campaigns.
+    """
+
+    def __init__(self, market_community):
+        resource.Resource.__init__(self)
+        self.market_community = market_community
+
+    def render_GET(self, request):
+        you = self.market_community.data_manager.you
+        campaigns = []
+        for campaign in you.campaigns:
+            campaign_dict = campaign.to_dict()
+            campaign_dict['investments'] = [investment.to_dict() for investment in campaign.mortgage.investments]
+            campaigns.append(campaign_dict)
+        return json.dumps({"campaigns": campaigns})

@@ -46,9 +46,8 @@ class House(object):
     def seller_email(self):
         return self._seller_email
 
-    def to_dictionary(self):
+    def to_dict(self):
         return {
-            "id": self.id,
             "postal_code": self._postal_code,
             "house_number": self._house_number,
             "address": self._address,
@@ -57,3 +56,13 @@ class House(object):
             "seller_phone_number": self._seller_phone_number,
             "seller_email": self._seller_email
         }
+
+    @staticmethod
+    def from_dict(house_dict):
+        return House(house_dict['postal_code'],
+                     house_dict['house_number'],
+                     house_dict['address'],
+                     house_dict['price'],
+                     house_dict['url'],
+                     house_dict['seller_phone_number'],
+                     house_dict['seller_email'])

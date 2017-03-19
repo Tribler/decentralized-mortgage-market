@@ -1,16 +1,9 @@
-
-
 class Profile(object):
     """
     Base class for a profile. Each profile is associated with a user.
     """
 
     def __init__(self, first_name, last_name, email, iban, phone_number):
-        assert isinstance(first_name, unicode)
-        assert isinstance(last_name, unicode)
-        assert isinstance(email, str)
-        assert isinstance(iban, str)
-        assert isinstance(phone_number, str)
 
         self._first_name = first_name
         self._last_name = last_name
@@ -38,20 +31,47 @@ class Profile(object):
     def phone_number(self):
         return self._phone_number
 
+    @first_name.setter
+    def first_name(self, value):
+        self._first_name = value
+
+    @last_name.setter
+    def last_name(self, value):
+        self._last_name = value
+
+    @email.setter
+    def email(self, value):
+        self._email = value
+
+    @iban.setter
+    def iban(self, value):
+        self._iban = value
+
+    @phone_number.setter
+    def phone_number(self, value):
+        self._phone_number = value
+
 
 class InvestorProfile(Profile):
     """
     This class represents an investor, someone who wants to lend money to users.
     """
-    def to_dictionary(self):
+    def to_dict(self):
         return {
-            "type": "investor",
             "first_name": self._first_name,
             "last_name": self._last_name,
             "email": self._email,
             "iban": self._iban,
             "phone_number": self._phone_number
         }
+
+    @staticmethod
+    def from_dict(profile_dict):
+        return InvestorProfile(profile_dict['first_name'],
+                               profile_dict['last_name'],
+                               profile_dict['email'],
+                               profile_dict['iban'],
+                               profile_dict['phone_number'])
 
 
 class BorrowersProfile(Profile):
@@ -60,7 +80,7 @@ class BorrowersProfile(Profile):
     A borrower requires additional information.
     """
     def __init__(self, first_name, last_name, email, iban, phone_number, current_postal_code, current_house_number,
-                 current_address, document_list):
+                 current_address, document_list=[]):
         super(BorrowersProfile, self).__init__(first_name, last_name, email, iban, phone_number)
 
         self._current_postal_code = current_postal_code
@@ -87,9 +107,8 @@ class BorrowersProfile(Profile):
     def add_document(self, document):
         self._document_list.append(document)
 
-    def to_dictionary(self):
+    def to_dict(self):
         return {
-            "type": "borrower",
             "first_name": self._first_name,
             "last_name": self._last_name,
             "email": self._email,
@@ -97,6 +116,16 @@ class BorrowersProfile(Profile):
             "phone_number": self._phone_number,
             "current_postal_code": self._current_postal_code,
             "current_house_number": self.current_house_number,
-            "current_address": self.current_address,
-            "documents": [document.to_dictionary() for document in self._document_list]
+            "current_address": self.current_address
         }
+
+    @staticmethod
+    def from_dict(profile_dict):
+        return BorrowersProfile(profile_dict['first_name'],
+                                profile_dict['last_name'],
+                                profile_dict['email'],
+                                profile_dict['iban'],
+                                profile_dict['phone_number'],
+                                profile_dict['current_postal_code'],
+                                profile_dict['current_house_number'],
+                                profile_dict['current_address'])
