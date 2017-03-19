@@ -21,7 +21,11 @@
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
     </ngx-datatable>
 </div>
 
@@ -34,7 +38,11 @@
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-value="value" let-row="row" ngx-datatable-cell-template>
                 <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptInvestmentOffer(row)"></i>

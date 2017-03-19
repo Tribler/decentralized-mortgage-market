@@ -3,9 +3,13 @@
     <ngx-datatable class='material' [rows]='pending_loan_requests' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
-        <ngx-datatable-column prop="banks" name="Banks"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_ids" name="Banks"></ngx-datatable-column>
         <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-value="value" ngx-datatable-cell-template>
                 <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptLoanRequest(value)"></i>
@@ -20,8 +24,12 @@
     <ngx-datatable class='material' [rows]='accepted_loan_requests' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
-        <ngx-datatable-column prop="banks" name="Banks"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_ids" name="Banks"></ngx-datatable-column>
         <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
     </ngx-datatable>
 </div>

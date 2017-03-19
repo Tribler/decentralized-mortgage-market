@@ -25,7 +25,11 @@
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
     </ngx-datatable>
 </div>
 

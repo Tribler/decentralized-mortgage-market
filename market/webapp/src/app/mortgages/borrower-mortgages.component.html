@@ -9,7 +9,11 @@
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="banks" name="Banks"></ngx-datatable-column>
         <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
     </ngx-datatable>
 </div>
 
@@ -21,7 +25,7 @@
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
         <ngx-datatable-column prop="default_rate" name="Default"></ngx-datatable-column>
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
-        <ngx-datatable-column prop="type" name="Type"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-value="value" ngx-datatable-cell-template>
@@ -40,7 +44,7 @@
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
         <ngx-datatable-column prop="default_rate" name="Default"></ngx-datatable-column>
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
-        <ngx-datatable-column prop="type" name="Type"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
     </ngx-datatable>
 </div>

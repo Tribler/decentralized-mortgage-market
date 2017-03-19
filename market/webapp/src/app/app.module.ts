@@ -10,6 +10,7 @@ import { AlertModule } from 'ng2-bootstrap/alert';
 
 import { AppComponent } from './app.component';
 import { MarketService } from './shared/market.service';
+import { StatusComponentComponent } from './shared/status-component.component';
 
 import { ProfileComponent } from './profile/profile.component';
 
@@ -39,6 +40,7 @@ const routes: Routes = [
         CampaignsComponent,
         BorrowerCampaignsComponent,
         InvestorCampaignsComponent,
+        StatusComponentComponent,
     ],
     imports: [
         BrowserModule,
