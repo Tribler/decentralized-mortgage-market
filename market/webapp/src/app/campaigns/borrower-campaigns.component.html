@@ -1,0 +1,45 @@
+<alert *ngIf="alert" [type]="alert.type">{{ alert.msg }}</alert>
+
+<div class='well'>
+    <legend>My campaigns</legend>
+    <ngx-datatable class='material' [rows]='campaigns' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="amount" name="Amount needed"></ngx-datatable-column>
+        <ngx-datatable-column prop="investment" name="Amount invested"></ngx-datatable-column>
+        <ngx-datatable-column prop="user_id" name="User"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage.id" name="Mortgage id"></ngx-datatable-column>
+        <ngx-datatable-column prop="end_time" name="End time"></ngx-datatable-column>
+    </ngx-datatable>
+</div>
+
+<div class='well'>
+    <legend>Investments</legend>
+    <ngx-datatable class='material' [rows]='accepted_investments' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+    </ngx-datatable>
+</div>
+
+<div class='well'>
+    <legend>Investment offers</legend>
+    <ngx-datatable class='material' [rows]='pending_investments' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+        <ngx-datatable-column prop="id" name="Actions">
+            <template let-value="value" let-row="row" ngx-datatable-cell-template>
+                <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptInvestmentOffer(row)"></i>
+                <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectInvestmentOffer(row)"></i>
+            </template>
+        </ngx-datatable-column>
+    </ngx-datatable>
+</div>

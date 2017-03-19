@@ -1,0 +1,119 @@
+<div class="container">
+
+    <alert *ngIf="alert" [type]="alert.type">{{ alert.msg }}</alert>
+
+    <form #f="ngForm" (ngSubmit)="onSubmit($event)" class="well form-horizontal">
+        <fieldset>
+            <legend>Your profile</legend>
+
+            <div class="form-group">
+                <label class="col-md-4 control-label">First Name</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                        <input [(ngModel)]="profile.first_name" name="first_name"
+                               placeholder="First Name" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-md-4 control-label">Last Name</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                        <input [(ngModel)]="profile.last_name" name="last_name"
+                               placeholder="Last Name" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-md-4 control-label">Phone #</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-earphone"></i></span>
+                        <input [(ngModel)]="profile.phone_number" name="phone_number"
+                               placeholder="020-1234567" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-md-4 control-label">E-Mail</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-envelope"></i></span>
+                        <input [(ngModel)]="profile.email" name="email"
+                               placeholder="E-Mail Address" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-md-4 control-label">IBAN</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
+                        <input [(ngModel)]="profile.iban" name="iban"
+                               placeholder="NL99 ABNA 0123 4567 89" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="me?.role == 'BORROWER'" class="form-group">
+                <label class="col-md-4 control-label">Postal Code</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
+                        <input [(ngModel)]="profile.current_postal_code" name="current_postal_code"
+                               placeholder="Postal Code" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="me?.role == 'BORROWER'" class="form-group">
+                <label class="col-md-4 control-label">House Number</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
+                        <input [(ngModel)]="profile.current_house_number" name="current_house_number"
+                               placeholder="House Number" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="me?.role == 'BORROWER'" class="form-group">
+                <label class="col-md-4 control-label">Address</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
+                        <input [(ngModel)]="profile.current_address" name="current_address"
+                               placeholder="Address" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+
+            <!--<div class="form-group">
+                <label class="col-md-4 control-label">ID</label>
+                <div class="col-md-4 inputGroupContainer">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-file"></i></span>
+                        <input [(ngModel)]="profile.document" name="document"
+                               class="form-control" type="file" required>
+                    </div>
+                </div>
+            </div>-->
+
+            <!--<div class="alert alert-success" role="alert" id="success_message">Success <i class="glyphicon glyphicon-thumbs-up"></i> Thanks for contacting us, we will get back to you shortly.</div>-->
+
+            <div class="form-group">
+                <label class="col-md-4 control-label"></label>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-warning">Save <span class="glyphicon glyphicon-send"></span></button>
+                </div>
+            </div>
+
+        </fieldset>
+    </form>
+</div>

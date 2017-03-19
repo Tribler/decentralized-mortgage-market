@@ -1,0 +1,191 @@
+<alert *ngIf="alert" [type]="alert.type">{{ alert.msg }}</alert>
+
+<div class='well'>
+    <legend>
+        Requests <span class="glyphicon glyphicon-plus accept clickable" (click)="staticModal.show()"></span>
+    </legend>
+    <ngx-datatable class='material' [rows]='pending_loan_requests' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
+        <ngx-datatable-column prop="banks" name="Banks"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status"></ngx-datatable-column>
+    </ngx-datatable>
+</div>
+
+<div class='well'>
+    <legend>Offers</legend>
+    <ngx-datatable class='material' [rows]='pending_mortgages' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="bank_amount" name="Loan amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
+        <ngx-datatable-column prop="default_rate" name="Default"></ngx-datatable-column>
+        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
+        <ngx-datatable-column prop="type" name="Type"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
+        <ngx-datatable-column prop="id" name="Actions">
+            <template let-value="value" ngx-datatable-cell-template>
+                <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptMortgageOffer(value)"></i>
+                <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectMortgageOffer(value)"></i>
+            </template>
+        </ngx-datatable-column>
+    </ngx-datatable>
+</div>
+
+<div class='well'>
+    <legend>Ongoing</legend>
+    <ngx-datatable class='material' [rows]='accepted_mortgages' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="bank_amount" name="Loan amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
+        <ngx-datatable-column prop="default_rate" name="Default"></ngx-datatable-column>
+        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
+        <ngx-datatable-column prop="type" name="Type"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
+    </ngx-datatable>
+</div>
+
+
+<div class="modal fade" bsModal #staticModal="bs-modal" [config]="{backdrop: 'static'}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title pull-left">Place new request</h4>
+                <button type="button" class="close pull-right" aria-label="Close" (click)="staticModal.hide()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label class="control-label">Postal Code</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
+                                <input [(ngModel)]="request.postal_code" name="current_postal_code" placeholder="Postal Code" class="form-control" type="text"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">House Number</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
+                                <input [(ngModel)]="request.house_number" name="current_house_number" placeholder="House Number" class="form-control" type="text"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="ccontrol-label">Address</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
+                                <input [(ngModel)]="request.address" name="current_address" placeholder="Address" class="form-control" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Price</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
+                                <input [(ngModel)]="request.price" name="price" placeholder="Price" class="form-control" type="number" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">Url</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-globe"></i></span>
+                                <input [(ngModel)]="request.url" name="url" placeholder="Url" class="form-control" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Seller Phone #</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-earphone"></i></span>
+                                <input [(ngModel)]="request.seller_phone_number" name="seller_phone_number" placeholder="020-1234567" class="form-control"
+                                    type="text" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Seller E-mail</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-envelope"></i></span>
+                                <input [(ngModel)]="request.seller_email" name="seller_email" placeholder="E-Mail Address" class="form-control" type="text"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Mortgage Type</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-list"></i></span>
+                                <select [(ngModel)]="request.mortgage_type" name="mortgage_type" class="form-control selectpicker" required>
+                                    <option value="undefined" disabled selected>Select your mortgage type</option>
+                                    <option value="LINEAR">Linear</option>
+                                    <option value="FIXEDRATE">Fixed rate</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Bank</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-list"></i></span>
+                                <select [(ngModel)]="request.bank_ids" name="bank_ids" class="form-control selectpicker" required>
+                                    <option value="undefined" disabled selected>Select your bank</option>
+                                    <option *ngFor="let bank of banks" [value]="bank.id">{{ bank.id | slice:0:20 }}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Description</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-comment"></i></span>
+                                <input [(ngModel)]="request.description" name="description" placeholder="Description" class="form-control" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Amount Wanted</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
+                                <input [(ngModel)]="request.amount_wanted" name="amount_wanted" placeholder="Amount Wanted" class="form-control" type="number"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" (click)="staticModal.hide()">Cancel</button>
+                <button type="button" class="btn btn-warning" (click)="requestLoan(staticModal)">
+                    Request loan <span class="glyphicon glyphicon-send"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
