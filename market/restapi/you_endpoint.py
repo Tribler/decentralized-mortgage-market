@@ -7,8 +7,8 @@ from market.models.house import House
 from market.models.investment import Investment, InvestmentStatus
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import MortgageStatus, MortgageType
-from market.models.profile import InvestorProfile, BorrowersProfile
 from market.models.user import Role
+from market.models.profile import Profile
 
 
 class YouEndpoint(resource.Resource):
@@ -119,30 +119,26 @@ class YouProfileEndpoint(resource.Resource):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing %s parameter" % field})
 
-        # Build the profile
-        first_name = parameters['first_name']
-        last_name = parameters['last_name']
-        email = parameters['email']
-        iban = parameters['phone_number']
-        phone_number = parameters['phone_number']
-
-        if role == "INVESTOR":
-            profile = InvestorProfile(first_name, last_name, email, iban, phone_number)
-        else:
-            current_postal_code = parameters['current_postal_code']
-            current_house_number = parameters['current_house_number']
-            current_address = parameters['current_address']
-            documents = []
-            for document in parameters['document_list']:
-                documents.append(base64.decodestring(document))
-
-            profile = BorrowersProfile(first_name, last_name, email, iban, phone_number,
-                                       current_postal_code, current_house_number, current_address, documents)
+        # Build a new profile
+        profile = Profile(parameters['first_name'],
+                          parameters['last_name'],
+                          parameters['email'],
+                          parameters['iban'],
+                          parameters['phone_number'],
+                          parameters.get('current_postal_code'),
+                          parameters.get('current_house_number'),
+                          parameters.get('current_address'))
 
         you = self.market_community.data_manager.you
-        you.profile = profile
+        if you.profile is None:
+            you.profile = profile
+        else:
+            you.profile.merge(profile)
 
-        # TODO(Martijn): broadcast it in the network
+        # TODO: add documents to profile
+        documents = []
+        for document in parameters['document_list']:
+            documents.append(base64.decodestring(document))
 
         return json.dumps({"success": True})
 
@@ -202,7 +198,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             return json.dumps({"error": "please create a profile prior to creating an investment offer"})
 
         parameters = json.loads(request.content.read())
-        required_fields = ['amount', 'duration', 'interest_rate', 'mortgage_id']
+        required_fields = ['amount', 'duration', 'interest_rate', 'campaign_id']
         for field in required_fields:
             if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -211,17 +207,17 @@ class YouInvestmentsEndpoint(resource.Resource):
         amount = parameters['amount']
         duration = parameters['duration']
         interest_rate = parameters['interest_rate']
-        mortgage_id = parameters['mortgage_id']
+        campaign_id = parameters['campaign_id']
 
-        mortgage = self.market_community.data_manager.get_mortgage(mortgage_id)
-        if not mortgage:
+        campaign = self.market_community.data_manager.get_campaign(campaign_id)
+        if campaign is None:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        investment = Investment(("%s_%s" % (mortgage.id, len(mortgage.investments))), you.id, amount, duration,
-                                interest_rate, mortgage.id, InvestmentStatus.PENDING)
-        you.investments.append(investment)
-        mortgage.investments.append(investment)
+        investment = Investment((u"%s_%s" % (campaign.id, campaign.investments.count())), you.id, amount, duration,
+                                interest_rate, campaign.id, InvestmentStatus.PENDING)
+        you.investments.add(investment)
+        campaign.investments.add(investment)
 
         self.market_community.send_investment_offer(investment)
 
@@ -259,7 +255,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
 
         parameters = json.loads(request.content.read())
         required_fields = ['postal_code', 'house_number', 'address', 'price', 'url', 'seller_phone_number',
-                           'seller_email', 'mortgage_type', 'bank_ids', 'description', 'amount_wanted']
+                           'seller_email', 'mortgage_type', 'bank_id', 'description', 'amount_wanted']
         for field in required_fields:
             if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -277,17 +273,17 @@ class YouLoanRequestsEndpoint(resource.Resource):
         url = parameters['url']
         seller_phone_number = parameters['seller_phone_number']
         seller_email = parameters['seller_email']
-        bank_ids = parameters['bank_ids']
+        bank_id = parameters['bank_id']
         description = parameters['description']
         amount_wanted = parameters['amount_wanted']
 
         house = House(postal_code, house_number, address, price, url, seller_phone_number, seller_email)
 
-        loan_request_id = '%s_%s_%s' % (you.id, house.id, len(you.loan_requests))
-        loan_request = LoanRequest(loan_request_id, you.id, house, mortgage_type, bank_ids,
+        loan_request_id = u'%s_%s' % (you.id, you.loan_requests.count())
+        loan_request = LoanRequest(loan_request_id, you.id, house, mortgage_type, bank_id,
                                    description, amount_wanted, LoanRequestStatus.PENDING)
 
-        you.loan_requests.append(loan_request)
+        you.loan_requests.add(loan_request)
 
         self.market_community.send_loan_request(loan_request)
 
@@ -320,7 +316,7 @@ class YouSpecificMortageEndpoint(resource.Resource):
     def __init__(self, market_community, mortgage_id):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.mortgage_id = mortgage_id
+        self.mortgage_id = unicode(mortgage_id)
 
     def render_PATCH(self, request):
         """
@@ -346,10 +342,10 @@ class YouSpecificMortageEndpoint(resource.Resource):
             return json.dumps({"error": "mortgage is already accepted/rejected"})
 
         if status == "ACCEPT":
-            mortgage.status = InvestmentStatus.ACCEPTED
+            mortgage.status = MortgageStatus.ACCEPTED
             self.market_community.send_mortgage_accept(mortgage)
         else:
-            mortgage.status = InvestmentStatus.REJECTED
+            mortgage.status = MortgageStatus.REJECTED
             self.market_community.send_mortgage_reject(mortgage)
 
         return json.dumps({"success": True})
@@ -369,6 +365,6 @@ class YouCampaignsEndpoint(resource.Resource):
         campaigns = []
         for campaign in you.campaigns:
             campaign_dict = campaign.to_dict()
-            campaign_dict['investments'] = [investment.to_dict() for investment in campaign.mortgage.investments]
+            campaign_dict['investments'] = [investment.to_dict() for investment in campaign.investments]
             campaigns.append(campaign_dict)
         return json.dumps({"campaigns": campaigns})

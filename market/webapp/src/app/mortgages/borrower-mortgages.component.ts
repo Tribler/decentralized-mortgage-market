@@ -49,11 +49,7 @@ export class BorrowerMortgagesComponent implements OnInit {
     }
 
     requestLoan(modal) {
-        var request = JSON.parse(JSON.stringify(this.request))
-        // Banks is expected to be an array (but for now we only support submitting a loan
-        // request to a single bank at a time)
-        request.bank_ids = [request.bank_ids];
-        this._marketService.addMyLoanRequest(request)
+        this._marketService.addMyLoanRequest(this.request)
             .subscribe(() => this.loadMyLoanRequests(),
                        err => this.alert = {type: 'danger', msg: 'Error from backend: ' + err.json().error});
         modal.hide();

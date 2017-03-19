@@ -66,7 +66,7 @@ class CampaignsEndpoint(resource.Resource):
                 }
         """
         return json.dumps({"campaigns": [campaign.to_dict(include_investment=True)
-                                         for campaign in self.market_community.data_manager.campaigns.values()]})
+                                         for campaign in self.market_community.data_manager.get_campaigns()]})
 
     def render_PUT(self, request):
         # TODO: remove? currently a campaign is created implicitly by the community
@@ -234,7 +234,7 @@ class CampaignInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"investments": [investment.to_dict() for investment in campaign.mortgage.investments]})
+        return json.dumps({"investments": [investment.to_dict() for investment in campaign.investments]})
 
 
 class SpecificCampaignInvestmentEndpoint(resource.Resource):
@@ -244,8 +244,8 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
     def __init__(self, market_community, campaign_id, investment_id):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.campaign_id = campaign_id
-        self.investment_id = investment_id
+        self.campaign_id = unicode(campaign_id)
+        self.investment_id = unicode(investment_id)
 
     def render_PATCH(self, request):
         """
@@ -272,8 +272,8 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        investment = campaign.mortgage.get_investment(self.investment_id)
-        if not investment:
+        investment = self.market_community.data_manager.get_investment(self.investment_id)
+        if not investment or investment.campaign_id != campaign.id:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "investment not found"})
 

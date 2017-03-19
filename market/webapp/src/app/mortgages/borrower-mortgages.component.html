@@ -7,7 +7,7 @@
     <ngx-datatable class='material' [rows]='pending_loan_requests' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
-        <ngx-datatable-column prop="banks" name="Banks"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
         <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
@@ -154,7 +154,7 @@
                         <div class="inputGroupContainer">
                             <div class="input-group">
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-list"></i></span>
-                                <select [(ngModel)]="request.bank_ids" name="bank_ids" class="form-control selectpicker" required>
+                                <select [(ngModel)]="request.bank_id" name="bank_id" class="form-control selectpicker" required>
                                     <option value="undefined" disabled selected>Select your bank</option>
                                     <option *ngFor="let bank of banks" [value]="bank.id">{{ bank.id | slice:0:20 }}</option>
                                 </select>

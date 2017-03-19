@@ -1,3 +1,4 @@
+from storm.properties import Int, Unicode, Float
 
 
 class House(object):
@@ -5,56 +6,34 @@ class House(object):
     This class represents a house for which a mortgage is created.
     """
 
+    __storm_table__ = "house"
+    id = Int(primary=True)
+    postal_code = Unicode()
+    house_number = Unicode()
+    address = Unicode()
+    price = Float()
+    url = Unicode()
+    seller_phone_number = Unicode()
+    seller_email = Unicode()
+
     def __init__(self, postal_code, house_number, address, price, url, seller_phone_number, seller_email):
-        self._postal_code = postal_code
-        self._house_number = house_number
-        self._address = address
-        self._price = price
-        self._url = url
-        self._seller_phone_number = seller_phone_number
-        self._seller_email = seller_email
-
-    @property
-    def id(self):
-        return self._postal_code + "_" + self._house_number
-
-    @property
-    def postal_code(self):
-        return self._postal_code
-
-    @property
-    def house_number(self):
-        return self._house_number
-
-    @property
-    def address(self):
-        return self._address
-
-    @property
-    def price(self):
-        return self._price
-
-    @property
-    def url(self):
-        return self._url
-
-    @property
-    def seller_phone_number(self):
-        return self._seller_phone_number
-
-    @property
-    def seller_email(self):
-        return self._seller_email
+        self.postal_code = postal_code
+        self.house_number = house_number
+        self.address = address
+        self.price = price
+        self.url = url
+        self.seller_phone_number = seller_phone_number
+        self.seller_email = seller_email
 
     def to_dict(self):
         return {
-            "postal_code": self._postal_code,
-            "house_number": self._house_number,
-            "address": self._address,
-            "price": self._price,
-            "url": self._url,
-            "seller_phone_number": self._seller_phone_number,
-            "seller_email": self._seller_email
+            "postal_code": self.postal_code,
+            "house_number": self.house_number,
+            "address": self.address,
+            "price": self.price,
+            "url": self.url,
+            "seller_phone_number": self.seller_phone_number,
+            "seller_email": self.seller_email
         }
 
     @staticmethod

@@ -1,10 +1,12 @@
-from enum import Enum
+from enum import Enum as PyEnum
 
 from market.models.house import House
 from market.models.mortgage import MortgageType
+from storm.properties import Float, Unicode, Int, Enum
+from storm.references import Reference
 
 
-class LoanRequestStatus(Enum):
+class LoanRequestStatus(PyEnum):
     NONE = 0
     PENDING = 1
     ACCEPTED = 2
@@ -16,62 +18,38 @@ class LoanRequest(object):
     This class represents a request for a loan.
     """
 
-    def __init__(self, identifier, user_id, house, mortgage_type, bank_ids, description, amount_wanted, status):
-        self._id = identifier
-        self._user_id = user_id
-        self._house = house
-        self._mortgage_type = mortgage_type
-        self._bank_ids = bank_ids
-        self._description = description
-        self._amount_wanted = amount_wanted
-        self._status = status
+    __storm_table__ = "loan_request"
+    id = Unicode(primary=True)
+    user_id = Unicode()
+    house_id = Int()
+    house = Reference(house_id, House.id)
+    mortgage_type = Enum(map={e:e.value for e in MortgageType})
+    bank_id = Unicode()
+    description = Unicode()
+    amount_wanted = Float()
+    status = Enum(map={e:e.value for e in LoanRequestStatus})
 
-    @property
-    def id(self):
-        return self._id
+    def __init__(self, identifier, user_id, house, mortgage_type, bank_id, description, amount_wanted, status):
+        self.id = identifier
+        self.user_id = user_id
+        self.house = house
+        self.mortgage_type = mortgage_type
+        self.bank_id = bank_id
+        self.description = description
+        self.amount_wanted = amount_wanted
+        self.status = status
 
-    @property
-    def user_id(self):
-        return self._user_id
-
-    @property
-    def house(self):
-        return self._house
-
-    @property
-    def mortgage_type(self):
-        return self._mortgage_type
-
-    @property
-    def bank_ids(self):
-        return self._bank_ids
-
-    @property
-    def description(self):
-        return self._description
-
-    @property
-    def amount_wanted(self):
-        return self._amount_wanted
-
-    @property
-    def status(self):
-        return self._status
-
-    @status.setter
-    def status(self, value):
-        self._status = value
 
     def to_dict(self):
         return {
             "id": self.id,
-            "user_id": self._user_id,
-            "house": self._house.to_dict(),
-            "mortgage_type": self._mortgage_type.name,
-            "bank_ids": self._bank_ids,
-            "description": self._description,
-            "amount_wanted": self._amount_wanted,
-            "status": self._status.name
+            "user_id": self.user_id,
+            "house": self.house.to_dict(),
+            "mortgage_type": self.mortgage_type.name,
+            "bank_id": self.bank_id,
+            "description": self.description,
+            "amount_wanted": self.amount_wanted,
+            "status": self.status.name
         }
 
     @staticmethod
@@ -92,7 +70,7 @@ class LoanRequest(object):
                            loan_request_dict['user_id'],
                            house,
                            mortgage_type,
-                           loan_request_dict['bank_ids'],
+                           loan_request_dict['bank_id'],
                            loan_request_dict['description'],
                            loan_request_dict['amount_wanted'],
                            status)

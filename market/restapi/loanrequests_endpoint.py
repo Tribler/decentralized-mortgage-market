@@ -59,7 +59,7 @@ class SpecificLoanRequestEndpoint(resource.Resource):
     def __init__(self, market_community, loan_request_id):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.loan_request_id = loan_request_id
+        self.loan_request_id = unicode(loan_request_id)
 
     def render_PATCH(self, request):
         """
@@ -114,9 +114,9 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                                 2.0,
                                 2.0,
                                 120,
-                                '',
+                                u'',
                                 MortgageStatus.PENDING)
-            self.market_community.data_manager.you.mortgages.append(mortgage)
+            self.market_community.data_manager.you.mortgages.add(mortgage)
             self.market_community.send_mortgage_offer(loan_request, mortgage)
         else:
             loan_request.status = LoanRequestStatus.REJECTED

@@ -1,3 +1,0 @@
-"""
-Mortgage Market API package
-"""

@@ -36,7 +36,7 @@ class UsersEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"users": [user.to_dict() for user in self.market_community.data_manager.users.values()]})
+        return json.dumps({"users": [user.to_dict() for user in self.market_community.data_manager.get_users()]})
 
     def getChild(self, path, request):
         return SpecificUserEndpoint(self.market_community, path)

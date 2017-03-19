@@ -1,5 +1,6 @@
-from market.models.mortgage import Mortgage
-from market.models.investment import InvestmentStatus
+from storm.properties import Int, Float, Bool, Unicode
+from market.models.investment import Investment, InvestmentStatus
+from storm.references import ReferenceSet
 
 
 class Campaign(object):
@@ -7,39 +8,29 @@ class Campaign(object):
     This class represents a campaign for a specific mortgage.
     """
 
-    def __init__(self, user_id, mortgage, amount, end_time, completed):
-        self._user_id = user_id
-        self._mortgage = mortgage
-        self._amount = amount
-        self._end_time = end_time
-        self._completed = completed
+    __storm_table__ = "campaign"
+    id = Unicode(primary=True)
+    user_id = Unicode()
+    mortgage_id = Unicode()
+    amount = Float()
+    end_time = Int()
+    completed = Bool()
+    investments = ReferenceSet(id, Investment.campaign_id)
+
+    def __init__(self, identifier, user_id, mortgage_id, amount, end_time, completed):
+        self.id = identifier
+        self.user_id = user_id
+        self.mortgage_id = mortgage_id
+        self.amount = amount
+        self.end_time = end_time
+        self.completed = completed
 
     def calc_investment(self):
-        investment = sum([investment.amount for investment in self._mortgage.investments
+        investment = sum([investment.amount for investment in self.investments
                           if investment.status == InvestmentStatus.ACCEPTED])
-        if investment >= self._amount:
-            self._completed = True
+        if investment >= self.amount:
+            self.completed = True
         return investment
-
-    @property
-    def user_id(self):
-        return self._user_id
-
-    @property
-    def mortgage(self):
-        return self._mortgage
-
-    @property
-    def amount(self):
-        return self._amount
-
-    @property
-    def end_time(self):
-        return self._end_time
-
-    @property
-    def completed(self):
-        return self._completed
 
     def to_dict(self, include_investment=False):
         investment_dict = {}
@@ -49,23 +40,20 @@ class Campaign(object):
             investment_dict['investment'] = self.calc_investment()
 
         investment_dict.update({
-            "user_id": self._user_id,
-            "mortgage": self._mortgage.to_dict(),
-            "amount": self._amount,
-            "end_time": self._end_time,
-            "completed": self._completed
+            "id": self.id,
+            "user_id": self.user_id,
+            "mortgage_id": self.mortgage_id,
+            "amount": self.amount,
+            "end_time": self.end_time,
+            "completed": self.completed
         })
         return investment_dict
 
     @staticmethod
     def from_dict(campaign_dict):
-        mortgage = Mortgage.from_dict(campaign_dict['mortgage'])
-
-        if mortgage is None:
-            return None
-
-        return Campaign(campaign_dict['user_id'],
-                        mortgage,
+        return Campaign(campaign_dict['id'],
+                        campaign_dict['user_id'],
+                        campaign_dict['mortgage_id'],
                         campaign_dict['amount'],
                         campaign_dict['end_time'],
                         campaign_dict['completed'])

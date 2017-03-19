@@ -1,79 +1,47 @@
-from enum import Enum
+from enum import Enum as PyEnum
 
-from market.dispersy.crypto import ECCrypto
+from storm.properties import Enum, Int, Unicode
+from storm.references import ReferenceSet, Reference
+from market.models.loanrequest import LoanRequest
+from market.models.campaign import Campaign
+from market.models.mortgage import Mortgage
+from market.models.investment import Investment
+from storm.base import Storm
+from market.models.profile import Profile
 
 
-class Role(Enum):
+class Role(PyEnum):
     UNKNOWN = 0
     BORROWER = 1
     INVESTOR = 2
     FINANCIAL_INSTITUTION = 3
 
 
-class User(object):
+class User(Storm):
     """
     This class represents a user in Dispersy.
     """
 
-    def __init__(self, public_key, private_key=None, role=None, profile=None):
-        self._public_key = public_key
-        self._private_key = private_key
-        self._role = role
-        self._profile = profile
-        self._loan_requests = []
-        self._campaigns = []
-        self._mortgages = []
-        self._investments = []
-        self._candidate = None
+    __storm_table__ = "user"
+    id = Unicode(primary=True)
+    role = Enum(map={e:e.value for e in Role})
+    profile_id = Int()
+    profile = Reference(profile_id, Profile.id)
+    loan_requests = ReferenceSet(id, LoanRequest.user_id)
+    campaigns = ReferenceSet(id, Campaign.user_id)
+    mortgages = ReferenceSet(id, Mortgage.user_id)
+    investments = ReferenceSet(id, Investment.user_id)
 
-    @property
-    def id(self):
-        return self._public_key
-
-    @property
-    def profile(self):
-        return self._profile
-
-    @property
-    def loan_requests(self):
-        return self._loan_requests
-
-    @property
-    def mortgages(self):
-        return self._mortgages
-
-    @property
-    def investments(self):
-        return self._investments
-
-    @property
-    def role(self):
-        return self._role
-
-    @property
-    def candidate(self):
-        return self._candidate
-
-    @property
-    def campaigns(self):
-        return self._campaigns
-
-    @profile.setter
-    def profile(self, value):
-        self._profile = value
-
-    @role.setter
-    def role(self, value):
-        self._role = value
-
-    @candidate.setter
-    def candidate(self, value):
-        self._candidate = value
+    def __init__(self, public_key, private_key=None, role=None):
+        self.id = public_key
+        self.private_key = private_key
+        self.role = role
+        self.candidate = None
 
     def to_dict(self):
         return {
-            "id": self._public_key,
-            "role": self._role.name
+            "id": self.id,
+            "role": self.role.name
         }
 
     @staticmethod
@@ -85,11 +53,3 @@ class User(object):
             return None
 
         return User(user_dict['id'], role=role)
-
-    @staticmethod
-    def generate():
-        crypto = ECCrypto()
-        key = crypto.generate_key(u'high')
-        public_bin = crypto.key_to_bin(key.pub())
-        private_bin = crypto.key_to_bin(key)
-        return User(public_key=public_bin.encode("hex"), private_key=private_bin.encode("hex"))

@@ -7,15 +7,15 @@
         <ngx-datatable-column prop="amount" name="Amount needed"></ngx-datatable-column>
         <ngx-datatable-column prop="investment" name="Amount invested"></ngx-datatable-column>
         <ngx-datatable-column prop="user_id" name="User"></ngx-datatable-column>
-        <ngx-datatable-column prop="mortgage.id" name="Mortgage id"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_id" name="Mortgage id"></ngx-datatable-column>
         <ngx-datatable-column prop="end_time" name="End time">
             <template let-value="value" ngx-datatable-cell-template>
                 {{ value * 1000 | date:'shortDate' }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="mortgage.id" name="Actions">
+        <ngx-datatable-column prop="id" name="Actions">
             <template let-value="value" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-plus accept clickable" (click)="request['mortgage_id']=value; staticModal.show();"></i>
+                <i class="glyphicon glyphicon-plus accept clickable" (click)="request['campaign_id']=value; staticModal.show();"></i>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>
@@ -28,7 +28,7 @@
         <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
-        <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
+        <ngx-datatable-column prop="campaign_id" name="Campaign"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>

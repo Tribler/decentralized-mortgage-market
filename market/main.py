@@ -7,6 +7,7 @@ import logging.config
 from twisted.python import log
 from twisted.internet import reactor
 
+from market.dispersy.crypto import LibNaCLSK
 from market.dispersy.dispersy import Dispersy
 from market.dispersy.endpoint import StandaloneEndpoint
 from market.community.community import MarketCommunity
@@ -24,7 +25,6 @@ class DispersyManager(object):
         self.session = None
         self.dispersy = None
         self.community = None
-        self.member = None
 
     def start_dispersy(self):
         self.logger.info('Starting Dispersy on port %d with state dir %s', self.port, self.state_dir)
@@ -34,9 +34,22 @@ class DispersyManager(object):
 
     def start_market(self, *args, **kwargs):
         self.logger.info('Starting MarketCommunity')
-        # TODO: get member from file
-        self.member = self.dispersy.get_new_member(u"curve25519")
-        self.community = self.dispersy.define_auto_load(MarketCommunity, self.member, load=True, args=args, kargs=kwargs)[0]
+
+        keypair_fn = os.path.join(self.dispersy.working_directory, 'market.pem')
+        if os.path.exists(keypair_fn):
+            self.logger.info('Using existing keypair')
+            with open(keypair_fn, 'rb') as keypair_fp:
+                keypair_bin = keypair_fp.read()
+            keypair = LibNaCLSK(binarykey=keypair_bin)
+        else:
+            self.logger.info('Creating new keypair')
+            keypair = LibNaCLSK()
+            with open(keypair_fn, 'wb') as keypair_fp:
+                keypair_fp.write(keypair.key.sk)
+                keypair_fp.write(keypair.key.seed)
+
+        member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+        self.community = self.dispersy.define_auto_load(MarketCommunity, member, load=True, args=args, kargs=kwargs)[0]
 
     def stop_dispersy(self):
         self.logger.info('Stopping Dispersy')

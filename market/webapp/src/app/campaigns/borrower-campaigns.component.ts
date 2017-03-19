@@ -31,11 +31,7 @@ export class BorrowerCampaignsComponent implements OnInit {
 
                 var all_investments = [];
                 campaigns.forEach((campaign: any) => {
-                    campaign.investments.forEach((investment: any) => {
-                        investment.campaign_id = campaign.mortgage.id;
-                        all_investments.push(investment);
-                    });
-                    //all_investments = all_investments.concat(campaign.investments);
+                    all_investments = all_investments.concat(campaign.investments);
                 });
 
                 this.pending_investments = all_investments.filter((i: any) => i.status == 'PENDING');
@@ -44,6 +40,7 @@ export class BorrowerCampaignsComponent implements OnInit {
     }
 
     acceptInvestmentOffer(investment) {
+        console.log(investment);
         this._marketService.acceptInvestment(investment.campaign_id, investment.id)
              .subscribe(() => this.loadMyCampaigns());
     }

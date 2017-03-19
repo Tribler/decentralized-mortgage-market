@@ -49,7 +49,8 @@ message InvestmentRejectMessage {
 
 message CampaignUpdateMessage {
     required Campaign campaign = 1;
-    optional Investment investment = 2;
+    required Mortgage mortgage = 2;
+    optional Investment investment = 3;
 }
 
 // Objects that are included in the Dispersy messages
@@ -58,7 +59,7 @@ message LoanRequest {
     required string user_id = 2;
     required House house = 3;
     required string mortgage_type = 4;
-    repeated string bank_ids = 5;
+    required string bank_id = 5;
     required string description = 6;
     required double amount_wanted = 7;
     required string status = 8;
@@ -100,7 +101,7 @@ message Investment {
     required double amount = 3;
     required uint32 duration = 4;
     required double interest_rate = 5;
-    required string mortgage_id = 6;
+    required string campaign_id = 6;
     required string status = 7;
 }
 
@@ -111,23 +112,24 @@ message Mortgage {
     required House house = 4;
     required double amount = 5;
     required double bank_amount = 6;
-    required string  mortgage_type = 7;
+    required string mortgage_type = 7;
     required double interest_rate = 8;
     required double max_invest_rate = 9;
     required double default_rate = 10;
     required uint32 duration = 11;
     required string risk = 12;
-    repeated Investment investments = 13;
-    required string status = 14;
-    optional Campaign campaign = 15;
+    required string status = 13;
+    optional Campaign campaign = 14;
 }
 
 message Campaign {
-    required string user_id = 1;
-    required Mortgage mortgage = 2;
-    required double amount = 3;
-    required int64 end_time = 4;
-    required bool completed = 5;
+    required string id = 1;
+    required string user_id = 2;
+    required string mortgage_id = 3;
+    required double amount = 4;
+    required int64 end_time = 5;
+    required bool completed = 6;
+    repeated Investment investments = 7;
 }
 
 message User {

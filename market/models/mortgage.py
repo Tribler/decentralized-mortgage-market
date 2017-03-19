@@ -1,132 +1,79 @@
-from enum import Enum
+from enum import Enum as PyEnum
 
 from market.models.house import House
+from storm.properties import Int, Float, Unicode, Enum
+from storm.references import Reference
+from storm.base import Storm
 
 
-class MortgageStatus(Enum):
+class MortgageStatus(PyEnum):
     NONE = 0
     PENDING = 1
     ACCEPTED = 2
     REJECTED = 3
 
 
-class MortgageType(Enum):
+class MortgageType(PyEnum):
     LINEAR = 0
     FIXEDRATE = 1
 
 
-class Mortgage(object):
+# Mortgage inherits from Storm base class to prevent circular import issues with Campaign
+class Mortgage(Storm):
     """
     This class represents a mortgage of a specific user. Each mortgage is tied to a house.
     """
 
+    __storm_table__ = "mortgage"
+    id = Unicode(primary=True)
+    user_id = Unicode()
+    bank_id = Unicode()
+    house_id = Int()
+    house = Reference(house_id, House.id)
+    amount = Float()
+    bank_amount = Float()
+    mortgage_type = Enum(map={e:e.value for e in MortgageType})
+    interest_rate = Float()
+    max_invest_rate = Float()
+    default_rate = Float()
+    duration = Int()
+    risk = Unicode()
+    status = Enum(map={e:e.value for e in MortgageStatus})
+    campaign_id = Unicode()
+    campaign = Reference(campaign_id, 'Campaign.id')
+
     def __init__(self, identifier, user_id, bank_id, house, amount, bank_amount, mortgage_type, interest_rate, max_invest_rate,
                  default_rate, duration, risk, status, campaign=None):
-        self._id = identifier
-        self._user_id = user_id
-        self._bank_id = bank_id
-        self._house = house
-        self._amount = amount
-        self._bank_amount = bank_amount
-        self._mortgage_type = mortgage_type
-        self._interest_rate = interest_rate
-        self._max_invest_rate = max_invest_rate
-        self._default_rate = default_rate
-        self._duration = duration
-        self._risk = risk
-        self._investments = []
-        self._status = status
-        self._campaign = campaign
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def user_id(self):
-        return self._user_id
-
-    @property
-    def house(self):
-        return self._house
-
-    @property
-    def bank_id(self):
-        return self._bank_id
-
-    @property
-    def amount(self):
-        return self._amount
-
-    @property
-    def bank_amount(self):
-        return self._bank_amount
-
-    @property
-    def mortgage_type(self):
-        return self._mortgage_type
-
-    @property
-    def interest_rate(self):
-        return self._interest_rate
-
-    @property
-    def max_invest_rate(self):
-        return self._max_invest_rate
-
-    @property
-    def default_rate(self):
-        return self._default_rate
-
-    @property
-    def duration(self):
-        return self._duration
-
-    @property
-    def risk(self):
-        return self._risk
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def investments(self):
-        return self._investments
-
-    def get_investment(self, investment_id):
-        for investment in self._investments:
-            if investment.id == investment_id:
-                return investment
-        return None
-
-    @status.setter
-    def status(self, value):
-        self._status = value
-
-    @house.setter
-    def house(self, value):
-        self._house = value
-
-    @property
-    def campaign(self):
-        return self._campaign
+        self.id = identifier
+        self.user_id = user_id
+        self.bank_id = bank_id
+        self.house = house
+        self.amount = amount
+        self.bank_amount = bank_amount
+        self.mortgage_type = mortgage_type
+        self.interest_rate = interest_rate
+        self.max_invest_rate = max_invest_rate
+        self.default_rate = default_rate
+        self.duration = duration
+        self.risk = risk
+        self.status = status
+        # self.campaign = campaign
 
     def to_dict(self):
         return {
-            "id": self._id,
-            "user_id": self._user_id,
-            "bank_id": self._bank_id,
+            "id": self.id,
+            "user_id": self.user_id,
+            "bank_id": self.bank_id,
             "house": self.house.to_dict(),
-            "amount": self._amount,
-            "bank_amount": self._bank_amount,
-            "mortgage_type": self._mortgage_type.name,
-            "interest_rate": self._interest_rate,
-            "max_invest_rate": self._max_invest_rate,
-            "default_rate": self._default_rate,
-            "duration": self._duration,
-            "risk": self._risk,
-            "status": self._status.name,
+            "amount": self.amount,
+            "bank_amount": self.bank_amount,
+            "mortgage_type": self.mortgage_type.name,
+            "interest_rate": self.interest_rate,
+            "max_invest_rate": self.max_invest_rate,
+            "default_rate": self.default_rate,
+            "duration": self.duration,
+            "risk": self.risk,
+            "status": self.status.name,
         }
 
     @staticmethod
