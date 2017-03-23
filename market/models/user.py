@@ -36,7 +36,6 @@ class User(Storm):
         self.id = public_key
         self.private_key = private_key
         self.role = role
-        self.candidate = None
 
     def to_dict(self):
         return {

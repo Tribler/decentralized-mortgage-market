@@ -25,7 +25,8 @@ from market.models.investment import InvestmentStatus, Investment
 from market.models import investment
 from market.models.profile import Profile
 
-DATABASE_COMMIT_INTERVAL = 60
+COMMIT_INTERVAL = 60
+CLEANUP_INTERVAL = 60
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
 
 
@@ -34,6 +35,7 @@ class MarketCommunity(Community):
     def __init__(self, dispersy, master, my_member):
         super(MarketCommunity, self).__init__(dispersy, master, my_member)
         self.logger = logging.getLogger('MarketLogger')
+        self.id_to_candidate = {}
         self.data_manager = None
         self.rest_manager = None
         self.market_api = None
@@ -48,7 +50,8 @@ class MarketCommunity(Community):
         self.rest_manager = RESTManager(self, rest_api_port)
         self.market_api = self.rest_manager.start()
 
-        self.register_task("database_commit", LoopingCall(self.data_manager.commit)).start(DATABASE_COMMIT_INTERVAL)
+        self.register_task("commit", LoopingCall(self.data_manager.commit)).start(COMMIT_INTERVAL)
+        self.register_task("cleanup", LoopingCall(self.cleanup)).start(CLEANUP_INTERVAL)
 
         self.logger.info("MarketCommunity initialized")
 
@@ -174,6 +177,11 @@ class MarketCommunity(Community):
         yield self.rest_manager.stop()
         yield super(MarketCommunity, self).unload_community()
 
+    def cleanup(self):
+        for user_id, candidate in self.id_to_candidate.items():
+            if candidate.last_walk_reply > 300:
+                self.id_to_candidate.pop(user_id)
+
     def on_introduction_response(self, messages):
         super(MarketCommunity, self).on_introduction_response(messages)
         for message in messages:
@@ -182,8 +190,7 @@ class MarketCommunity(Community):
     def send_message_to_ids(self, msg_type, user_ids, payload_dict):
         candidates = []
         for user_id in user_ids:
-            user = self.data_manager.get_user(user_id)
-            candidate = getattr(user, 'candidate', None)
+            candidate = self.id_to_candidate.get(user_id)
             if candidate is None:
                 self.logger.error('Cannot send %s (unknown user)', msg_type)
                 return False
@@ -235,7 +242,7 @@ class MarketCommunity(Community):
         else:
             user = User(user_id, role=role)
             self.data_manager.add_user(user)
-        user.candidate = candidate
+        self.id_to_candidate[user_id] = candidate
         return user
 
     def add_or_update_profile(self, candidate, profile):

@@ -364,7 +364,7 @@ class YouCampaignsEndpoint(resource.Resource):
         you = self.market_community.data_manager.you
         campaigns = []
         for campaign in you.campaigns:
-            campaign_dict = campaign.to_dict()
+            campaign_dict = campaign.to_dict(include_investment=True)
             campaign_dict['investments'] = [investment.to_dict() for investment in campaign.investments]
             campaigns.append(campaign_dict)
         return json.dumps({"campaigns": campaigns})
