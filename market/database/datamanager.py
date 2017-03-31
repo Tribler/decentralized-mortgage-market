@@ -1,4 +1,5 @@
 import os
+import time
 
 from storm.database import create_database
 from storm.store import Store
@@ -26,14 +27,6 @@ class MarketDataManager:
             schema = fp.read()
         for cmd in schema.split(';'):
             self.store.execute(cmd)
-
-        # Ensure the genesis block exists
-        block = self.get_latest_block()
-        if block is None:
-            # Values are all empty
-            block = Block()
-            block.hash()
-            self.store.add(block)
 
         self.you = None
 
@@ -114,19 +107,20 @@ class MarketDataManager:
         return self.store.find(Campaign)
 
     def add_block(self, block):
-        prev_block = self.get_latest_block()
-
+        block.insert_time = int(time.time())
         block.hash()
-        block.previous_hash = prev_block.hash_block
-        block.sequence_number = prev_block.sequence_number + 1
         self.store.add(block)
 
-    def get_latest_block(self):
+    def get_latest_block(self, user_id=None):
         """
         Get the latest Block from the blochchain.
         :return: the latest Block
         """
-        return self.store.find(Block).order_by(Desc(Block.id)).config(limit=1).one()
+        if user_id is None:
+            return self.store.find(Block).order_by(Desc(Block.id)).config(limit=1).one()
+        else:
+            return self.store.find(Block, Block.signee == user_id) \
+                             .order_by(Desc(Block.sequence_number_signee)).config(limit=1).one()
 
     def flush(self):
         self.store.flush()

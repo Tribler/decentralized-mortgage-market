@@ -6,6 +6,8 @@ from storm.references import Reference
 from market.models.house import House
 from market.database.types import Enum
 from base64 import urlsafe_b64encode
+from market.community.market_pb2 import Mortgage as MortgagePB
+from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
 
 class MortgageStatus(PyEnum):
@@ -103,3 +105,12 @@ class Mortgage(Storm):
                         mortgage_dict['duration'],
                         mortgage_dict['risk'],
                         status)
+
+    def to_bin(self):
+        return dict_to_protobuf(MortgagePB, self.to_dict()).SerializeToString()
+
+    @staticmethod
+    def from_bin(self, binary):
+        msg = MortgagePB()
+        msg.ParseFromString(binary)
+        return Mortgage.from_dict(protobuf_to_dict(msg))

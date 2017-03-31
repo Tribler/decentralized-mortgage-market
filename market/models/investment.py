@@ -3,6 +3,8 @@ from enum import Enum as PyEnum
 from storm.properties import Int, Float, RawStr
 from market.database.types import Enum
 from base64 import urlsafe_b64encode
+from market.community.market_pb2 import Investment as InvestmentPB
+from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
 
 class InvestmentStatus(PyEnum):
@@ -65,3 +67,12 @@ class Investment(object):
                           investment_dict['campaign_id'],
                           investment_dict['campaign_user_id'],
                           status)
+
+    def to_bin(self):
+        return dict_to_protobuf(InvestmentPB, self.to_dict()).SerializeToString()
+
+    @staticmethod
+    def from_bin(self, binary):
+        msg = InvestmentPB()
+        msg.ParseFromString(binary)
+        return Investment.from_dict(protobuf_to_dict(msg))

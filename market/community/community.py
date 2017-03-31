@@ -29,6 +29,7 @@ from market.models.block import Block
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
+GENESIS_HASH = '\00' * 32
 
 
 class SignRequestCache(RandomNumberCache):
@@ -561,53 +562,54 @@ class MarketCommunity(Community):
 
         cache = self.request_cache.add(SignRequestCache(self))
 
-        latest_block = self.data_manager.get_latest_block()
+        my_latest_block = self.data_manager.get_latest_block(self.my_user_id)
 
-        block = Block()
-        block.benefactor = self.my_user_id
-        block.sequence_number_benefactor = latest_block.sequence_number + 1
-        block.previous_hash_benefactor = latest_block.hash_block
+        myblock = Block()
+        myblock.signee = self.my_user_id
+        myblock.sequence_number_signee = my_latest_block.sequence_number_signee + 1 if my_latest_block else 0
+        myblock.previous_hash_signee = my_latest_block.block_hash if my_latest_block else GENESIS_HASH
 
-        # Agreements are stored in serialized protobuf format
-        from protobuf_to_dict import dict_to_protobuf
-        from market_pb2 import Mortgage as MortgagePB, Investment as InvestmentPB
-        serialize = lambda cls, dic: dict_to_protobuf(cls, dic).SerializeToString()
+        if mortgage is None:
+            myblock.document = investment.to_bin()
+            destination_id = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id).user_id
+        else:
+            myblock.document = mortgage.to_bin()
+            destination_id = mortgage.user_id
 
-        block.agreement_benefactor = serialize(MortgagePB, mortgage.to_dict()) if mortgage is not None else \
-                                     serialize(InvestmentPB, investment.to_dict())
-        block.sign(self.my_member)
-        block.hash()
+        myblock.sign(self.my_member)
+        self.data_manager.add_block(myblock)
 
-        # Save block - add to cache and store in on_sig_response?
-        self.data_manager.add_block(block)
-
-        destination_id = mortgage.user_id if mortgage is not None else investment.user_id
         return self.send_message_to_ids(u'sign-request', (destination_id,), {'identifier': cache.number,
-                                                                             'block': block.to_dict()})
+                                                                             'block': myblock.to_dict()})
 
     def on_sign_request(self, messages):
         for message in messages:
             block = Block.from_dict(message.payload.dictionary['block'])
-            if not block.verify(message.candidate.get_member()):
-                self.logger.warning('Got sign-request with incorrect signature')
+            if block is None:
+                self.logger.warning('Dropping invalid sign-request from %s', message.candidate.sock_addr)
+                continue
+            elif not block.verify(message.candidate.get_member()):
+                self.logger.warning('Dropping sign-request with incorrect signature')
                 continue
 
             self.logger.debug('Got sign-request from %s', message.candidate.sock_addr)
 
-            latest_block = self.data_manager.get_latest_block()
-
-            # TODO: check this!
-            block.agreement_beneficiary = block.agreement_benefactor
-            block.beneficiary = self.my_user_id
-            block.sequence_number_beneficiary = latest_block.sequence_number + 1
-            block.previous_hash_beneficiary = latest_block.hash_block
-
-            block.sign(self.my_member)
-            block.hash()
-
+            # Save incoming block
             self.data_manager.add_block(block)
 
-            self.send_sign_response(message.candidate, block, message.payload.dictionary['identifier'])
+            # Create own block
+            my_latest_block = self.data_manager.get_latest_block(self.my_user_id)
+
+            myblock = Block()
+            myblock.signee = self.my_user_id
+            myblock.sequence_number_signee = my_latest_block.sequence_number_signee + 1 if my_latest_block else 0
+            myblock.previous_hash_signee = my_latest_block.block_hash if my_latest_block else GENESIS_HASH
+            # TODO: check this!
+            myblock.document = block.document
+            myblock.sign(self.my_member)
+            self.data_manager.add_block(myblock)
+
+            self.send_sign_response(message.candidate, myblock, message.payload.dictionary['identifier'])
 
     def send_sign_response(self, candidate, block, identifier):
         return self.send_message(u'sign-response', (candidate,), {'identifier': identifier,
@@ -617,16 +619,18 @@ class MarketCommunity(Community):
         for message in messages:
             cache = self.request_cache.get(u'sign-request', message.payload.dictionary['identifier'])
             if not cache:
-                self.logger.warning("Got unexpected sign-response from %s", message.candidate.sock_addr)
+                self.logger.warning("Dropping unexpected sign-response from %s", message.candidate.sock_addr)
                 continue
 
             block = Block.from_dict(message.payload.dictionary['block'])
-            if not block.verify(message.candidate.get_member()):
-                self.logger.warning('Got sign-response with incorrect signature')
+            if block is None:
+                self.logger.warning('Dropping invalid sign-response from %s', message.candidate.sock_addr)
                 continue
+            elif not block.verify(message.candidate.get_member()):
+                self.logger.warning('Dropping sign-response with incorrect signature')
 
             self.logger.debug('Got sign-response from %s', message.candidate.sock_addr)
 
+            # Save incoming block
             # TODO: check block!
-
             self.data_manager.add_block(block)

@@ -157,14 +157,9 @@ message User {
 }
 
 message Block {
-    required bytes benefactor = 1;
-    required bytes beneficiary = 2;
-    required bytes agreement_benefactor = 3;
-    required bytes agreement_beneficiary = 4;
-    required int32 sequence_number_benefactor = 5;
-    required int32 sequence_number_beneficiary = 6;
-    required bytes previous_hash_benefactor = 7;
-    required bytes previous_hash_beneficiary = 8;
-    required bytes signature_benefactor = 9;
-    required bytes signature_beneficiary = 10;
+    required bytes signee = 1;
+    required bytes document = 2;
+    required int32 sequence_number_signee = 3;
+    required bytes previous_hash_signee = 4;
+    required bytes signature = 5;
 }
