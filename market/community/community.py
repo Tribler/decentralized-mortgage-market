@@ -179,7 +179,7 @@ class MarketCommunity(Community):
 
     def cleanup(self):
         for user_id, candidate in self.id_to_candidate.items():
-            if candidate.last_walk_reply > 300:
+            if candidate.last_walk_reply < time.time() - 300:
                 self.id_to_candidate.pop(user_id)
 
     def on_introduction_response(self, messages):
