@@ -1,13 +1,14 @@
 from enum import Enum as PyEnum
 
-from storm.properties import Enum, Int, Unicode
+from storm.base import Storm
+from storm.properties import Int, Unicode
 from storm.references import ReferenceSet, Reference
 from market.models.loanrequest import LoanRequest
 from market.models.campaign import Campaign
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
-from storm.base import Storm
 from market.models.profile import Profile
+from market.database.types import Enum
 
 
 class Role(PyEnum):
@@ -24,7 +25,7 @@ class User(Storm):
 
     __storm_table__ = "user"
     id = Unicode(primary=True)
-    role = Enum(map={e:e.value for e in Role})
+    role = Enum(Role)
     profile_id = Int()
     profile = Reference(profile_id, Profile.id)
     loan_requests = ReferenceSet(id, LoanRequest.user_id)

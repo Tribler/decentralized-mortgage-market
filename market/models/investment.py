@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
-from storm.properties import Int, Float, Enum, Unicode
+from storm.properties import Int, Float, Unicode
+from market.database.types import Enum
 
 
 class InvestmentStatus(PyEnum):
@@ -22,7 +23,7 @@ class Investment(object):
     duration = Int()
     interest_rate = Float()
     campaign_id = Unicode()
-    status = Enum(map={e:e.value for e in InvestmentStatus})
+    status = Enum(InvestmentStatus)
 
     def __init__(self, identifier, user_id, amount, duration, interest_rate, campaign_id, status):
         self.id = identifier

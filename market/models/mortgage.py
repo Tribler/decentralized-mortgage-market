@@ -1,9 +1,10 @@
 from enum import Enum as PyEnum
 
-from market.models.house import House
-from storm.properties import Int, Float, Unicode, Enum
-from storm.references import Reference
 from storm.base import Storm
+from storm.properties import Int, Float, Unicode
+from storm.references import Reference
+from market.models.house import House
+from market.database.types import Enum
 
 
 class MortgageStatus(PyEnum):
@@ -32,13 +33,13 @@ class Mortgage(Storm):
     house = Reference(house_id, House.id)
     amount = Float()
     bank_amount = Float()
-    mortgage_type = Enum(map={e:e.value for e in MortgageType})
+    mortgage_type = Enum(MortgageType)
     interest_rate = Float()
     max_invest_rate = Float()
     default_rate = Float()
     duration = Int()
     risk = Unicode()
-    status = Enum(map={e:e.value for e in MortgageStatus})
+    status = Enum(MortgageStatus)
     campaign_id = Unicode()
     campaign = Reference(campaign_id, 'Campaign.id')
 
