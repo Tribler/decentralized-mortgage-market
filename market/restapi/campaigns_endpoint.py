@@ -127,12 +127,12 @@ class SpecificCampaignEndpoint(resource.Resource):
     This class handles requests for a specific campaign.
     """
 
-    def __init__(self, market_community, campaign_id):
+    def __init__(self, market_community, campaign_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.campaign_id = campaign_id
+        self.campaign_composite_key = campaign_composite_key
 
-        self.putChild("investments", CampaignInvestmentsEndpoint(market_community, campaign_id))
+        self.putChild("investments", CampaignInvestmentsEndpoint(market_community, campaign_composite_key))
 
     def render_GET(self, request):
         """
@@ -182,7 +182,9 @@ class SpecificCampaignEndpoint(resource.Resource):
                     }
                 }
         """
-        campaign = self.market_community.data_manager.get_campaign(self.campaign_id)
+        keys = self.campaign_composite_key.split()
+        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), keys[1]) \
+                   if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
@@ -194,13 +196,13 @@ class CampaignInvestmentsEndpoint(resource.Resource):
     """
     This class handles requests regarding investments of a particular campaign
     """
-    def __init__(self, market_community, campaign_id):
+    def __init__(self, market_community, campaign_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.campaign_id = campaign_id
+        self.campaign_composite_key = unicode(campaign_composite_key)
 
     def getChild(self, path, request):
-        return SpecificCampaignInvestmentEndpoint(self.market_community, self.campaign_id, path)
+        return SpecificCampaignInvestmentEndpoint(self.market_community, self.campaign_composite_key, path)
 
     def render_GET(self, request):
         """
@@ -229,7 +231,9 @@ class CampaignInvestmentsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        campaign = self.market_community.data_manager.get_campaign(self.campaign_id)
+        keys = self.campaign_composite_key.split()
+        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), keys[1]) \
+                   if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
@@ -241,11 +245,11 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
     """
     This class handles requests for a specific investment in a campaign
     """
-    def __init__(self, market_community, campaign_id, investment_id):
+    def __init__(self, market_community, campaign_composite_key, investment_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.campaign_id = unicode(campaign_id)
-        self.investment_id = unicode(investment_id)
+        self.campaign_composite_key = unicode(campaign_composite_key)
+        self.investment_composite_key = unicode(investment_composite_key)
 
     def render_PATCH(self, request):
         """
@@ -267,12 +271,16 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
 
                     {"success": True}
         """
-        campaign = self.market_community.data_manager.get_campaign(self.campaign_id)
+        keys = self.campaign_composite_key.split()
+        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), keys[1]) \
+                   if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        investment = self.market_community.data_manager.get_investment(self.investment_id)
+        keys = self.investment_composite_key.split()
+        investment = self.market_community.data_manager.get_investment(int(keys[0]), keys[1]) \
+                   if len(keys) == 2 and keys[0].isdigit() else None
         if not investment or investment.campaign_id != campaign.id:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "investment not found"})

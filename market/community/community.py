@@ -320,11 +320,13 @@ class MarketCommunity(Community):
             user.loan_requests.add(loan_request)
 
     def send_loan_reject(self, loan_request):
-        return self.send_message_to_ids(u'loan-reject', (loan_request.user_id,), {'loan_request_id': loan_request.id})
+        return self.send_message_to_ids(u'loan-reject', (loan_request.user_id,), {'loan_request_id': loan_request.id,
+                                                                                  'loan_request_user_id': loan_request.user_id})
 
     def on_loan_reject(self, messages):
         for message in messages:
-            loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'])
+            loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'],
+                                                              message.payload.dictionary['loan_request_user_id'])
 
             if loan_request:
                 self.logger.debug('Got loan-reject from %s', message.candidate.sock_addr)
@@ -335,11 +337,13 @@ class MarketCommunity(Community):
     def send_mortgage_offer(self, loan_request, mortgage):
         return self.send_message_to_ids(u'mortgage-offer', (mortgage.user_id,),
                                         {'loan_request_id': loan_request.id,
+                                         'loan_request_user_id': loan_request.user_id,
                                          'mortgage': mortgage.to_dict()})
 
     def on_mortgage_offer(self, message):
         for message in message:
-            loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'])
+            loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'],
+                                                              message.payload.dictionary['loan_request_user_id'])
 
             if not loan_request:
                 self.logger.warning('Dropping mortgage-offer from %s (unknown loan request)', message.candidate.sock_addr)
@@ -363,18 +367,19 @@ class MarketCommunity(Community):
             self.data_manager.you.mortgages.add(mortgage)
 
     def send_mortgage_accept(self, mortgage):
-        if self.send_message_to_ids(u'mortgage-accept', (mortgage.bank_id,), {'mortgage_id': mortgage.id}):
+        if self.send_message_to_ids(u'mortgage-accept', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
+                                                                              'mortgage_user_id': mortgage.user_id}):
             end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
             finance_goal = mortgage.amount - mortgage.bank_amount
-            campaign_id = u'%s_%s' % (mortgage.id, self.data_manager.you.campaigns.count())
-            campaign = Campaign(campaign_id, self.my_user.id, mortgage.id, finance_goal, end_time, False)
+            campaign = Campaign(self.data_manager.you.campaigns.count(), self.my_user_id, mortgage.id, mortgage.user_id, finance_goal, end_time, False)
             self.data_manager.you.campaigns.add(campaign)
             return self.send_campaign_update(campaign)
         return False
 
     def on_mortgage_accept(self, messages):
         for message in messages:
-            mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'])
+            mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
+                                                      message.payload.dictionary['mortgage_user_id'])
 
             if not mortgage:
                 self.logger.warning('Dropping mortgage-accept from %s (unknown mortgage)', message.candidate.sock_addr)
@@ -385,11 +390,13 @@ class MarketCommunity(Community):
             mortgage.status = MortgageStatus.ACCEPTED
 
     def send_mortgage_reject(self, mortgage):
-        return self.send_message_to_ids(u'mortgage-reject', (mortgage.bank_id,), {'mortgage_id': mortgage.id})
+        return self.send_message_to_ids(u'mortgage-reject', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
+                                                                                  'mortgage_user_id': mortgage.user_id})
 
     def on_mortgage_reject(self, messages):
         for message in messages:
-            mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'])
+            mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
+                                                      message.payload.dictionary['mortgage_user_id'])
 
             if mortgage:
                 self.logger.debug('Got mortgage-reject from %s', message.candidate.sock_addr)
@@ -398,7 +405,7 @@ class MarketCommunity(Community):
                 self.logger.warning('Dropping mortgage-reject from %s (unknown mortgage)', message.candidate.sock_addr)
 
     def send_investment_offer(self, investment):
-        campaign = self.data_manager.get_campaign(investment.campaign_id)
+        campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
         if campaign is None:
             self.logger.error('Cannot send investment-offer (unknown campaign)')
             return False
@@ -412,7 +419,7 @@ class MarketCommunity(Community):
             investment_dict = message.payload.dictionary['investment']
             investment = Investment.from_dict(investment_dict)
 
-            campaign = self.data_manager.get_campaign(investment.campaign_id)
+            campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
 
             if campaign is None:
                 self.logger.warning('Dropping investment-offer from %s (unknown campaign)', message.candidate.sock_addr)
@@ -429,11 +436,13 @@ class MarketCommunity(Community):
     def send_investment_accept(self, investment):
         return self.send_message_to_ids(u'investment-accept', (investment.user_id,),
                                         {'investment_id': investment.id,
+                                         'investment_user_id': investment.user_id,
                                          'borrowers_profile': self.data_manager.you.profile.to_dict()})
 
     def on_investment_accept(self, messages):
         for message in messages:
-            investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'])
+            investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'],
+                                                          message.payload.dictionary['investment_user_id'])
 
             if investment is None:
                 self.logger.warning('Dropping investment-accept from %s (unknown investment)', message.candidate.sock_addr)
@@ -448,11 +457,13 @@ class MarketCommunity(Community):
             investment.status = InvestmentStatus.ACCEPTED
 
     def send_investment_reject(self, investment):
-        return self.send_message_to_ids(u'investment-reject', (investment.user_id,), {'investment_id': investment.id})
+        return self.send_message_to_ids(u'investment-reject', (investment.user_id,), {'investment_id': investment.id,
+                                                                                      'investment_user_id': investment.user_id})
 
     def on_investment_reject(self, messages):
         for message in messages:
-            investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'])
+            investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'],
+                                                          message.payload.dictionary['investment_user_id'])
 
             if investment is None:
                 self.logger.warning('Dropping investment-reject from %s (unknown investment)', message.candidate.sock_addr)
@@ -462,7 +473,7 @@ class MarketCommunity(Community):
             investment.status = InvestmentStatus.REJECTED
 
     def send_campaign_update(self, campaign, investment=None):
-        mortgage = self.data_manager.get_mortgage(campaign.mortgage_id)
+        mortgage = self.data_manager.get_mortgage(campaign.mortgage_id, campaign.mortgage_user_id)
         msg_dict = {'campaign': campaign.to_dict(),
                     'mortgage': mortgage.to_dict()}
         if investment is not None:
@@ -503,11 +514,11 @@ class MarketCommunity(Community):
                 self.data_manager.add_user(user)
             # TODO: check if this message is signed by the mortgage owner
 
-            if self.data_manager.get_mortgage(mortgage.id) is None:
+            if self.data_manager.get_mortgage(mortgage.id, mortgage.user_id) is None:
                 user.mortgages.add(mortgage)
 
-            if self.data_manager.get_campaign(campaign.id) is None:
+            if self.data_manager.get_campaign(campaign.id, campaign.user_id) is None:
                 user.campaigns.add(campaign)
 
-            if investment and self.data_manager.get_investment(investment.id):
+            if investment and self.data_manager.get_investment(investment.id, investment.user_id):
                 campaign.investments.add(investment)

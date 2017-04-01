@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS user(
   id         TEXT PRIMARY KEY,
-  role       INT,
-  profile_id INT
+  role       INTEGER,
+  profile_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS profile(
   id           INTEGER PRIMARY KEY,
-  address_id   INT,
+  address_id   INTEGER,
   first_name   TEXT,
   last_name    TEXT,
   email        TEXT,
@@ -22,14 +22,15 @@ CREATE TABLE IF NOT EXISTS profile_address(
 );
 
 CREATE TABLE IF NOT EXISTS loan_request(
-  id            TEXT PRIMARY KEY,
+  id            INTEGER,
   user_id       TEXT,
-  house_id      INT,
-  mortgage_type INT,
+  house_id      INTEGER,
+  mortgage_type INTEGER,
   bank_id       TEXT,
   description   TEXT,
   amount_wanted FLOAT,
-  status        INT
+  status        INTEGER,
+  PRIMARY KEY (id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS house(
@@ -44,36 +45,41 @@ CREATE TABLE IF NOT EXISTS house(
 );
 
 CREATE TABLE IF NOT EXISTS mortgage(
-  id              TEXT PRIMARY KEY,
+  id              INTEGER,
   user_id         TEXT,
   bank_id         TEXT,
-  house_id        INT,
+  house_id        INTEGER,
   amount          FLOAT,
   bank_amount     FLOAT,
-  mortgage_type   INT,
+  mortgage_type   INTEGER,
   interest_rate   FLOAT,
   max_invest_rate FLOAT,
   default_rate    FLOAT,
-  duration        INT,
+  duration        INTEGER,
   risk            TEXT,
-  status          INT
+  status          INTEGER,
+  PRIMARY KEY (id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS campaign(
-  id          TEXT PRIMARY KEY,
-  user_id     TEXT,
-  mortgage_id INT,
-  amount      FLOAT,
-  end_time    INT,
-  completed   INT
+  id               INTEGER,
+  user_id          TEXT,
+  mortgage_id      INTEGER,
+  mortgage_user_id TEXT,
+  amount           FLOAT,
+  end_time         INTEGER,
+  completed        INTEGER,
+  PRIMARY KEY (id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS investment(
-  id            TEXT PRIMARY KEY,
-  user_id       TEXT,
-  amount        FLOAT,
-  duration      INT,
-  interest_rate FLOAT,
-  campaign_id   TEXT,
-  status        INT
+  id               INTEGER,
+  user_id          TEXT,
+  amount           FLOAT,
+  duration         INTEGER,
+  interest_rate    FLOAT,
+  campaign_id      INTEGER,
+  campaign_user_id TEXT,
+  status           INTEGER,
+  PRIMARY KEY (id, user_id)
 );

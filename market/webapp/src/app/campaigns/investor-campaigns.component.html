@@ -14,8 +14,8 @@
             </template>
         </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
-            <template let-value="value" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-plus accept clickable" (click)="request['campaign_id']=value; staticModal.show();"></i>
+            <template let-row="row" ngx-datatable-cell-template>
+                <i class="glyphicon glyphicon-plus accept clickable" (click)="request['campaign_id']=row.id; request['campaign_user_id']=row.user_id; staticModal.show();"></i>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>

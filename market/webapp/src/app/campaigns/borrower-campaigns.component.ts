@@ -40,13 +40,12 @@ export class BorrowerCampaignsComponent implements OnInit {
     }
 
     acceptInvestmentOffer(investment) {
-        console.log(investment);
-        this._marketService.acceptInvestment(investment.campaign_id, investment.id)
+        this._marketService.acceptInvestment(investment)
              .subscribe(() => this.loadMyCampaigns());
     }
 
     rejectInvestmentOffer(investment) {
-        this._marketService.rejectInvestment(investment.campaign_id, investment.id)
+        this._marketService.rejectInvestment(investment)
             .subscribe(() => this.loadMyCampaigns());
     }
 }

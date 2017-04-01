@@ -25,13 +25,13 @@ export class BankerMortgagesComponent implements OnInit {
             });
     }
 
-    acceptLoanRequest(id) {
-        this._marketService.acceptLoanRequest(id)
+    acceptLoanRequest(loan_request) {
+        this._marketService.acceptLoanRequest(loan_request)
             .subscribe(() => this.loadLoanRequests());
     }
 
-    rejectLoanRequest(id) {
-        this._marketService.rejectLoanRequest(id)
+    rejectLoanRequest(loan_request) {
+        this._marketService.rejectLoanRequest(loan_request)
             .subscribe(() => this.loadLoanRequests());
     }
 }

@@ -17,21 +17,24 @@ class Investment(object):
     """
 
     __storm_table__ = "investment"
-    id = Unicode(primary=True)
+    __storm_primary__ = "id", "user_id"
+    id = Int()
     user_id = Unicode()
     amount = Float()
     duration = Int()
     interest_rate = Float()
-    campaign_id = Unicode()
+    campaign_id = Int()
+    campaign_user_id = Unicode()
     status = Enum(InvestmentStatus)
 
-    def __init__(self, identifier, user_id, amount, duration, interest_rate, campaign_id, status):
+    def __init__(self, identifier, user_id, amount, duration, interest_rate, campaign_id, campaign_user_id, status):
         self.id = identifier
         self.user_id = user_id
         self.amount = amount
         self.duration = duration
         self.interest_rate = interest_rate
         self.campaign_id = campaign_id
+        self.campaign_user_id = campaign_user_id
         self.status = status
 
     def to_dict(self):
@@ -42,6 +45,7 @@ class Investment(object):
             "duration": self.duration,
             "interest_rate": self.interest_rate,
             "campaign_id": self.campaign_id,
+            "campaign_user_id": self.campaign_user_id,
             "status": self.status.name
         }
 
@@ -59,4 +63,5 @@ class Investment(object):
                           investment_dict['duration'],
                           investment_dict['interest_rate'],
                           investment_dict['campaign_id'],
+                          investment_dict['campaign_user_id'],
                           status)

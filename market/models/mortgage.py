@@ -26,7 +26,8 @@ class Mortgage(Storm):
     """
 
     __storm_table__ = "mortgage"
-    id = Unicode(primary=True)
+    __storm_primary__ = "id", "user_id"
+    id = Int()
     user_id = Unicode()
     bank_id = Unicode()
     house_id = Int()

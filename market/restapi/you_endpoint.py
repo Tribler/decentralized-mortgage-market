@@ -198,7 +198,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             return json.dumps({"error": "please create a profile prior to creating an investment offer"})
 
         parameters = json.loads(request.content.read())
-        required_fields = ['amount', 'duration', 'interest_rate', 'campaign_id']
+        required_fields = ['amount', 'duration', 'interest_rate', 'campaign_id', 'campaign_user_id']
         for field in required_fields:
             if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -208,14 +208,15 @@ class YouInvestmentsEndpoint(resource.Resource):
         duration = parameters['duration']
         interest_rate = parameters['interest_rate']
         campaign_id = parameters['campaign_id']
+        campaign_user_id = parameters['campaign_user_id']
 
-        campaign = self.market_community.data_manager.get_campaign(campaign_id)
+        campaign = self.market_community.data_manager.get_campaign(campaign_id, campaign_user_id)
         if campaign is None:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        investment = Investment((u"%s_%s" % (campaign.id, campaign.investments.count())), you.id, amount, duration,
-                                interest_rate, campaign.id, InvestmentStatus.PENDING)
+        investment = Investment(campaign.investments.count(), you.id, amount, duration,
+                                interest_rate, campaign.id, campaign.user_id, InvestmentStatus.PENDING)
         you.investments.add(investment)
         campaign.investments.add(investment)
 
@@ -279,8 +280,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
 
         house = House(postal_code, house_number, address, price, url, seller_phone_number, seller_email)
 
-        loan_request_id = u'%s_%s' % (you.id, you.loan_requests.count())
-        loan_request = LoanRequest(loan_request_id, you.id, house, mortgage_type, bank_id,
+        loan_request = LoanRequest(you.loan_requests.count(), you.id, house, mortgage_type, bank_id,
                                    description, amount_wanted, LoanRequestStatus.PENDING)
 
         you.loan_requests.add(loan_request)
@@ -313,16 +313,18 @@ class YouSpecificMortageEndpoint(resource.Resource):
     """
     This class handles requests regarding a specific mortgage.
     """
-    def __init__(self, market_community, mortgage_id):
+    def __init__(self, market_community, morgage_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.mortgage_id = unicode(mortgage_id)
+        self.morgage_composite_key = unicode(morgage_composite_key)
 
     def render_PATCH(self, request):
         """
         Accept/reject a mortgage offer
         """
-        mortgage = self.market_community.data_manager.get_mortgage(self.mortgage_id)
+        keys = self.morgage_composite_key.split()
+        mortgage = self.market_community.data_manager.get_mortgage(int(keys[0]), keys[1]) \
+                   if len(keys) == 2 and keys[0].isdigit() else None
         if not mortgage:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})

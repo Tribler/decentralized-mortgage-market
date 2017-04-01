@@ -9,18 +9,21 @@ class Campaign(object):
     """
 
     __storm_table__ = "campaign"
-    id = Unicode(primary=True)
+    __storm_primary__ = "id", "user_id"
+    id = Int()
     user_id = Unicode()
-    mortgage_id = Unicode()
+    mortgage_id = Int()
+    mortgage_user_id = Unicode()
     amount = Float()
     end_time = Int()
     completed = Bool()
-    investments = ReferenceSet(id, Investment.campaign_id)
+    investments = ReferenceSet((id, user_id), (Investment.campaign_id, Investment.campaign_user_id))
 
-    def __init__(self, identifier, user_id, mortgage_id, amount, end_time, completed):
+    def __init__(self, identifier, user_id, mortgage_id, mortgage_user_id, amount, end_time, completed):
         self.id = identifier
         self.user_id = user_id
         self.mortgage_id = mortgage_id
+        self.mortgage_user_id = mortgage_user_id
         self.amount = amount
         self.end_time = end_time
         self.completed = completed
@@ -43,6 +46,7 @@ class Campaign(object):
             "id": self.id,
             "user_id": self.user_id,
             "mortgage_id": self.mortgage_id,
+            "mortgage_user_id": self.mortgage_user_id,
             "amount": self.amount,
             "end_time": self.end_time,
             "completed": self.completed
@@ -54,6 +58,7 @@ class Campaign(object):
         return Campaign(campaign_dict['id'],
                         campaign_dict['user_id'],
                         campaign_dict['mortgage_id'],
+                        campaign_dict['mortgage_user_id'],
                         campaign_dict['amount'],
                         campaign_dict['end_time'],
                         campaign_dict['completed'])

@@ -42,12 +42,12 @@ export class MarketService {
         return this._http.get(this._api_base + '/you/mortgages')
             .map(res => res.json().mortgages);
     }
-    acceptMyMortgageOffer(id): Observable<String> {
-        return this._http.patch(this._api_base + `/you/mortgages/${id}`, JSON.stringify({status: 'ACCEPT'}))
+    acceptMyMortgageOffer(mortgage): Observable<String> {
+        return this._http.patch(this._api_base + `/you/mortgages/${mortgage.id} ${mortgage.user_id}`, JSON.stringify({status: 'ACCEPT'}))
             .map(res => res.json());
     }
-    rejectMyMortgageOffer(id): Observable<String> {
-        return this._http.patch(this._api_base + `/you/mortgages/${id}`, JSON.stringify({status: 'REJECT'}))
+    rejectMyMortgageOffer(mortgage): Observable<String> {
+        return this._http.patch(this._api_base + `/you/mortgages/${mortgage.id} ${mortgage.user_id}`, JSON.stringify({status: 'REJECT'}))
             .map(res => res.json());
     }
 
@@ -55,12 +55,12 @@ export class MarketService {
         return this._http.get(this._api_base + '/loanrequests')
             .map(res => res.json().loan_requests);
     }
-    acceptLoanRequest(id): Observable<String> {
-        return this._http.patch(this._api_base + `/loanrequests/${id}`, JSON.stringify({status: 'ACCEPT'}))
+    acceptLoanRequest(loan_request): Observable<String> {
+        return this._http.patch(this._api_base + `/loanrequests/${loan_request.id} ${loan_request.user_id}`, JSON.stringify({status: 'ACCEPT'}))
             .map(res => res.json());
     }
-    rejectLoanRequest(id): Observable<String> {
-        return this._http.patch(this._api_base + `/loanrequests/${id}`, JSON.stringify({status: 'REJECT'}))
+    rejectLoanRequest(loan_request): Observable<String> {
+        return this._http.patch(this._api_base + `/loanrequests/${loan_request.id} ${loan_request.user_id}`, JSON.stringify({status: 'REJECT'}))
             .map(res => res.json());
     }
 
@@ -81,13 +81,13 @@ export class MarketService {
         return this._http.put(this._api_base + '/you/investments', investment)
             .map(res => res.json().success);
     }
-    acceptInvestment(campaign_id, investment_id): Observable<String> {
-        return this._http.patch(this._api_base + `/campaigns/${campaign_id}/investments/${investment_id}`,
+    acceptInvestment(investment): Observable<String> {
+        return this._http.patch(this._api_base + `/campaigns/${investment.campaign_id} ${investment.campaign_user_id}/investments/${investment.id} ${investment.user_id}`,
                                 JSON.stringify({status: 'ACCEPT'}))
             .map(res => res.json());
     }
-    rejectInvestment(campaign_id, investment_id): Observable<String> {
-        return this._http.patch(this._api_base + `/campaigns/${campaign_id}/investments/${investment_id}`,
+    rejectInvestment(investment): Observable<String> {
+        return this._http.patch(this._api_base + `/campaigns/${investment.campaign_id} ${investment.campaign_user_id}/investments/${investment.id} ${investment.user_id}`,
                                 JSON.stringify({status: 'REJECT'}))
             .map(res => res.json());
     }

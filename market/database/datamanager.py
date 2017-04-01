@@ -53,37 +53,41 @@ class MarketDataManager:
         """
         return self.store.find(LoanRequest)
 
-    def get_loan_request(self, loan_request_id):
+    def get_loan_request(self, loan_request_id, user_id):
         """
         Get a loan requests in the market.
         :param loan_request_id: the of the loan request to search for
+        :param user_id: owner of the loan request
         :return: a LoanRequest object or None if no loan request could be found
         """
-        return self.store.get(LoanRequest, loan_request_id)
+        return self.store.get(LoanRequest, (loan_request_id, user_id))
 
-    def get_mortgage(self, mortgage_id):
+    def get_mortgage(self, mortgage_id, user_id):
         """
         Get a specific mortgage with a specified id
         :param mortgage_id: the id of the mortgage to search for
+        :param user_id: owner of the mortgage
         :return: a Mortgage object or None if no mortgage could be found
         """
-        return self.store.get(Mortgage, mortgage_id)
+        return self.store.get(Mortgage, (mortgage_id, user_id))
 
-    def get_investment(self, investment_id):
+    def get_investment(self, investment_id, user_id):
         """
         Get a specific investment with a specified id
         :param investment_id: the id of the investment to search for
+        :param user_id: owner of the investment
         :return: an Investment object or None if no investment could be found
         """
-        return self.store.get(Investment, investment_id)
+        return self.store.get(Investment, (investment_id, user_id))
 
-    def get_campaign(self, campaign_id):
+    def get_campaign(self, campaign_id, user_id):
         """
         Get a specific campaign with a specified id
         :param campaign_id: the id of the campaign to search for
+        :param user_id: owner of the campaign
         :return: a Campaign object or None if no campaign could be found
         """
-        return self.store.get(Campaign, campaign_id)
+        return self.store.get(Campaign, (campaign_id, user_id))
 
     def get_campaigns(self):
         """

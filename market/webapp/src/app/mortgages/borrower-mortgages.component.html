@@ -28,9 +28,9 @@
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
-            <template let-value="value" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptMortgageOffer(value)"></i>
-                <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectMortgageOffer(value)"></i>
+            <template let-row="row" ngx-datatable-cell-template>
+                <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptMortgageOffer(row)"></i>
+                <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectMortgageOffer(row)"></i>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>

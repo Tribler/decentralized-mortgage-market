@@ -19,7 +19,8 @@ class LoanRequest(object):
     """
 
     __storm_table__ = "loan_request"
-    id = Unicode(primary=True)
+    __storm_primary__ = "id", "user_id"
+    id = Int()
     user_id = Unicode()
     house_id = Int()
     house = Reference(house_id, House.id)

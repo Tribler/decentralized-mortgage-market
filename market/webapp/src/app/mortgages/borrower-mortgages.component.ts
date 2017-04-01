@@ -55,13 +55,14 @@ export class BorrowerMortgagesComponent implements OnInit {
         modal.hide();
     }
 
-    acceptMortgageOffer(id) {
-        this._marketService.acceptMyMortgageOffer(id)
+    acceptMortgageOffer(mortgage) {
+        console.log(mortgage);
+        this._marketService.acceptMyMortgageOffer(mortgage)
             .subscribe();
     }
 
-    rejectMortgageOffer(id) {
-        this._marketService.rejectMyMortgageOffer(id)
+    rejectMortgageOffer(mortgage) {
+        this._marketService.rejectMyMortgageOffer(mortgage)
             .subscribe();
     }
 }

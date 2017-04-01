@@ -56,10 +56,10 @@ class SpecificLoanRequestEndpoint(resource.Resource):
     This class handles requests for a specific loan request.
     """
 
-    def __init__(self, market_community, loan_request_id):
+    def __init__(self, market_community, loan_request_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.loan_request_id = unicode(loan_request_id)
+        self.loan_request_composite_key = unicode(loan_request_composite_key)
 
     def render_PATCH(self, request):
         """
@@ -81,7 +81,10 @@ class SpecificLoanRequestEndpoint(resource.Resource):
 
                     {"success": True}
         """
-        loan_request = self.market_community.data_manager.get_loan_request(self.loan_request_id)
+
+        keys = self.loan_request_composite_key.split()
+        loan_request = self.market_community.data_manager.get_loan_request(int(keys[0]), keys[1]) \
+                       if len(keys) == 2 and keys[0].isdigit() else None
         if not loan_request:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "loan request not found"})
@@ -103,7 +106,8 @@ class SpecificLoanRequestEndpoint(resource.Resource):
         if status == "ACCEPT":
             loan_request.status = LoanRequestStatus.ACCEPTED
             # TODO: give the bank the opportunity to create a mortgage offer
-            mortgage = Mortgage(loan_request.id,
+            user = self.market_community.data_manager.get_user(loan_request.user_id)
+            mortgage = Mortgage(user.mortgages.count(),
                                 loan_request.user_id,
                                 self.market_community.my_user.id,
                                 loan_request.house,
@@ -116,7 +120,6 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                                 120,
                                 u'',
                                 MortgageStatus.PENDING)
-            user = self.market_community.data_manager.get_user(loan_request.user_id)
             user.mortgages.add(mortgage)
             self.market_community.send_mortgage_offer(loan_request, mortgage)
         else:
