@@ -7,6 +7,7 @@ from twisted.web import resource
 from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus
 from market.restapi import get_param
+from base64 import urlsafe_b64decode
 
 
 class CampaignsEndpoint(resource.Resource):
@@ -65,7 +66,7 @@ class CampaignsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"campaigns": [campaign.to_dict(include_investment=True)
+        return json.dumps({"campaigns": [campaign.to_dict(b64_encode=True, include_investment=True)
                                          for campaign in self.market_community.data_manager.get_campaigns()]})
 
     def render_PUT(self, request):
@@ -183,13 +184,13 @@ class SpecificCampaignEndpoint(resource.Resource):
                 }
         """
         keys = self.campaign_composite_key.split()
-        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), keys[1]) \
+        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"campaign": campaign.to_dict(include_investment=True)})
+        return json.dumps({"campaign": campaign.to_dict(b64_encode=True, include_investment=True)})
 
 
 class CampaignInvestmentsEndpoint(resource.Resource):
@@ -199,7 +200,7 @@ class CampaignInvestmentsEndpoint(resource.Resource):
     def __init__(self, market_community, campaign_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.campaign_composite_key = unicode(campaign_composite_key)
+        self.campaign_composite_key = campaign_composite_key
 
     def getChild(self, path, request):
         return SpecificCampaignInvestmentEndpoint(self.market_community, self.campaign_composite_key, path)
@@ -232,13 +233,13 @@ class CampaignInvestmentsEndpoint(resource.Resource):
                 }
         """
         keys = self.campaign_composite_key.split()
-        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), keys[1]) \
+        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"investments": [investment.to_dict() for investment in campaign.investments]})
+        return json.dumps({"investments": [investment.to_dict(b64_encode=True) for investment in campaign.investments]})
 
 
 class SpecificCampaignInvestmentEndpoint(resource.Resource):
@@ -248,8 +249,8 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
     def __init__(self, market_community, campaign_composite_key, investment_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.campaign_composite_key = unicode(campaign_composite_key)
-        self.investment_composite_key = unicode(investment_composite_key)
+        self.campaign_composite_key = campaign_composite_key
+        self.investment_composite_key = investment_composite_key
 
     def render_PATCH(self, request):
         """
@@ -272,14 +273,14 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
                     {"success": True}
         """
         keys = self.campaign_composite_key.split()
-        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), keys[1]) \
+        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
         keys = self.investment_composite_key.split()
-        investment = self.market_community.data_manager.get_investment(int(keys[0]), keys[1]) \
+        investment = self.market_community.data_manager.get_investment(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not investment or investment.campaign_id != campaign.id:
             request.setResponseCode(http.NOT_FOUND)

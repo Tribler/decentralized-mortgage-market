@@ -2,7 +2,6 @@ import os
 import time
 import logging
 
-from base64 import urlsafe_b64encode
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
@@ -211,9 +210,6 @@ class MarketCommunity(Community):
                             payload=(payload_dict,))
         return self.dispersy.store_update_forward([message], False, False, True)
 
-    def member_to_user_id(self, member):
-        return unicode(urlsafe_b64encode(member.public_key))
-
     @property
     def my_role(self):
         return self.my_user.role
@@ -224,7 +220,7 @@ class MarketCommunity(Community):
 
     @property
     def my_user_id(self):
-        return self.member_to_user_id(self.my_member)
+        return self.my_member.public_key
 
     @property
     def my_user_dict(self):
@@ -240,7 +236,7 @@ class MarketCommunity(Community):
         return user_dict
 
     def add_or_update_user(self, candidate, role=Role.UNKNOWN):
-        user_id = self.member_to_user_id(candidate.get_member())
+        user_id = candidate.get_member().public_key
         user = self.data_manager.get_user(user_id)
         if user is not None:
             user.role = role
@@ -251,7 +247,7 @@ class MarketCommunity(Community):
         return user
 
     def add_or_update_profile(self, candidate, profile):
-        user_id = self.member_to_user_id(candidate.get_member())
+        user_id = candidate.get_member().public_key
         user = self.data_manager.get_user(user_id)
         if profile is not None:
             if user.profile is None:

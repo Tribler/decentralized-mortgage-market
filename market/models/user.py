@@ -1,7 +1,7 @@
 from enum import Enum as PyEnum
 
 from storm.base import Storm
-from storm.properties import Int, Unicode
+from storm.properties import Int, RawStr
 from storm.references import ReferenceSet, Reference
 from market.models.loanrequest import LoanRequest
 from market.models.campaign import Campaign
@@ -9,6 +9,7 @@ from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.profile import Profile
 from market.database.types import Enum
+from base64 import urlsafe_b64encode
 
 
 class Role(PyEnum):
@@ -24,7 +25,7 @@ class User(Storm):
     """
 
     __storm_table__ = "user"
-    id = Unicode(primary=True)
+    id = RawStr(primary=True)
     role = Enum(Role)
     profile_id = Int()
     profile = Reference(profile_id, Profile.id)
@@ -38,9 +39,9 @@ class User(Storm):
         self.private_key = private_key
         self.role = role
 
-    def to_dict(self):
+    def to_dict(self, b64_encode=False):
         return {
-            "id": self.id,
+            "id": urlsafe_b64encode(self.id) if b64_encode else self.id,
             "role": self.role.name
         }
 

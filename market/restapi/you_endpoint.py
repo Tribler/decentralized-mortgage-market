@@ -9,6 +9,7 @@ from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import MortgageStatus, MortgageType
 from market.models.user import Role
 from market.models.profile import Profile
+from base64 import urlsafe_b64decode
 
 
 class YouEndpoint(resource.Resource):
@@ -27,7 +28,7 @@ class YouEndpoint(resource.Resource):
         self.putChild("campaigns", YouCampaignsEndpoint(market_community))
 
     def render_GET(self, request):
-        return json.dumps({"you": self.market_community.data_manager.you.to_dict()})
+        return json.dumps({"you": self.market_community.data_manager.you.to_dict(b64_encode=True)})
 
 
 class YouProfileEndpoint(resource.Resource):
@@ -184,7 +185,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not an investor"})
 
-        return json.dumps({"investments": [investment.to_dict() for investment in you.investments]})
+        return json.dumps({"investments": [investment.to_dict(b64_encode=True) for investment in you.investments]})
 
     def render_PUT(self, request):
         you = self.market_community.data_manager.you
@@ -208,7 +209,7 @@ class YouInvestmentsEndpoint(resource.Resource):
         duration = parameters['duration']
         interest_rate = parameters['interest_rate']
         campaign_id = parameters['campaign_id']
-        campaign_user_id = parameters['campaign_user_id']
+        campaign_user_id = urlsafe_b64decode(str(parameters['campaign_user_id']))
 
         campaign = self.market_community.data_manager.get_campaign(campaign_id, campaign_user_id)
         if campaign is None:
@@ -241,7 +242,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not a borrower"})
 
-        return json.dumps({"loan_requests": [loan_request.to_dict() for loan_request in you.loan_requests]})
+        return json.dumps({"loan_requests": [loan_request.to_dict(b64_encode=True) for loan_request in you.loan_requests]})
 
     def render_PUT(self, request):
         you = self.market_community.data_manager.you
@@ -274,7 +275,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
         url = parameters['url']
         seller_phone_number = parameters['seller_phone_number']
         seller_email = parameters['seller_email']
-        bank_id = parameters['bank_id']
+        bank_id = urlsafe_b64decode(str(parameters['bank_id']))
         description = parameters['description']
         amount_wanted = parameters['amount_wanted']
 
@@ -306,7 +307,7 @@ class YouMortgagesEndpoint(resource.Resource):
 
     def render_GET(self, request):
         you = self.market_community.data_manager.you
-        return json.dumps({"mortgages": [mortgage.to_dict() for mortgage in you.mortgages]})
+        return json.dumps({"mortgages": [mortgage.to_dict(b64_encode=True) for mortgage in you.mortgages]})
 
 
 class YouSpecificMortageEndpoint(resource.Resource):
@@ -316,14 +317,14 @@ class YouSpecificMortageEndpoint(resource.Resource):
     def __init__(self, market_community, morgage_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.morgage_composite_key = unicode(morgage_composite_key)
+        self.morgage_composite_key = morgage_composite_key
 
     def render_PATCH(self, request):
         """
         Accept/reject a mortgage offer
         """
         keys = self.morgage_composite_key.split()
-        mortgage = self.market_community.data_manager.get_mortgage(int(keys[0]), keys[1]) \
+        mortgage = self.market_community.data_manager.get_mortgage(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not mortgage:
             request.setResponseCode(http.NOT_FOUND)
@@ -366,7 +367,7 @@ class YouCampaignsEndpoint(resource.Resource):
         you = self.market_community.data_manager.you
         campaigns = []
         for campaign in you.campaigns:
-            campaign_dict = campaign.to_dict(include_investment=True)
-            campaign_dict['investments'] = [investment.to_dict() for investment in campaign.investments]
+            campaign_dict = campaign.to_dict(b64_encode=True, include_investment=True)
+            campaign_dict['investments'] = [investment.to_dict(b64_encode=True) for investment in campaign.investments]
             campaigns.append(campaign_dict)
         return json.dumps({"campaigns": campaigns})

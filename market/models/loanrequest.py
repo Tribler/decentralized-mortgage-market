@@ -1,10 +1,11 @@
 from enum import Enum as PyEnum
 
-from storm.properties import Float, Unicode, Int
+from storm.properties import Float, Unicode, Int, RawStr
 from storm.references import Reference
 from market.database.types import Enum
 from market.models.house import House
 from market.models.mortgage import MortgageType
+from base64 import urlsafe_b64encode
 
 class LoanRequestStatus(PyEnum):
     NONE = 0
@@ -21,11 +22,11 @@ class LoanRequest(object):
     __storm_table__ = "loan_request"
     __storm_primary__ = "id", "user_id"
     id = Int()
-    user_id = Unicode()
+    user_id = RawStr()
     house_id = Int()
     house = Reference(house_id, House.id)
     mortgage_type = Enum(MortgageType)
-    bank_id = Unicode()
+    bank_id = RawStr()
     description = Unicode()
     amount_wanted = Float()
     status = Enum(LoanRequestStatus)
@@ -41,13 +42,13 @@ class LoanRequest(object):
         self.status = status
 
 
-    def to_dict(self):
+    def to_dict(self, b64_encode=False):
         return {
             "id": self.id,
-            "user_id": self.user_id,
+            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
             "house": self.house.to_dict(),
             "mortgage_type": self.mortgage_type.name,
-            "bank_id": self.bank_id,
+            "bank_id": urlsafe_b64encode(self.bank_id) if b64_encode else self.bank_id,
             "description": self.description,
             "amount_wanted": self.amount_wanted,
             "status": self.status.name

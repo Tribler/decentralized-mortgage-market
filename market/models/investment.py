@@ -1,7 +1,8 @@
 from enum import Enum as PyEnum
 
-from storm.properties import Int, Float, Unicode
+from storm.properties import Int, Float, RawStr
 from market.database.types import Enum
+from base64 import urlsafe_b64encode
 
 
 class InvestmentStatus(PyEnum):
@@ -19,12 +20,12 @@ class Investment(object):
     __storm_table__ = "investment"
     __storm_primary__ = "id", "user_id"
     id = Int()
-    user_id = Unicode()
+    user_id = RawStr()
     amount = Float()
     duration = Int()
     interest_rate = Float()
     campaign_id = Int()
-    campaign_user_id = Unicode()
+    campaign_user_id = RawStr()
     status = Enum(InvestmentStatus)
 
     def __init__(self, identifier, user_id, amount, duration, interest_rate, campaign_id, campaign_user_id, status):
@@ -37,15 +38,15 @@ class Investment(object):
         self.campaign_user_id = campaign_user_id
         self.status = status
 
-    def to_dict(self):
+    def to_dict(self, b64_encode=False):
         return {
             "id": self.id,
-            "user_id": self.user_id,
+            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
             "amount": self.amount,
             "duration": self.duration,
             "interest_rate": self.interest_rate,
             "campaign_id": self.campaign_id,
-            "campaign_user_id": self.campaign_user_id,
+            "campaign_user_id": urlsafe_b64encode(self.campaign_user_id) if b64_encode else self.campaign_user_id,
             "status": self.status.name
         }
 

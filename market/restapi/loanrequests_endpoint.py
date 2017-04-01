@@ -4,6 +4,7 @@ from twisted.web import http, resource
 
 from market.models.loanrequest import LoanRequestStatus
 from market.models.mortgage import Mortgage, MortgageStatus
+from base64 import urlsafe_b64decode
 
 
 class LoanRequestsEndpoint(resource.Resource):
@@ -44,7 +45,7 @@ class LoanRequestsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"loan_requests": [loan_request.to_dict() for
+        return json.dumps({"loan_requests": [loan_request.to_dict(b64_encode=True) for
                                              loan_request in self.market_community.data_manager.get_loan_requests()]})
 
     def getChild(self, path, request):
@@ -59,7 +60,7 @@ class SpecificLoanRequestEndpoint(resource.Resource):
     def __init__(self, market_community, loan_request_composite_key):
         resource.Resource.__init__(self)
         self.market_community = market_community
-        self.loan_request_composite_key = unicode(loan_request_composite_key)
+        self.loan_request_composite_key = loan_request_composite_key
 
     def render_PATCH(self, request):
         """
@@ -83,7 +84,7 @@ class SpecificLoanRequestEndpoint(resource.Resource):
         """
 
         keys = self.loan_request_composite_key.split()
-        loan_request = self.market_community.data_manager.get_loan_request(int(keys[0]), keys[1]) \
+        loan_request = self.market_community.data_manager.get_loan_request(int(keys[0]), urlsafe_b64decode(keys[1])) \
                        if len(keys) == 2 and keys[0].isdigit() else None
         if not loan_request:
             request.setResponseCode(http.NOT_FOUND)

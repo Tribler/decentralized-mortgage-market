@@ -18,23 +18,23 @@ message LoanRequestMessage {
 
 message LoanRejectMessage {
     required uint32 loan_request_id = 1;
-    required string loan_request_user_id = 2;
+    required bytes loan_request_user_id = 2;
 }
 
 message MortgageOfferMessage {
     required uint32 loan_request_id = 1;
-    required string loan_request_user_id = 2;
+    required bytes loan_request_user_id = 2;
     required Mortgage mortgage = 3;
 }
 
 message MortgageAcceptMessage {
     required uint32 mortgage_id = 1;
-    required string mortgage_user_id = 2;
+    required bytes mortgage_user_id = 2;
 }
 
 message MortgageRejectMessage {
     required uint32 mortgage_id = 1;
-    required string mortgage_user_id = 2;
+    required bytes mortgage_user_id = 2;
 }
 
 message InvestmentOfferMessage {
@@ -44,13 +44,13 @@ message InvestmentOfferMessage {
 
 message InvestmentAcceptMessage {
     required uint32 investment_id = 1;
-    required string investment_user_id = 2;
+    required bytes investment_user_id = 2;
     required BorrowersProfile borrowers_profile = 3;
 }
 
 message InvestmentRejectMessage {
     required uint32 investment_id = 1;
-    required string investment_user_id = 2;
+    required bytes investment_user_id = 2;
 }
 
 message CampaignUpdateMessage {
@@ -62,10 +62,10 @@ message CampaignUpdateMessage {
 // Objects that are included in the Dispersy messages
 message LoanRequest {
     required uint32 id = 1;
-    required string user_id = 2;
+    required bytes user_id = 2;
     required House house = 3;
     required string mortgage_type = 4;
-    required string bank_id = 5;
+    required bytes bank_id = 5;
     required string description = 6;
     required double amount_wanted = 7;
     required string status = 8;
@@ -103,19 +103,19 @@ message BorrowersProfile {
 
 message Investment {
     required uint32 id = 1;
-    required string user_id = 2;
+    required bytes user_id = 2;
     required double amount = 3;
     required uint32 duration = 4;
     required double interest_rate = 5;
     required uint32 campaign_id = 6;
-    required string campaign_user_id = 7;
+    required bytes campaign_user_id = 7;
     required string status = 8;
 }
 
 message Mortgage {
     required uint32 id = 1;
-    required string user_id = 2;
-    required string bank_id = 3;
+    required bytes user_id = 2;
+    required bytes bank_id = 3;
     required House house = 4;
     required double amount = 5;
     required double bank_amount = 6;
@@ -131,9 +131,9 @@ message Mortgage {
 
 message Campaign {
     required uint32 id = 1;
-    required string user_id = 2;
+    required bytes user_id = 2;
     required uint32 mortgage_id = 3;
-    required string mortgage_user_id = 4;
+    required bytes mortgage_user_id = 4;
     required double amount = 5;
     required int64 end_time = 6;
     required bool completed = 7;
@@ -141,7 +141,7 @@ message Campaign {
 }
 
 message User {
-    required string id = 1;
+    required bytes id = 1;
     required string role = 2;
     optional Profile profile = 3;
 }

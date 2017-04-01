@@ -1,10 +1,11 @@
 from enum import Enum as PyEnum
 
 from storm.base import Storm
-from storm.properties import Int, Float, Unicode
+from storm.properties import Int, Float, Unicode, RawStr
 from storm.references import Reference
 from market.models.house import House
 from market.database.types import Enum
+from base64 import urlsafe_b64encode
 
 
 class MortgageStatus(PyEnum):
@@ -28,8 +29,8 @@ class Mortgage(Storm):
     __storm_table__ = "mortgage"
     __storm_primary__ = "id", "user_id"
     id = Int()
-    user_id = Unicode()
-    bank_id = Unicode()
+    user_id = RawStr()
+    bank_id = RawStr()
     house_id = Int()
     house = Reference(house_id, House.id)
     amount = Float()
@@ -58,11 +59,11 @@ class Mortgage(Storm):
         self.risk = risk
         self.status = status
 
-    def to_dict(self):
+    def to_dict(self, b64_encode=False):
         return {
             "id": self.id,
-            "user_id": self.user_id,
-            "bank_id": self.bank_id,
+            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
+            "bank_id": urlsafe_b64encode(self.bank_id) if b64_encode else self.bank_id,
             "house": self.house.to_dict(),
             "amount": self.amount,
             "bank_amount": self.bank_amount,
