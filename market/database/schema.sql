@@ -56,8 +56,7 @@ CREATE TABLE IF NOT EXISTS mortgage(
   default_rate    FLOAT,
   duration        INT,
   risk            TEXT,
-  status          INT,
-  campaign_id     TEXT
+  status          INT
 );
 
 CREATE TABLE IF NOT EXISTS campaign(

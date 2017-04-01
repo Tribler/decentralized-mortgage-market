@@ -40,11 +40,9 @@ class Mortgage(Storm):
     duration = Int()
     risk = Unicode()
     status = Enum(MortgageStatus)
-    campaign_id = Unicode()
-    campaign = Reference(campaign_id, 'Campaign.id')
 
     def __init__(self, identifier, user_id, bank_id, house, amount, bank_amount, mortgage_type, interest_rate, max_invest_rate,
-                 default_rate, duration, risk, status, campaign=None):
+                 default_rate, duration, risk, status):
         self.id = identifier
         self.user_id = user_id
         self.bank_id = bank_id
@@ -58,7 +56,6 @@ class Mortgage(Storm):
         self.duration = duration
         self.risk = risk
         self.status = status
-        # self.campaign = campaign
 
     def to_dict(self):
         return {
