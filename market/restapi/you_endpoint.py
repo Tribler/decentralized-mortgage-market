@@ -215,7 +215,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        investment = Investment(campaign.investments.count(), you.id, amount, duration,
+        investment = Investment(you.investments.count(), you.id, amount, duration,
                                 interest_rate, campaign.id, campaign.user_id, InvestmentStatus.PENDING)
         you.investments.add(investment)
         campaign.investments.add(investment)

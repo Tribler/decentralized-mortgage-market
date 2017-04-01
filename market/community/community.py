@@ -517,8 +517,11 @@ class MarketCommunity(Community):
             if self.data_manager.get_mortgage(mortgage.id, mortgage.user_id) is None:
                 user.mortgages.add(mortgage)
 
-            if self.data_manager.get_campaign(campaign.id, campaign.user_id) is None:
+            existing_campaign = self.data_manager.get_campaign(campaign.id, campaign.user_id)
+            if existing_campaign is None:
                 user.campaigns.add(campaign)
+            else:
+                campaign = existing_campaign
 
-            if investment and self.data_manager.get_investment(investment.id, investment.user_id):
+            if investment and self.data_manager.get_investment(investment.id, investment.user_id) is None:
                 campaign.investments.add(investment)
