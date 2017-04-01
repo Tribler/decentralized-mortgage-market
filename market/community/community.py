@@ -421,6 +421,8 @@ class MarketCommunity(Community):
                 self.logger.warning('Dropping investment-offer from %s (unknown campaign)', message.candidate.sock_addr)
                 continue
 
+            # TODO: auto reject if we are offered more money than we need
+
             profile_dict = message.payload.dictionary['investor_profile']
             profile = Profile.from_dict(profile_dict)
             self.add_or_update_profile(message.candidate, profile)

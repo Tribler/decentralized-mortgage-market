@@ -55,8 +55,9 @@ export class MarketService {
         return this._http.get(this._api_base + '/loanrequests')
             .map(res => res.json().loan_requests);
     }
-    acceptLoanRequest(loan_request): Observable<String> {
-        return this._http.patch(this._api_base + `/loanrequests/${loan_request.id} ${loan_request.user_id}`, JSON.stringify({status: 'ACCEPT'}))
+    acceptLoanRequest(loan_request, params): Observable<String> {
+        params.status = 'ACCEPT';
+        return this._http.patch(this._api_base + `/loanrequests/${loan_request.id} ${loan_request.user_id}`, JSON.stringify(params))
             .map(res => res.json());
     }
     rejectLoanRequest(loan_request): Observable<String> {

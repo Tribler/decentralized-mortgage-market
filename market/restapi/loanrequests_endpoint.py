@@ -100,26 +100,32 @@ class SpecificLoanRequestEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "invalid status value"})
 
+        if status == 'ACCEPT':
+            required_fields = ['ltv', 'interest_rate', 'max_invest_rate', 'default_rate', 'duration', 'risk']
+            for field in required_fields:
+                if field not in parameters:
+                    request.setResponseCode(http.BAD_REQUEST)
+                    return json.dumps({"error": "missing %s parameter" % field})
+
         if loan_request.status != LoanRequestStatus.PENDING:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "loan request is already accepted/rejected"})
 
         if status == "ACCEPT":
             loan_request.status = LoanRequestStatus.ACCEPTED
-            # TODO: give the bank the opportunity to create a mortgage offer
             user = self.market_community.data_manager.get_user(loan_request.user_id)
             mortgage = Mortgage(user.mortgages.count(),
                                 loan_request.user_id,
                                 self.market_community.my_user.id,
                                 loan_request.house,
                                 loan_request.amount_wanted,
-                                loan_request.amount_wanted * 0.7,
+                                loan_request.amount_wanted * float(parameters['ltv']),
                                 loan_request.mortgage_type,
-                                2.0,
-                                2.0,
-                                2.0,
-                                120,
-                                u'',
+                                parameters['interest_rate'],
+                                parameters['max_invest_rate'],
+                                parameters['default_rate'],
+                                parameters['duration'],
+                                parameters['risk'],
                                 MortgageStatus.PENDING)
             user.mortgages.add(mortgage)
             self.market_community.send_mortgage_offer(loan_request, mortgage)

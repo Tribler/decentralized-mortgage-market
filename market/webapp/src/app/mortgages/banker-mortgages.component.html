@@ -12,7 +12,7 @@
         </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-row="row" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptLoanRequest(row)"></i>
+                <i class="glyphicon glyphicon-ok accept clickable" (click)="request['loan_request']=row; staticModal.show();"></i>
                 <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectLoanRequest(row)"></i>
             </template>
         </ngx-datatable-column>
@@ -32,4 +32,93 @@
             </template>
         </ngx-datatable-column>
     </ngx-datatable>
+</div>
+
+
+<div class="modal fade" bsModal #staticModal="bs-modal" [config]="{backdrop: 'static'}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title pull-left">Accept loan-request</h4>
+                <button type="button" class="close pull-right" aria-label="Close" (click)="staticModal.hide()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label class="control-label">LTV</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
+                                <input [(ngModel)]="request.ltv" name="ltv" placeholder="LTV" class="form-control" type="number"
+                                       min="0" max="1" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="ccontrol-label">Interest rate</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-piggy-bank"></i></span>
+                                <input [(ngModel)]="request.interest_rate" name="interest_rate" placeholder="Interest rate" class="form-control" type="number"
+                                       min="0" max="1" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="ccontrol-label">Max invest rate</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-piggy-bank"></i></span>
+                                <input [(ngModel)]="request.max_invest_rate" name="max_invest_rate" placeholder="Max invest rate" class="form-control" type="number"
+                                       min="0" max="1" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="ccontrol-label">Default rate</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-piggy-bank"></i></span>
+                                <input [(ngModel)]="request.default_rate" name="default_rate" placeholder="Default rate" class="form-control" type="number"
+                                       min="0" max="1" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label">Duration (in months)</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-time"></i></span>
+                                <input [(ngModel)]="request.duration" name="duration" placeholder="Duration (in months)" class="form-control" type="number"
+                                       min="0" max="360" step="1" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="ccontrol-label">Risk</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-exclamation-sign"></i></span>
+                                <input [(ngModel)]="request.risk" name="risk" placeholder="Risk" class="form-control" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" (click)="staticModal.hide()">Cancel</button>
+                <button type="button" class="btn btn-warning" (click)="acceptLoanRequest(staticModal)">
+                    Offer investment <span class="glyphicon glyphicon-send"></span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
