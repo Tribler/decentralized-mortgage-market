@@ -45,7 +45,7 @@ class LoanRequestsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"loan_requests": [loan_request.to_dict(b64_encode=True) for
+        return json.dumps({"loan_requests": [loan_request.to_dict(api_response=True) for
                                              loan_request in self.market_community.data_manager.get_loan_requests()]})
 
     def getChild(self, path, request):

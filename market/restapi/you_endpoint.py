@@ -28,7 +28,7 @@ class YouEndpoint(resource.Resource):
         self.putChild("campaigns", YouCampaignsEndpoint(market_community))
 
     def render_GET(self, request):
-        return json.dumps({"you": self.market_community.data_manager.you.to_dict(b64_encode=True)})
+        return json.dumps({"you": self.market_community.data_manager.you.to_dict(api_response=True)})
 
 
 class YouProfileEndpoint(resource.Resource):
@@ -185,7 +185,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not an investor"})
 
-        return json.dumps({"investments": [investment.to_dict(b64_encode=True) for investment in you.investments]})
+        return json.dumps({"investments": [investment.to_dict(api_response=True) for investment in you.investments]})
 
     def render_PUT(self, request):
         you = self.market_community.data_manager.you
@@ -242,7 +242,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not a borrower"})
 
-        return json.dumps({"loan_requests": [loan_request.to_dict(b64_encode=True) for loan_request in you.loan_requests]})
+        return json.dumps({"loan_requests": [loan_request.to_dict(api_response=True) for loan_request in you.loan_requests]})
 
     def render_PUT(self, request):
         you = self.market_community.data_manager.you
@@ -307,7 +307,7 @@ class YouMortgagesEndpoint(resource.Resource):
 
     def render_GET(self, request):
         you = self.market_community.data_manager.you
-        return json.dumps({"mortgages": [mortgage.to_dict(b64_encode=True) for mortgage in you.mortgages]})
+        return json.dumps({"mortgages": [mortgage.to_dict(api_response=True) for mortgage in you.mortgages]})
 
 
 class YouSpecificMortageEndpoint(resource.Resource):
@@ -367,7 +367,7 @@ class YouCampaignsEndpoint(resource.Resource):
         you = self.market_community.data_manager.you
         campaigns = []
         for campaign in you.campaigns:
-            campaign_dict = campaign.to_dict(b64_encode=True, include_investment=True)
-            campaign_dict['investments'] = [investment.to_dict(b64_encode=True) for investment in campaign.investments]
+            campaign_dict = campaign.to_dict(api_response=True)
+            campaign_dict['investments'] = [investment.to_dict(api_response=True) for investment in campaign.investments]
             campaigns.append(campaign_dict)
         return json.dumps({"campaigns": campaigns})

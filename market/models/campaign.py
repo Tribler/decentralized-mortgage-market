@@ -36,18 +36,18 @@ class Campaign(object):
             self.completed = True
         return investment
 
-    def to_dict(self, b64_encode=False, include_investment=False):
+    def to_dict(self, api_response=False):
         investment_dict = {}
 
-        if include_investment:
+        if api_response:
             # Calculate investment first, since it could affect completed
             investment_dict['investment'] = self.calc_investment()
 
         investment_dict.update({
             "id": self.id,
-            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
+            "user_id": urlsafe_b64encode(self.user_id) if api_response else self.user_id,
             "mortgage_id": self.mortgage_id,
-            "mortgage_user_id": urlsafe_b64encode(self.mortgage_user_id) if b64_encode else self.mortgage_user_id,
+            "mortgage_user_id": urlsafe_b64encode(self.mortgage_user_id) if api_response else self.mortgage_user_id,
             "amount": self.amount,
             "end_time": self.end_time,
             "completed": self.completed

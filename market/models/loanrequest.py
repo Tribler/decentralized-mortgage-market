@@ -42,16 +42,16 @@ class LoanRequest(object):
         self.status = status
 
 
-    def to_dict(self, b64_encode=False):
+    def to_dict(self, api_response=False):
         return {
             "id": self.id,
-            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
+            "user_id": urlsafe_b64encode(self.user_id) if api_response else self.user_id,
             "house": self.house.to_dict(),
-            "mortgage_type": self.mortgage_type.name,
-            "bank_id": urlsafe_b64encode(self.bank_id) if b64_encode else self.bank_id,
+            "mortgage_type": self.mortgage_type.name if api_response else self.mortgage_type.value,
+            "bank_id": urlsafe_b64encode(self.bank_id) if api_response else self.bank_id,
             "description": self.description,
             "amount_wanted": self.amount_wanted,
-            "status": self.status.name
+            "status": self.status.name if api_response else self.status.value
         }
 
     @staticmethod
@@ -59,13 +59,13 @@ class LoanRequest(object):
         house_dict = loan_request_dict['house']
         house = House.from_dict(house_dict)
 
-        mortgage_type = loan_request_dict['mortgage_type']
-        mortgage_type = MortgageType[mortgage_type] if mortgage_type in MortgageType.__members__ else None
+        if house is None:
+            return None
 
-        status = loan_request_dict['status']
-        status = LoanRequestStatus[status] if status in LoanRequestStatus.__members__ else None
-
-        if house is None or mortgage_type is None or status is None:
+        try:
+            mortgage_type = MortgageType(loan_request_dict['mortgage_type'])
+            status = LoanRequestStatus(loan_request_dict['status'])
+        except ValueError:
             return None
 
         return LoanRequest(loan_request_dict['id'],

@@ -39,18 +39,17 @@ class User(Storm):
         self.private_key = private_key
         self.role = role
 
-    def to_dict(self, b64_encode=False):
+    def to_dict(self, api_response=False):
         return {
-            "id": urlsafe_b64encode(self.id) if b64_encode else self.id,
-            "role": self.role.name
+            "id": urlsafe_b64encode(self.id) if api_response else self.id,
+            "role": self.role.name if api_response else self.role.value
         }
 
     @staticmethod
     def from_dict(user_dict):
-        role = user_dict['role']
-        role = Role[role] if role in Role.__members__ else None
-
-        if role is None:
+        try:
+            role = Role(user_dict['role'])
+        except ValueError:
             return None
 
         return User(user_dict['id'], role=role)

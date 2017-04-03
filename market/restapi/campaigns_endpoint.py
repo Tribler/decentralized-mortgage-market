@@ -66,7 +66,7 @@ class CampaignsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"campaigns": [campaign.to_dict(b64_encode=True, include_investment=True)
+        return json.dumps({"campaigns": [campaign.to_dict(api_response=True)
                                          for campaign in self.market_community.data_manager.get_campaigns()]})
 
     def render_PUT(self, request):
@@ -190,7 +190,7 @@ class SpecificCampaignEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"campaign": campaign.to_dict(b64_encode=True, include_investment=True)})
+        return json.dumps({"campaign": campaign.to_dict(api_response=True)})
 
 
 class CampaignInvestmentsEndpoint(resource.Resource):
@@ -239,7 +239,7 @@ class CampaignInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        return json.dumps({"investments": [investment.to_dict(b64_encode=True) for investment in campaign.investments]})
+        return json.dumps({"investments": [investment.to_dict(api_response=True) for investment in campaign.investments]})
 
 
 class SpecificCampaignInvestmentEndpoint(resource.Resource):

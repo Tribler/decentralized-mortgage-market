@@ -38,24 +38,23 @@ class Investment(object):
         self.campaign_user_id = campaign_user_id
         self.status = status
 
-    def to_dict(self, b64_encode=False):
+    def to_dict(self, api_response=False):
         return {
             "id": self.id,
-            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
+            "user_id": urlsafe_b64encode(self.user_id) if api_response else self.user_id,
             "amount": self.amount,
             "duration": self.duration,
             "interest_rate": self.interest_rate,
             "campaign_id": self.campaign_id,
-            "campaign_user_id": urlsafe_b64encode(self.campaign_user_id) if b64_encode else self.campaign_user_id,
-            "status": self.status.name
+            "campaign_user_id": urlsafe_b64encode(self.campaign_user_id) if api_response else self.campaign_user_id,
+            "status": self.status.name if api_response else self.status.value
         }
 
     @staticmethod
     def from_dict(investment_dict):
-        status = investment_dict['status']
-        status = InvestmentStatus[status] if status in InvestmentStatus.__members__ else None
-
-        if status is None:
+        try:
+            status = InvestmentStatus(investment_dict['status'])
+        except ValueError:
             return None
 
         return Investment(investment_dict['id'],

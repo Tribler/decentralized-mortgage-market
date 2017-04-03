@@ -59,21 +59,21 @@ class Mortgage(Storm):
         self.risk = risk
         self.status = status
 
-    def to_dict(self, b64_encode=False):
+    def to_dict(self, api_response=False):
         return {
             "id": self.id,
-            "user_id": urlsafe_b64encode(self.user_id) if b64_encode else self.user_id,
-            "bank_id": urlsafe_b64encode(self.bank_id) if b64_encode else self.bank_id,
+            "user_id": urlsafe_b64encode(self.user_id) if api_response else self.user_id,
+            "bank_id": urlsafe_b64encode(self.bank_id) if api_response else self.bank_id,
             "house": self.house.to_dict(),
             "amount": self.amount,
             "bank_amount": self.bank_amount,
-            "mortgage_type": self.mortgage_type.name,
+            "mortgage_type": self.mortgage_type.name if api_response else self.mortgage_type.value,
             "interest_rate": self.interest_rate,
             "max_invest_rate": self.max_invest_rate,
             "default_rate": self.default_rate,
             "duration": self.duration,
             "risk": self.risk,
-            "status": self.status.name,
+            "status": self.status.name if api_response else self.status.value
         }
 
     @staticmethod
@@ -81,13 +81,13 @@ class Mortgage(Storm):
         house_dict = mortgage_dict['house']
         house = House.from_dict(house_dict)
 
-        mortgage_type = mortgage_dict['mortgage_type']
-        mortgage_type = MortgageType[mortgage_type] if mortgage_type in MortgageType.__members__ else None
+        if house is None:
+            return None
 
-        status = mortgage_dict['status']
-        status = MortgageStatus[status] if status in MortgageStatus.__members__ else None
-
-        if house is None or mortgage_type is None or status is None:
+        try:
+            mortgage_type = MortgageType(mortgage_dict['mortgage_type'])
+            status = MortgageStatus(mortgage_dict['status'])
+        except ValueError:
             return None
 
         return Mortgage(mortgage_dict['id'],

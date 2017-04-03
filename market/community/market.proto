@@ -64,11 +64,11 @@ message LoanRequest {
     required uint32 id = 1;
     required bytes user_id = 2;
     required House house = 3;
-    required string mortgage_type = 4;
+    required uint32 mortgage_type = 4;
     required bytes bank_id = 5;
     required string description = 6;
     required double amount_wanted = 7;
-    required string status = 8;
+    required uint32 status = 8;
 }
 
 message House {
@@ -109,7 +109,7 @@ message Investment {
     required double interest_rate = 5;
     required uint32 campaign_id = 6;
     required bytes campaign_user_id = 7;
-    required string status = 8;
+    required uint32 status = 8;
 }
 
 message Mortgage {
@@ -119,13 +119,13 @@ message Mortgage {
     required House house = 4;
     required double amount = 5;
     required double bank_amount = 6;
-    required string mortgage_type = 7;
+    required uint32 mortgage_type = 7;
     required double interest_rate = 8;
     required double max_invest_rate = 9;
     required double default_rate = 10;
     required uint32 duration = 11;
     required string risk = 12;
-    required string status = 13;
+    required uint32 status = 13;
     optional Campaign campaign = 14;
 }
 
@@ -142,6 +142,6 @@ message Campaign {
 
 message User {
     required bytes id = 1;
-    required string role = 2;
+    required uint32 role = 2;
     optional Profile profile = 3;
 }

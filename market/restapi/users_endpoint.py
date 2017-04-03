@@ -36,7 +36,7 @@ class UsersEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"users": [user.to_dict(b64_encode=True)
+        return json.dumps({"users": [user.to_dict(api_response=True)
                                      for user in self.market_community.data_manager.get_users()]})
 
     def getChild(self, path, request):
@@ -83,7 +83,7 @@ class SpecificUserEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "user not found"})
 
-        return json.dumps({"user": user.to_dict(b64_encode=True)})
+        return json.dumps({"user": user.to_dict(api_response=True)})
 
 
 class SpecificUserProfileEndpoint(resource.Resource):
