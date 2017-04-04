@@ -60,7 +60,12 @@ class MarketCommunity(Community):
         # generated: Fri Feb 24 11:22:22 2017
         # curve: None
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407bacf5ae4d3fe94d49a7f94b7239e9c2d878b29f0fbdb7374d5b6a09d9d6fba80d3807affd0ba45ba1ac1c278ca59bec422d8a44b5fefaabcdd62c2778414c01da4578b304b104b00eec74de98dcda803b79fd1783d76cc1bd7aab75cfd8fff9827a9647ae3c59423c2a9a984700e7cb43b881a6455574032cc11dba806dba9699f54f2d30b10eed5c7c0381a0915a5
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407b
+        # acf5ae4d3fe94d49a7f94b7239e9c2d878b29f0fbdb7374d5b6a09d9d6fba80d
+        # 3807affd0ba45ba1ac1c278ca59bec422d8a44b5fefaabcdd62c2778414c01da
+        # 4578b304b104b00eec74de98dcda803b79fd1783d76cc1bd7aab75cfd8fff982
+        # 7a9647ae3c59423c2a9a984700e7cb43b881a6455574032cc11dba806dba9699
+        # f54f2d30b10eed5c7c0381a0915a5
         # pub-sha1 56553661e30b342b2fc39f1a425eb612ef8b8c33
         # -----BEGIN PUBLIC KEY-----
         # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQHus9a5NP+lNSaf5S3I56cLYeLKfD7
@@ -328,7 +333,7 @@ class MarketCommunity(Community):
                 self.logger.warning('Dropping loan-reject from %s (unknown loan request)', message.candidate.sock_addr)
 
     def send_mortgage_offer(self, loan_request, mortgage):
-        return self.send_message_to_ids(u'mortgage-offer', (loan_request.user_id,),
+        return self.send_message_to_ids(u'mortgage-offer', (mortgage.user_id,),
                                         {'loan_request_id': loan_request.id,
                                          'mortgage': mortgage.to_dict()})
 
@@ -434,13 +439,13 @@ class MarketCommunity(Community):
                 self.logger.warning('Dropping investment-accept from %s (unknown investment)', message.candidate.sock_addr)
                 continue
 
+            self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
+
             profile_dict = message.payload.dictionary['borrowers_profile']
             profile = Profile.from_dict(profile_dict)
             self.add_or_update_profile(message.candidate, profile)
 
             investment.status = InvestmentStatus.ACCEPTED
-
-            self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
 
     def send_investment_reject(self, investment):
         return self.send_message_to_ids(u'investment-reject', (investment.user_id,), {'investment_id': investment.id})
