@@ -9,6 +9,8 @@ from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.campaign import Campaign
 from market.defs import BASE_DIR
+from market.models.block import Block
+from storm.expr import Desc
 
 
 class MarketDataManager:
@@ -24,6 +26,14 @@ class MarketDataManager:
             schema = fp.read()
         for cmd in schema.split(';'):
             self.store.execute(cmd)
+
+        # Ensure the genesis block exists
+        block = self.get_latest_block()
+        if block is None:
+            # Values are all empty
+            block = Block()
+            block.hash()
+            self.store.add(block)
 
         self.you = None
 
@@ -102,6 +112,21 @@ class MarketDataManager:
         :return: a list with Campaign objects
         """
         return self.store.find(Campaign)
+
+    def add_block(self, block):
+        prev_block = self.get_latest_block()
+
+        block.hash()
+        block.previous_hash = prev_block.hash_block
+        block.sequence_number = prev_block.sequence_number + 1
+        self.store.add(block)
+
+    def get_latest_block(self):
+        """
+        Get the latest Block from the blochchain.
+        :return: the latest Block
+        """
+        return self.store.find(Block).order_by(Desc(Block.id)).config(limit=1).one()
 
     def flush(self):
         self.store.flush()

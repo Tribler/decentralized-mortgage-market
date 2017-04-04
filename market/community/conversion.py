@@ -19,7 +19,9 @@ class MarketConversion(BinaryConversion):
                      u'investment-offer': (chr(8), pb.InvestmentOfferMessage),
                      u'investment-accept': (chr(9), pb.InvestmentAcceptMessage),
                      u'investment-reject': (chr(10), pb.InvestmentRejectMessage),
-                     u'campaign-update': (chr(11), pb.CampaignUpdateMessage)}
+                     u'campaign-update': (chr(11), pb.CampaignUpdateMessage),
+                     u'sign-request': (chr(12), pb.SignatureRequest),
+                     u'sign-response': (chr(13), pb.SignatureResponse)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,

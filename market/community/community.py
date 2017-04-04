@@ -15,6 +15,7 @@ from market.dispersy.destination import CommunityDestination, CandidateDestinati
 from market.dispersy.distribution import DirectDistribution, FullSyncDistribution
 from market.dispersy.message import Message
 from market.dispersy.resolution import PublicResolution
+from market.dispersy.requestcache import RandomNumberCache
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import Mortgage, MortgageStatus
 from market.models.user import User, Role
@@ -23,10 +24,21 @@ from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus, Investment
 from market.models import investment
 from market.models.profile import Profile
+from market.models.block import Block
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
+
+
+class SignRequestCache(RandomNumberCache):
+
+    def __init__(self, community):
+        super(SignRequestCache, self).__init__(community.request_cache, u'sign-request')
+        self.community = community
+
+    def on_timeout(self):
+        pass
 
 
 class MarketCommunity(Community):
@@ -171,7 +183,23 @@ class MarketCommunity(Community):
                                         CommunityDestination(node_count=10),
                                         ProtobufPayload(),
                                         self._generic_timeline_check,
-                                        self.on_campaign_update)]
+                                        self.on_campaign_update),
+                                Message(self, u"sign-request",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        ProtobufPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_sign_request),
+                                Message(self, u"sign-response",
+                                        MemberAuthentication(),
+                                        PublicResolution(),
+                                        DirectDistribution(),
+                                        CandidateDestination(),
+                                        ProtobufPayload(),
+                                        self._generic_timeline_check,
+                                        self.on_sign_response)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MarketConversion(self)]
@@ -383,6 +411,8 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
 
+            self.send_sign_request(mortgage=mortgage)
+
             mortgage.status = MortgageStatus.ACCEPTED
 
     def send_mortgage_reject(self, mortgage):
@@ -451,6 +481,8 @@ class MarketCommunity(Community):
             profile_dict = message.payload.dictionary['borrowers_profile']
             profile = Profile.from_dict(profile_dict)
             self.add_or_update_profile(message.candidate, profile)
+
+            self.send_sign_request(investment=investment)
 
             investment.status = InvestmentStatus.ACCEPTED
 
@@ -523,3 +555,78 @@ class MarketCommunity(Community):
 
             if investment and self.data_manager.get_investment(investment.id, investment.user_id) is None:
                 campaign.investments.add(investment)
+
+    def send_sign_request(self, mortgage=None, investment=None):
+        assert mortgage is not None or investment is not None
+
+        cache = self.request_cache.add(SignRequestCache(self))
+
+        latest_block = self.data_manager.get_latest_block()
+
+        block = Block()
+        block.benefactor = self.my_user_id
+        block.sequence_number_benefactor = latest_block.sequence_number + 1
+        block.previous_hash_benefactor = latest_block.hash_block
+
+        # Agreements are stored in serialized protobuf format
+        from protobuf_to_dict import dict_to_protobuf
+        from market_pb2 import Mortgage as MortgagePB, Investment as InvestmentPB
+        serialize = lambda cls, dic: dict_to_protobuf(cls, dic).SerializeToString()
+
+        block.agreement_benefactor = serialize(MortgagePB, mortgage.to_dict()) if mortgage is not None else \
+                                     serialize(InvestmentPB, investment.to_dict())
+        block.sign(self.my_member)
+        block.hash()
+
+        # Save block - add to cache and store in on_sig_response?
+        self.data_manager.add_block(block)
+
+        destination_id = mortgage.user_id if mortgage is not None else investment.user_id
+        return self.send_message_to_ids(u'sign-request', (destination_id,), {'identifier': cache.number,
+                                                                             'block': block.to_dict()})
+
+    def on_sign_request(self, messages):
+        for message in messages:
+            block = Block.from_dict(message.payload.dictionary['block'])
+            if not block.verify(message.candidate.get_member()):
+                self.logger.warning('Got sign-request with incorrect signature')
+                continue
+
+            self.logger.debug('Got sign-request from %s', message.candidate.sock_addr)
+
+            latest_block = self.data_manager.get_latest_block()
+
+            # TODO: check this!
+            block.agreement_beneficiary = block.agreement_benefactor
+            block.beneficiary = self.my_user_id
+            block.sequence_number_beneficiary = latest_block.sequence_number + 1
+            block.previous_hash_beneficiary = latest_block.hash_block
+
+            block.sign(self.my_member)
+            block.hash()
+
+            self.data_manager.add_block(block)
+
+            self.send_sign_response(message.candidate, block, message.payload.dictionary['identifier'])
+
+    def send_sign_response(self, candidate, block, identifier):
+        return self.send_message(u'sign-response', (candidate,), {'identifier': identifier,
+                                                                  'block': block.to_dict()})
+
+    def on_sign_response(self, messages):
+        for message in messages:
+            cache = self.request_cache.get(u'sign-request', message.payload.dictionary['identifier'])
+            if not cache:
+                self.logger.warning("Got unexpected sign-response from %s", message.candidate.sock_addr)
+                continue
+
+            block = Block.from_dict(message.payload.dictionary['block'])
+            if not block.verify(message.candidate.get_member()):
+                self.logger.warning('Got sign-response with incorrect signature')
+                continue
+
+            self.logger.debug('Got sign-response from %s', message.candidate.sock_addr)
+
+            # TODO: check block!
+
+            self.data_manager.add_block(block)

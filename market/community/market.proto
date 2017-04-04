@@ -59,6 +59,16 @@ message CampaignUpdateMessage {
     optional Investment investment = 3;
 }
 
+message SignatureRequest {
+    required uint32 identifier = 1;
+    required Block block = 2;
+}
+
+message SignatureResponse {
+    required uint32 identifier = 1;
+    required Block block = 2;
+}
+
 // Objects that are included in the Dispersy messages
 message LoanRequest {
     required uint32 id = 1;
@@ -144,4 +154,17 @@ message User {
     required bytes id = 1;
     required uint32 role = 2;
     optional Profile profile = 3;
+}
+
+message Block {
+    required bytes benefactor = 1;
+    required bytes beneficiary = 2;
+    required bytes agreement_benefactor = 3;
+    required bytes agreement_beneficiary = 4;
+    required int32 sequence_number_benefactor = 5;
+    required int32 sequence_number_beneficiary = 6;
+    required bytes previous_hash_benefactor = 7;
+    required bytes previous_hash_beneficiary = 8;
+    required bytes signature_benefactor = 9;
+    required bytes signature_beneficiary = 10;
 }

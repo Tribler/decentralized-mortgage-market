@@ -83,3 +83,21 @@ CREATE TABLE IF NOT EXISTS investment(
   status           INTEGER,
   PRIMARY KEY (id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS blockchain(
+  id                          INTEGER PRIMARY KEY,
+  benefactor                  TEXT NOT NULL,
+  beneficiary                 TEXT NOT NULL,
+  agreement_benefactor        TEXT,
+  agreement_beneficiary       TEXT,
+  sequence_number_benefactor  INTEGER NOT NULL,
+  sequence_number_beneficiary INTEGER NOT NULL,
+  previous_hash_benefactor    TEXT NOT NULL,
+  previous_hash_beneficiary   TEXT NOT NULL,
+  signature_benefactor        TEXT NOT NULL,
+  signature_beneficiary       TEXT NOT NULL,
+  insert_time                 TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  hash_block                  TEXT NOT NULL,
+  previous_hash               TEXT NOT NULL,
+  sequence_number             INTEGER NOT NULL
+);
