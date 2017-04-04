@@ -1,3 +1,5 @@
+import os
+
 from storm.database import create_database
 from storm.store import Store
 
@@ -6,6 +8,7 @@ from market.models.loanrequest import LoanRequest
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.campaign import Campaign
+from market.defs import BASE_DIR
 
 
 class MarketDataManager:
@@ -17,25 +20,10 @@ class MarketDataManager:
         self.database = create_database('sqlite:' + market_db)
         self.store = Store(self.database)
 
-        self.store.execute("CREATE TABLE IF NOT EXISTS user (id VARCHAR PRIMARY KEY, role INT, profile_id INT)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, address_id INT, "
-                           "first_name VARCHAR, last_name VARCHAR, email VARCHAR, iban VARCHAR, phone_number VARCHAR)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS profile_address (id INTEGER PRIMARY KEY, "
-                           "current_postal_code VARCHAR, current_house_number VARCHAR, current_address VARCHAR)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS loan_request (id VARCHAR PRIMARY KEY, user_id VARCHAR, "
-                           "house_id INT, mortgage_type INT, bank_id VARCHAR, description VARCHAR, "
-                           "amount_wanted FLOAT, status INT)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS house (id INTEGER PRIMARY KEY, "
-                           "postal_code VARCHAR, house_number VARCHAR, address VARCHAR, price FLOAT, url VARCHAR, "
-                           "seller_phone_number VARCHAR, seller_email VARCHAR)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS mortgage (id VARCHAR PRIMARY KEY, user_id VARCHAR, "
-                           "bank_id VARCHAR, house_id INT, amount FLOAT, bank_amount FLOAT, mortgage_type INT, "
-                           "interest_rate FLOAT, max_invest_rate FLOAT, default_rate FLOAT, duration INT, "
-                           "risk VARCHAR, status INT, campaign_id VARCHAR)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS campaign (id VARCHAR PRIMARY KEY, user_id VARCHAR, "
-                           "mortgage_id INT, amount FLOAT, end_time INT, completed INT)")
-        self.store.execute("CREATE TABLE IF NOT EXISTS investment (id VARCHAR PRIMARY KEY, user_id VARCHAR, "
-                           "amount FLOAT, duration INT, interest_rate FLOAT, campaign_id VARCHAR, status INT)")
+        with open(os.path.join(BASE_DIR, 'database', 'schema.sql')) as fp:
+            schema = fp.read()
+        for cmd in schema.split(';'):
+            self.store.execute(cmd)
 
         self.you = None
 
