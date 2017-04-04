@@ -2,9 +2,9 @@
 
 <div class='well'>
     <legend>
-        Requests <span class="glyphicon glyphicon-plus accept clickable" (click)="staticModal.show()"></span>
+        Loan requests <span class="glyphicon glyphicon-plus accept clickable" (click)="staticModal.show()"></span>
     </legend>
-    <ngx-datatable class='material' [rows]='pending_loan_requests' [headerHeight]="50" [footerHeight]="0"
+    <ngx-datatable class='material' [rows]='loan_requests' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
@@ -18,34 +18,27 @@
 </div>
 
 <div class='well'>
-    <legend>Offers</legend>
-    <ngx-datatable class='material' [rows]='pending_mortgages' [headerHeight]="50" [footerHeight]="0"
+    <legend>Mortgages</legend>
+    <ngx-datatable class='material' [rows]='mortgages' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="bank_amount" name="Loan amount"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
-        <ngx-datatable-column prop="default_rate" name="Default"></ngx-datatable-column>
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
-        <ngx-datatable-column prop="id" name="Actions">
-            <template let-row="row" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptMortgageOffer(row)"></i>
-                <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectMortgageOffer(row)"></i>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
             </template>
         </ngx-datatable-column>
-    </ngx-datatable>
-</div>
-
-<div class='well'>
-    <legend>Ongoing</legend>
-    <ngx-datatable class='material' [rows]='accepted_mortgages' [headerHeight]="50" [footerHeight]="0"
-                   [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="bank_amount" name="Loan amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
-        <ngx-datatable-column prop="default_rate" name="Default"></ngx-datatable-column>
-        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
-        <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
-        <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
+        <ngx-datatable-column prop="id" name="Actions">
+            <template let-row="row" ngx-datatable-cell-template>
+                <div *ngIf="row.status == 'PENDING'">
+                    <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptMortgageOffer(row)"></i>
+                    <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectMortgageOffer(row)"></i>
+                </div>
+            </template>
+        </ngx-datatable-column>
     </ngx-datatable>
 </div>
 

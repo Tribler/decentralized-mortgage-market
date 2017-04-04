@@ -199,14 +199,13 @@ class YouInvestmentsEndpoint(resource.Resource):
             return json.dumps({"error": "please create a profile prior to creating an investment offer"})
 
         parameters = json.loads(request.content.read())
-        required_fields = ['amount', 'duration', 'interest_rate', 'campaign_id', 'campaign_user_id']
+        required_fields = ['amount', 'interest_rate', 'campaign_id', 'campaign_user_id']
         for field in required_fields:
             if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing %s parameter" % field})
 
         amount = parameters['amount']
-        duration = parameters['duration']
         interest_rate = parameters['interest_rate']
         campaign_id = parameters['campaign_id']
         campaign_user_id = urlsafe_b64decode(str(parameters['campaign_user_id']))
@@ -216,7 +215,7 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        investment = Investment(you.investments.count(), you.id, amount, duration,
+        investment = Investment(you.investments.count(), you.id, amount, 0,
                                 interest_rate, campaign.id, campaign.user_id, InvestmentStatus.PENDING)
         you.investments.add(investment)
         campaign.investments.add(investment)

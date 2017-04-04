@@ -1,6 +1,6 @@
 <div class='well'>
-    <legend>Pending requests</legend>
-    <ngx-datatable class='material' [rows]='pending_loan_requests' [headerHeight]="50" [footerHeight]="0"
+    <legend>Loan requests</legend>
+    <ngx-datatable class='material' [rows]='loan_requests' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
@@ -12,20 +12,23 @@
         </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-row="row" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-ok accept clickable" (click)="request['loan_request']=row; staticModal.show();"></i>
-                <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectLoanRequest(row)"></i>
+                <div *ngIf="row.status == 'PENDING'">
+                    <i class="glyphicon glyphicon-ok accept clickable" (click)="request['loan_request']=row; staticModal.show();"></i>
+                    <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectLoanRequest(row)"></i>
+                </div>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>
 </div>
 
 <div class='well'>
-    <legend>Ongoing</legend>
-    <ngx-datatable class='material' [rows]='accepted_loan_requests' [headerHeight]="50" [footerHeight]="0"
+    <legend>Mortgages</legend>
+    <ngx-datatable class='material' [rows]='mortgages' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
-        <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_amount" name="Bank amount"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>

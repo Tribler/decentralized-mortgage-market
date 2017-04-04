@@ -8,8 +8,8 @@ import { MarketService } from '../shared/market.service';
     templateUrl: './banker-mortgages.component.html'
 })
 export class BankerMortgagesComponent implements OnInit {
-    pending_loan_requests = [];
-    accepted_loan_requests = [];
+    loan_requests = [];
+    mortgages = [];
 
     request = {};
 
@@ -21,10 +21,9 @@ export class BankerMortgagesComponent implements OnInit {
 
     loadLoanRequests() {
         this._marketService.getLoanRequests()
-            .subscribe(loan_requests => {
-                this.pending_loan_requests = loan_requests.filter((lr: any) => lr.status == 'PENDING');
-                this.accepted_loan_requests = loan_requests.filter((lr: any) => lr.status == 'ACCEPTED');
-            });
+            .subscribe(loan_requests => this.loan_requests = loan_requests.filter((lr: any) => lr.status == 'PENDING'));
+        this._marketService.getMortgages()
+            .subscribe(mortgages => this.mortgages = mortgages);
     }
 
     acceptLoanRequest(modal) {

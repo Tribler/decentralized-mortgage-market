@@ -51,6 +51,10 @@ export class MarketService {
             .map(res => res.json());
     }
 
+    getMortgages(): Observable<Object[]> {
+        return this._http.get(this._api_base + '/mortgages')
+            .map(res => res.json().mortgages);
+    }
     getLoanRequests(): Observable<Object[]> {
         return this._http.get(this._api_base + '/loanrequests')
             .map(res => res.json().loan_requests);

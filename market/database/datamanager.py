@@ -71,6 +71,13 @@ class MarketDataManager:
         """
         return self.store.get(Mortgage, (mortgage_id, user_id))
 
+    def get_mortgages(self):
+        """
+        Get all mortgages in the market.
+        :return: a list with Mortgage objects
+        """
+        return self.store.find(Mortgage)
+
     def get_investment(self, investment_id, user_id):
         """
         Get a specific investment with a specified id

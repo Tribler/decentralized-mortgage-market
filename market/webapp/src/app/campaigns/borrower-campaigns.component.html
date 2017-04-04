@@ -17,29 +17,11 @@
 </div>
 
 <div class='well'>
-    <legend>Investments</legend>
-    <ngx-datatable class='material' [rows]='accepted_investments' [headerHeight]="50" [footerHeight]="0"
-                   [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
-        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
-        <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
-        <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
-        <ngx-datatable-column prop="status" name="Status">
-            <template let-value="value" ngx-datatable-cell-template>
-                <status [label]="value"></status>
-            </template>
-        </ngx-datatable-column>
-    </ngx-datatable>
-</div>
-
-<div class='well'>
     <legend>Investment offers</legend>
     <ngx-datatable class='material' [rows]='pending_investments' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
         <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
@@ -51,6 +33,22 @@
             <template let-value="value" let-row="row" ngx-datatable-cell-template>
                 <i class="glyphicon glyphicon-ok accept clickable" (click)="acceptInvestmentOffer(row)"></i>
                 <i class="glyphicon glyphicon-remove reject clickable" (click)="rejectInvestmentOffer(row)"></i>
+            </template>
+        </ngx-datatable-column>
+    </ngx-datatable>
+</div>
+
+<div class='well'>
+    <legend>Investments</legend>
+    <ngx-datatable class='material' [rows]='accepted_investments' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
+        <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>

@@ -26,7 +26,6 @@
     <ngx-datatable class='material' [rows]='investments' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
         <ngx-datatable-column prop="campaign_id" name="Campaign"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
@@ -56,17 +55,6 @@
                             <div class="input-group">
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
                                 <input [(ngModel)]="request.amount" name="amount" placeholder="Amount" class="form-control" type="number"
-                                    required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="control-label">Duration (in months)</label>
-                        <div class="inputGroupContainer">
-                            <div class="input-group">
-                                <span class="input-group-addon"><i class="glyphicon glyphicon-time"></i></span>
-                                <input [(ngModel)]="request.duration" name="duration" placeholder="Duration (in months)" class="form-control" type="number"
                                     required>
                             </div>
                         </div>

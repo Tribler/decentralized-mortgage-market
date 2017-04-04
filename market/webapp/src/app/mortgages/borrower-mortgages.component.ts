@@ -8,9 +8,8 @@ import { MarketService } from '../shared/market.service';
     templateUrl: './borrower-mortgages.component.html'
 })
 export class BorrowerMortgagesComponent implements OnInit {
-    pending_loan_requests = [];
-    pending_mortgages = [];
-    accepted_mortgages = [];
+    loan_requests = [];
+    mortgages = [];
     banks = [];
 
     alert;
@@ -30,22 +29,17 @@ export class BorrowerMortgagesComponent implements OnInit {
 
     loadBanks() {
         this._marketService.getUsers()
-            .map(users => users.filter((user: any) => user.role === 'FINANCIAL_INSTITUTION'))
-            .subscribe(banks => this.banks = banks);
+            .subscribe(users => this.banks = users.filter((user: any) => user.role === 'FINANCIAL_INSTITUTION'));
     }
 
     loadMyLoanRequests() {
         this._marketService.getMyLoanRequests()
-            .map(loan_requests => loan_requests.filter((lr: any) => lr.status == 'PENDING'))
-            .subscribe(pending_loan_requests => this.pending_loan_requests = pending_loan_requests);
+            .subscribe(loan_requests => this.loan_requests = loan_requests.filter((lr: any) => lr.status != 'ACCEPTED'));
     }
 
     loadMyMortgages() {
         this._marketService.getMyMortgages()
-            .subscribe(mortgages => {
-                this.pending_mortgages = mortgages.filter((m: any) => m.status == 'PENDING');
-                this.accepted_mortgages = mortgages.filter((m: any) => m.status == 'ACCEPTED');
-            });
+            .subscribe(mortgages => this.mortgages = mortgages);
     }
 
     requestLoan(modal) {

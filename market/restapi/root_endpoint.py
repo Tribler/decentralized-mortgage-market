@@ -9,6 +9,7 @@ from market.restapi.campaigns_endpoint import CampaignsEndpoint
 from market.restapi.users_endpoint import UsersEndpoint
 from market.restapi.you_endpoint import YouEndpoint
 from market.restapi.loanrequests_endpoint import LoanRequestsEndpoint
+from market.restapi.mortgages_endpoint import MortgagesEndpoint
 from market.models.user import Role
 
 
@@ -24,6 +25,7 @@ class APIEndpoint(resource.Resource):
         if market_community.my_role == Role.FINANCIAL_INSTITUTION:
             # Only activate this endpoint if we are a bank. Used to accept/reject loan requests offers.
             self.putChild("loanrequests", LoanRequestsEndpoint(market_community))
+            self.putChild("mortgages", MortgagesEndpoint(market_community))
 
 
 class RootEndpoint(resource.Resource):
