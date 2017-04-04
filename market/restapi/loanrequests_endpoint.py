@@ -116,7 +116,8 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                                 120,
                                 u'',
                                 MortgageStatus.PENDING)
-            self.market_community.data_manager.you.mortgages.add(mortgage)
+            user = self.market_community.data_manager.get_user(loan_request.user_id)
+            user.mortgages.add(mortgage)
             self.market_community.send_mortgage_offer(loan_request, mortgage)
         else:
             loan_request.status = LoanRequestStatus.REJECTED
