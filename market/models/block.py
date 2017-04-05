@@ -1,6 +1,7 @@
 import hashlib
 
 from storm.properties import Int, RawStr
+from base64 import urlsafe_b64encode
 
 
 class Block(object):
@@ -41,13 +42,13 @@ class Block(object):
     def verify(self, member):
         return member.verify(str(self), self.signature)
 
-    def to_dict(self):
+    def to_dict(self, api_response=False):
         return {
-            'signee': self.signee,
-            'document': self.document,
+            'signee': urlsafe_b64encode(self.signee) if api_response else self.signee,
+            'document': urlsafe_b64encode(self.document) if api_response else self.document,
             'sequence_number_signee': self.sequence_number_signee,
-            'previous_hash_signee': self.previous_hash_signee,
-            'signature': self.signature,
+            'previous_hash_signee': urlsafe_b64encode(self.previous_hash_signee) if api_response else self.previous_hash_signee,
+            'signature': urlsafe_b64encode(self.signature) if api_response else self.signature
         }
 
     @staticmethod

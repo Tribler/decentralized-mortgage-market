@@ -10,6 +10,7 @@ from market.restapi.users_endpoint import UsersEndpoint
 from market.restapi.you_endpoint import YouEndpoint
 from market.restapi.loanrequests_endpoint import LoanRequestsEndpoint
 from market.restapi.mortgages_endpoint import MortgagesEndpoint
+from market.restapi.blockchain_endpoint import BlockchainEndpoint
 from market.models.user import Role
 
 
@@ -18,7 +19,10 @@ class APIEndpoint(resource.Resource):
     def __init__(self, market_community):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"users": UsersEndpoint, "campaigns": CampaignsEndpoint, "you": YouEndpoint}
+        child_handler_dict = {"users": UsersEndpoint,
+                              "campaigns": CampaignsEndpoint,
+                              "blockchain": BlockchainEndpoint,
+                              "you": YouEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(market_community))
 

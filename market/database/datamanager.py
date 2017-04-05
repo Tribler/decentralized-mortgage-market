@@ -111,6 +111,13 @@ class MarketDataManager:
         block.hash()
         self.store.add(block)
 
+    def get_blocks(self):
+        """
+        Get all blocks in the market.
+        :return: a list with Block objects
+        """
+        return self.store.find(Block)
+
     def get_latest_block(self, user_id=None):
         """
         Get the latest Block from the blochchain.

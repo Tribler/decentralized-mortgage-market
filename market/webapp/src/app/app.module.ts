@@ -7,6 +7,7 @@ import { HashLocationStrategy, Location, LocationStrategy } from '@angular/commo
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { ModalModule } from 'ng2-bootstrap/modal';
 import { AlertModule } from 'ng2-bootstrap/alert';
+import { PrettyJsonModule } from 'angular2-prettyjson';
 
 import { AppComponent } from './app.component';
 import { MarketService } from './shared/market.service';
@@ -22,12 +23,14 @@ import { CampaignsComponent } from './campaigns/campaigns.component';
 import { BorrowerCampaignsComponent } from './campaigns/borrower-campaigns.component';
 import { InvestorCampaignsComponent } from './campaigns/investor-campaigns.component';
 
+import { BlockchainComponent } from './blockchain/blockchain.component';
 
 const routes: Routes = [
     { path: '', redirectTo: 'profile', pathMatch: 'full' },
     { path: 'profile', component: ProfileComponent },
     { path: 'mortgages', component: MortgagesComponent },
-    { path: 'campaigns', component: CampaignsComponent }
+    { path: 'campaigns', component: CampaignsComponent },
+    { path: 'blockchain', component: BlockchainComponent }
 ];
 
 @NgModule({
@@ -41,6 +44,7 @@ const routes: Routes = [
         BorrowerCampaignsComponent,
         InvestorCampaignsComponent,
         StatusComponentComponent,
+        BlockchainComponent,
     ],
     imports: [
         BrowserModule,
@@ -50,6 +54,7 @@ const routes: Routes = [
         NgxDatatableModule,
         ModalModule.forRoot(),
         AlertModule.forRoot(),
+        PrettyJsonModule,
     ],
     providers: [Location,
         { provide: LocationStrategy, useClass: HashLocationStrategy },

@@ -96,4 +96,9 @@ export class MarketService {
                                 JSON.stringify({status: 'REJECT'}))
             .map(res => res.json());
     }
+
+    getBlocks(): Observable<Object[]> {
+        return this._http.get(this._api_base + '/blockchain')
+            .map(res => res.json().blockchain);
+    }
 }
