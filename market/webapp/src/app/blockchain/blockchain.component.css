@@ -1,23 +1,17 @@
-pre {
-    border: 0px;
-    background-color: inherit;
-    overflow: hidden;
+div {
+font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
-pre span {
-    white-space: normal;
+.row {
+    margin: 2px 0;
 }
-:host /deep/ .string {
+.text {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+}
+.number {
+    color: blue;
+}
+.string {
     color: green;
-}
-:host /deep/ .number {
-    color: blue;
-}
-:host /deep/ .boolean {
-    color: blue;
-}
-:host /deep/ .null {
-    color: magenta;
-}
-:host /deep/ .key {
-    color: black;
 }

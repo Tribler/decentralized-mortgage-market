@@ -1,0 +1,31 @@
+<div *ngFor="let fullblock of blocks | groupBy:'document'; let i=index">
+    <h3>Block {{ i }}</h3>
+    Document:
+    <div class="row">
+        <div class="col-xs-12 text string">{{ fullblock.key }}</div>
+    </div>
+
+    <div *ngFor="let partialblock of fullblock.value; let i = index">
+        Signee {{ i }}
+        <div class="row">
+            <div class="col-xs-3 text">Identity</div>
+            <div class="col-xs-9 text string">{{ partialblock.signee }}</div>
+        </div>
+        <div class="row">
+            <div class="col-xs-3 text">Signature</div>
+            <div class="col-xs-9 text string">{{ partialblock.signature }}</div>
+        </div>
+        <div class="row">
+            <div class="col-xs-3 text">Current hash</div>
+            <div class="col-xs-9 text string">{{ partialblock.block_hash }}</div>
+        </div>
+        <div class="row">
+            <div class="col-xs-3 text">Previous hash signee</div>
+            <div class="col-xs-9 text string">{{ partialblock.previous_hash_signee }}</div>
+        </div>
+        <div class="row">
+            <div class="col-xs-3 text">Sequence number signee</div>
+            <div class="col-xs-9 text number">{{ partialblock.sequence_number_signee }}</div>
+        </div>
+    </div>
+</div>

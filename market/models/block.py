@@ -43,13 +43,19 @@ class Block(object):
         return member.verify(str(self), self.signature)
 
     def to_dict(self, api_response=False):
-        return {
+        block_dict = {}
+
+        if api_response:
+            block_dict['block_hash'] = urlsafe_b64encode(self.block_hash)
+
+        block_dict.update({
             'signee': urlsafe_b64encode(self.signee) if api_response else self.signee,
             'document': urlsafe_b64encode(self.document) if api_response else self.document,
             'sequence_number_signee': self.sequence_number_signee,
             'previous_hash_signee': urlsafe_b64encode(self.previous_hash_signee) if api_response else self.previous_hash_signee,
             'signature': urlsafe_b64encode(self.signature) if api_response else self.signature
-        }
+        })
+        return block_dict
 
     @staticmethod
     def from_dict(block_dict):

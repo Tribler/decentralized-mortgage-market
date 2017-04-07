@@ -7,7 +7,7 @@ import { HashLocationStrategy, Location, LocationStrategy } from '@angular/commo
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { ModalModule } from 'ng2-bootstrap/modal';
 import { AlertModule } from 'ng2-bootstrap/alert';
-import { PrettyJsonModule } from 'angular2-prettyjson';
+import { GroupByPipe } from './shared/groupby.pipe';
 
 import { AppComponent } from './app.component';
 import { MarketService } from './shared/market.service';
@@ -45,6 +45,7 @@ const routes: Routes = [
         InvestorCampaignsComponent,
         StatusComponentComponent,
         BlockchainComponent,
+        GroupByPipe,
     ],
     imports: [
         BrowserModule,
@@ -54,7 +55,6 @@ const routes: Routes = [
         NgxDatatableModule,
         ModalModule.forRoot(),
         AlertModule.forRoot(),
-        PrettyJsonModule,
     ],
     providers: [Location,
         { provide: LocationStrategy, useClass: HashLocationStrategy },

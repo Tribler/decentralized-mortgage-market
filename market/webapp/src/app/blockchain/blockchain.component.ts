@@ -4,9 +4,7 @@ import { MarketService } from '../shared/market.service';
 
 @Component({
     selector: 'blockchain',
-    template: `
-        <pre [innerHtml]="blocks | prettyjson:2"></pre>
-    `,
+    templateUrl: 'blockchain.component.html',
     styleUrls: ['./blockchain.component.css']
 })
 export class BlockchainComponent implements OnInit {

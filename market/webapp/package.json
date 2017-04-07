@@ -21,7 +21,6 @@
     "@angular/platform-browser-dynamic": "^2.4.0",
     "@angular/router": "^3.4.0",
     "@swimlane/ngx-datatable": "^6.3.0",
-    "angular2-prettyjson": "^2.0.5",
     "bootstrap": "^3.3.7",
     "core-js": "^2.4.1",
     "ng2-bootstrap": "^1.4.0",
