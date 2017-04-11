@@ -45,7 +45,6 @@ message InvestmentOfferMessage {
 message InvestmentAcceptMessage {
     required uint32 investment_id = 1;
     required bytes investment_user_id = 2;
-    required BorrowersProfile borrowers_profile = 3;
 }
 
 message InvestmentRejectMessage {

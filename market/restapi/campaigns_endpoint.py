@@ -1,12 +1,9 @@
 import json
 
-from datetime import datetime, timedelta
 from twisted.web import http
 from twisted.web import resource
 
-from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus
-from market.restapi import get_param
 from base64 import urlsafe_b64decode
 
 
@@ -68,56 +65,6 @@ class CampaignsEndpoint(resource.Resource):
         """
         return json.dumps({"campaigns": [campaign.to_dict(api_response=True)
                                          for campaign in self.market_community.data_manager.get_campaigns()]})
-
-    def render_PUT(self, request):
-        # TODO: remove? currently a campaign is created implicitly by the community
-
-        """
-        .. http:put:: /campaigns
-
-        A PUT request to this endpoint will create a new campaign. Various parameters are required:
-        - mortgage_id: the identifier of the mortgage. This mortgage should be yours and be accepted.
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X PUT http://localhost:8085/campaign --data "mortgage_id=8593AB_89"
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"success": True}
-        """
-        parameters = http.parse_qs(request.content.read(), 1)
-        mortgage_id = get_param(parameters, 'mortgage_id')
-        if not mortgage_id:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "missing mortgage id"})
-
-        mortgage = self.market_community.data_manager.get_mortgage(mortgage_id)
-        if not mortgage:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "mortgage with specified id not found"})
-
-        if mortgage.user_id != self.market_community.data_manager.you.id:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "this mortgage is not yours"})
-
-        if mortgage.campaign is not None:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "campaign for this mortgage already exists"})
-
-        # Create the campaign
-        end_date = datetime.now() + timedelta(days=30)
-        finance_goal = mortgage.amount - mortgage.bank_amount
-        campaign = Campaign(self.market_community.data_manager.you.id, mortgage, finance_goal, end_date, False)
-        self.data_manager.campaigns.append(campaign)
-
-        # TODO(Martijn): broadcast it into the network
-
-        return json.dumps({"success": True})
 
     def getChild(self, path, request):
         return SpecificCampaignEndpoint(self.market_community, path)

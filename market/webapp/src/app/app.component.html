@@ -15,7 +15,7 @@
             <ul class="nav navbar-nav">
                 <li *ngIf="me?.role != 'FINANCIAL_INSTITUTION'" [routerLinkActive]="['active']"><a [routerLink]="['./profile']">Profile</a></li>
                 <li *ngIf="me?.role != 'INVESTOR'"[routerLinkActive]="['active']"><a [routerLink]="['./mortgages']">Mortgages</a></li>
-                <li *ngIf="me?.role != 'FINANCIAL_INSTITUTION'" [routerLinkActive]="['active']"><a [routerLink]="['./campaigns']">Campaigns</a></li>
+                <li *ngIf="me?.role != 'BORROWER'" [routerLinkActive]="['active']"><a [routerLink]="['./campaigns']">Campaigns</a></li>
                 <li [routerLinkActive]="['active']"><a [routerLink]="['./blockchain']">Blockchain</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">

@@ -4,10 +4,10 @@ import { Observable } from 'rxjs/Rx';
 import { MarketService } from '../shared/market.service';
 
 @Component({
-    selector: 'borrower-campaigns',
-    templateUrl: './borrower-campaigns.component.html'
+    selector: 'banker-campaigns',
+    templateUrl: './banker-campaigns.component.html'
 })
-export class BorrowerCampaignsComponent implements OnInit {
+export class BankerCampaignsComponent implements OnInit {
     campaigns = [];
     pending_investments = [];
     accepted_investments = [];

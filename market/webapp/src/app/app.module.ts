@@ -20,7 +20,7 @@ import { BankerMortgagesComponent } from './mortgages/banker-mortgages.component
 import { BorrowerMortgagesComponent } from './mortgages/borrower-mortgages.component';
 
 import { CampaignsComponent } from './campaigns/campaigns.component';
-import { BorrowerCampaignsComponent } from './campaigns/borrower-campaigns.component';
+import { BankerCampaignsComponent } from './campaigns/banker-campaigns.component';
 import { InvestorCampaignsComponent } from './campaigns/investor-campaigns.component';
 
 import { BlockchainComponent } from './blockchain/blockchain.component';
@@ -41,7 +41,7 @@ const routes: Routes = [
         BankerMortgagesComponent,
         BorrowerMortgagesComponent,
         CampaignsComponent,
-        BorrowerCampaignsComponent,
+        BankerCampaignsComponent,
         InvestorCampaignsComponent,
         StatusComponentComponent,
         BlockchainComponent,

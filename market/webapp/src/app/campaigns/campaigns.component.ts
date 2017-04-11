@@ -6,7 +6,7 @@ import { MarketService } from '../shared/market.service';
     selector: 'campaigns',
     template: `
          <investor-campaigns *ngIf="me?.role == 'INVESTOR'"></investor-campaigns>
-         <borrower-campaigns *ngIf="me?.role == 'BORROWER'"></borrower-campaigns>
+         <banker-campaigns *ngIf="me?.role == 'FINANCIAL_INSTITUTION'"></banker-campaigns>
     `
 })
 export class CampaignsComponent implements OnInit {
