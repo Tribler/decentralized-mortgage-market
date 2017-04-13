@@ -8,13 +8,11 @@ import { MarketService } from '../shared/market.service';
     styleUrls: ['./blockchain.component.css']
 })
 export class BlockchainComponent implements OnInit {
-    me;
     blocks = [];
 
-    constructor(private _marketService: MarketService) { }
+    constructor(public marketService: MarketService) { }
 
     ngOnInit() {
-        this._marketService.getMyUser().subscribe(me => this.me = me);
-        this._marketService.getBlocks().subscribe(blocks => this.blocks = blocks);
+        this.marketService.getBlocks().subscribe(blocks => this.blocks = blocks);
     }
 }

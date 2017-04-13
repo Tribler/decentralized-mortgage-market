@@ -6,7 +6,7 @@
     </div>
 
     <div *ngFor="let partialblock of fullblock.value; let i = index">
-        Signee {{ i }} <span *ngIf="me?.id == partialblock.signee">*</span>
+        Signee {{ i }} <span *ngIf="marketService.me?.id == partialblock.signee">*</span>
         <div class="row">
             <div class="col-xs-3 text">Public key</div>
             <div class="col-xs-9 text string">{{ partialblock.signee }}</div>

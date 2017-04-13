@@ -6,7 +6,11 @@
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="amount" name="Amount needed"></ngx-datatable-column>
         <ngx-datatable-column prop="investment" name="Amount invested"></ngx-datatable-column>
-        <ngx-datatable-column prop="user_id" name="User"></ngx-datatable-column>
+        <ngx-datatable-column prop="user_id" name="User">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ marketService.getDisplayname(value) }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_id" name="Mortgage id"></ngx-datatable-column>
         <ngx-datatable-column prop="end_time" name="End time">
             <template let-value="value" ngx-datatable-cell-template>

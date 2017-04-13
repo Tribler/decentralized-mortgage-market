@@ -8,7 +8,30 @@ import 'rxjs/add/operator/map';
 export class MarketService {
     private _api_base = '/api';
 
+    me = {};
+    users = {};
+    banks = [];
     constructor(private _http: Http) {
+        Observable.timer(0, 60000).subscribe(t => {
+            this.getMyUser().subscribe(me => Object.assign(this.me, me));
+
+            var self = this;
+            this.getUsers().subscribe(users => {
+                this.banks = users.filter((user: any) => user.role === 'FINANCIAL_INSTITUTION');
+
+                // Reset self.users
+                for (var user_id in self.users) {
+                    delete self.users[user_id];
+                }
+                users.forEach(function(item: any, index, array) {
+                    self.users[item.id] = item;
+                });
+            });
+        });
+    }
+
+    getDisplayname(user_id): string {
+        return (this.users[user_id] || {}).display_name || user_id.slice(-10);
     }
 
     getMyUser(): Observable<Object[]> {

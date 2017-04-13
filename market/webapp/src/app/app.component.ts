@@ -8,11 +8,9 @@ import { MarketService } from './shared/market.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-    me;
 
-    constructor(private _marketService: MarketService) { }
+    constructor(public marketService: MarketService) { }
 
     ngOnInit() {
-        this._marketService.getMyUser().subscribe(me => this.me = me);
     }
 }

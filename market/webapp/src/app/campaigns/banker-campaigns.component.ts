@@ -15,7 +15,7 @@ export class BankerCampaignsComponent implements OnInit {
     alert;
     selected = [];
 
-    constructor(private _marketService: MarketService) {
+    constructor(public marketService: MarketService) {
     }
 
     ngOnInit() {
@@ -25,7 +25,7 @@ export class BankerCampaignsComponent implements OnInit {
     }
 
     loadMyCampaigns() {
-        this._marketService.getMyCampaigns()
+        this.marketService.getMyCampaigns()
             .subscribe(campaigns => {
                 this.campaigns = campaigns;
 
@@ -40,12 +40,12 @@ export class BankerCampaignsComponent implements OnInit {
     }
 
     acceptInvestmentOffer(investment) {
-        this._marketService.acceptInvestment(investment)
+        this.marketService.acceptInvestment(investment)
              .subscribe(() => this.loadMyCampaigns());
     }
 
     rejectInvestmentOffer(investment) {
-        this._marketService.rejectInvestment(investment)
+        this.marketService.rejectInvestment(investment)
             .subscribe(() => this.loadMyCampaigns());
     }
 }

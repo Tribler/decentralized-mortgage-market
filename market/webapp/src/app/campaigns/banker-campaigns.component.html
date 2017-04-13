@@ -6,7 +6,6 @@
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="amount" name="Amount needed"></ngx-datatable-column>
         <ngx-datatable-column prop="investment" name="Amount invested"></ngx-datatable-column>
-        <ngx-datatable-column prop="user_id" name="User"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_id" name="Mortgage id"></ngx-datatable-column>
         <ngx-datatable-column prop="end_time" name="End time">
             <template let-value="value" ngx-datatable-cell-template>
@@ -20,7 +19,11 @@
     <legend>Investment offers</legend>
     <ngx-datatable class='material' [rows]='pending_investments' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
+        <ngx-datatable-column prop="user_id" name="Investor">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ marketService.getDisplayname(value) }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
@@ -42,7 +45,11 @@
     <legend>Investments</legend>
     <ngx-datatable class='material' [rows]='accepted_investments' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="user_id" name="Investor"></ngx-datatable-column>
+        <ngx-datatable-column prop="user_id" name="Investor">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ marketService.getDisplayname(value) }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
         <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>

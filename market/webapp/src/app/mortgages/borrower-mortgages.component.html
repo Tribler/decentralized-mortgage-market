@@ -7,7 +7,11 @@
     <ngx-datatable class='material' [rows]='loan_requests' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
-        <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_id" name="Bank">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ marketService.getDisplayname(value) }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
@@ -25,7 +29,11 @@
         <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
-        <ngx-datatable-column prop="bank_id" name="Bank"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_id" name="Bank">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ marketService.getDisplayname(value) }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>
@@ -149,7 +157,7 @@
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-list"></i></span>
                                 <select [(ngModel)]="request.bank_id" name="bank_id" class="form-control selectpicker" required>
                                     <option value="undefined" disabled selected>Select your bank</option>
-                                    <option *ngFor="let bank of banks" [value]="bank.id">{{ bank.id | slice:0:20 }}</option>
+                                    <option *ngFor="let bank of marketService.banks" [value]="bank.id">{{ marketService.getDisplayname(bank.id) }}</option>
                                 </select>
                             </div>
                         </div>

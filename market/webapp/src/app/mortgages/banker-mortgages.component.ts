@@ -13,29 +13,29 @@ export class BankerMortgagesComponent implements OnInit {
 
     request = {};
 
-    constructor(private _marketService: MarketService) { }
+    constructor(public marketService: MarketService) { }
 
     ngOnInit() {
         Observable.timer(0, 5000).subscribe(t => this.loadLoanRequests());
     }
 
     loadLoanRequests() {
-        this._marketService.getLoanRequests()
+        this.marketService.getLoanRequests()
             .subscribe(loan_requests => this.loan_requests = loan_requests.filter((lr: any) => lr.status == 'PENDING'));
-        this._marketService.getMortgages()
+        this.marketService.getMortgages()
             .subscribe(mortgages => this.mortgages = mortgages);
     }
 
     acceptLoanRequest(modal) {
         var loan_request = this.request['loan_request'];
         delete this.request['loan_request'];
-        this._marketService.acceptLoanRequest(loan_request, this.request)
+        this.marketService.acceptLoanRequest(loan_request, this.request)
             .subscribe(() => this.loadLoanRequests());
         modal.hide();
     }
 
     rejectLoanRequest(loan_request) {
-        this._marketService.rejectLoanRequest(loan_request)
+        this.marketService.rejectLoanRequest(loan_request)
             .subscribe(() => this.loadLoanRequests());
     }
 }

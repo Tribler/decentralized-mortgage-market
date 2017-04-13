@@ -13,13 +13,13 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li *ngIf="me?.role != 'FINANCIAL_INSTITUTION'" [routerLinkActive]="['active']"><a [routerLink]="['./profile']">Profile</a></li>
-                <li *ngIf="me?.role != 'INVESTOR'"[routerLinkActive]="['active']"><a [routerLink]="['./mortgages']">Mortgages</a></li>
-                <li *ngIf="me?.role != 'BORROWER'" [routerLinkActive]="['active']"><a [routerLink]="['./campaigns']">Campaigns</a></li>
+                <li *ngIf="marketService.me?.role != 'FINANCIAL_INSTITUTION'" [routerLinkActive]="['active']"><a [routerLink]="['./profile']">Profile</a></li>
+                <li *ngIf="marketService.me?.role != 'INVESTOR'"[routerLinkActive]="['active']"><a [routerLink]="['./mortgages']">Mortgages</a></li>
+                <li *ngIf="marketService.me?.role != 'BORROWER'" [routerLinkActive]="['active']"><a [routerLink]="['./campaigns']">Campaigns</a></li>
                 <li [routerLinkActive]="['active']"><a [routerLink]="['./blockchain']">Blockchain</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                <li class="navbar-text"><small>role:{{ me?.role | lowercase }}</small></li>
+                <li class="navbar-text"><small>role:{{ marketService.me?.role | lowercase }}</small></li>
                 <li><a href="#">Logout</a></li>
             </ul>
         </div>
