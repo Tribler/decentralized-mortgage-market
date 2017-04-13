@@ -35,6 +35,9 @@ class MarketDataManager:
         if user is None:
             user = User(user_id, role=role)
             self.add_user(user)
+        else:
+            # Update role
+            user.role = role
         self.you = user
 
     def add_user(self, user):
