@@ -10,14 +10,14 @@ export class MarketService {
 
     me = {};
     users = {};
-    banks = [];
+    online_banks = [];
     constructor(private _http: Http) {
         Observable.timer(0, 60000).subscribe(t => {
             this.getMyUser().subscribe(me => Object.assign(this.me, me));
 
             var self = this;
             this.getUsers().subscribe(users => {
-                this.banks = users.filter((user: any) => user.role === 'FINANCIAL_INSTITUTION');
+                this.online_banks = users.filter((user: any) => user.role === 'FINANCIAL_INSTITUTION' && user.online);
 
                 // Reset self.users
                 for (var user_id in self.users) {

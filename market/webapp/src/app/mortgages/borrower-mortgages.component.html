@@ -157,7 +157,7 @@
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-list"></i></span>
                                 <select [(ngModel)]="request.bank_id" name="bank_id" class="form-control selectpicker" required>
                                     <option value="undefined" disabled selected>Select your bank</option>
-                                    <option *ngFor="let bank of marketService.banks" [value]="bank.id">{{ marketService.getDisplayname(bank.id) }}</option>
+                                    <option *ngFor="let bank of marketService.online_banks" [value]="bank.id">{{ marketService.getDisplayname(bank.id) }}</option>
                                 </select>
                             </div>
                         </div>
