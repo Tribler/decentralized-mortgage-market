@@ -6,6 +6,7 @@ import logging.config
 
 from twisted.python import log
 from twisted.internet import reactor
+from base64 import urlsafe_b64encode
 
 from market.dispersy.crypto import LibNaCLSK
 from market.dispersy.dispersy import Dispersy
@@ -17,10 +18,11 @@ from market.models.user import Role
 
 class DispersyManager(object):
 
-    def __init__(self, port, state_dir):
+    def __init__(self, port, state_dir, keypair_fn):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.port = port
         self.state_dir = state_dir
+        self.keypair_fn = keypair_fn or os.path.join(self.state_dir, 'market.pem')
 
         self.session = None
         self.dispersy = None
@@ -35,19 +37,19 @@ class DispersyManager(object):
     def start_market(self, *args, **kwargs):
         self.logger.info('Starting MarketCommunity')
 
-        keypair_fn = os.path.join(self.dispersy.working_directory, 'market.pem')
-        if os.path.exists(keypair_fn):
+        if os.path.exists(self.keypair_fn):
             self.logger.info('Using existing keypair')
-            with open(keypair_fn, 'rb') as keypair_fp:
+            with open(self.keypair_fn, 'rb') as keypair_fp:
                 keypair_bin = keypair_fp.read()
             keypair = LibNaCLSK(binarykey=keypair_bin)
         else:
             self.logger.info('Creating new keypair')
             keypair = LibNaCLSK()
-            with open(keypair_fn, 'wb') as keypair_fp:
+            with open(self.keypair_fn, 'wb') as keypair_fp:
                 keypair_fp.write(keypair.key.sk)
                 keypair_fp.write(keypair.key.seed)
 
+        self.logger.debug('Public key %s', urlsafe_b64encode(keypair.pub().key_to_bin()))
         member = self.dispersy.get_member(private_key=keypair.key_to_bin())
         self.community = self.dispersy.define_auto_load(MarketCommunity, member, load=True, args=args, kargs=kwargs)[0]
 
@@ -65,6 +67,7 @@ def main(argv):
     parser.add_argument('--dispersy', help='Dispersy port', type=int, default=DEFAULT_DISPERSY_PORT)
     parser.add_argument('--api', help='API port', type=int, default=DEFAULT_REST_API_PORT)
     parser.add_argument('--state', help='State directory', type=type_unicode, default=os.path.join(BASE_DIR, 'State'))
+    parser.add_argument('--keypair', help='Keypair filename', type=type_unicode)
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--bank', action='store_const', const=Role.FINANCIAL_INSTITUTION, help='Run as bank')
@@ -72,7 +75,7 @@ def main(argv):
     group.add_argument('--borrower', action='store_const', const=Role.BORROWER, help='Run as borrower')
 
     args = parser.parse_args(sys.argv[1:])
-    manager = DispersyManager(args.dispersy, args.state)
+    manager = DispersyManager(args.dispersy, args.state, args.keypair)
     role = args.bank or args.investor or args.borrower
 
     def start():
