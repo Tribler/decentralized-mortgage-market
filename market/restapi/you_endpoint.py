@@ -1,6 +1,7 @@
 import base64
 import json
 
+from base64 import urlsafe_b64decode
 from twisted.web import http, resource
 
 from market.models.house import House
@@ -9,7 +10,7 @@ from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import MortgageStatus, MortgageType
 from market.models.user import Role
 from market.models.profile import Profile
-from base64 import urlsafe_b64decode
+from market.restapi import split_composite_key
 
 
 class YouEndpoint(resource.Resource):
@@ -322,9 +323,8 @@ class YouSpecificMortageEndpoint(resource.Resource):
         """
         Accept/reject a mortgage offer
         """
-        keys = self.morgage_composite_key.split()
-        mortgage = self.community.data_manager.get_mortgage(int(keys[0]), urlsafe_b64decode(keys[1])) \
-                   if len(keys) == 2 and keys[0].isdigit() else None
+        keys = split_composite_key(self.morgage_composite_key)
+        mortgage = self.community.data_manager.get_mortgage(*keys) if keys is not None else None
         if not mortgage:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})

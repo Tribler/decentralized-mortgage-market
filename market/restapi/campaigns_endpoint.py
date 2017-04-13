@@ -4,7 +4,7 @@ from twisted.web import http
 from twisted.web import resource
 
 from market.models.investment import InvestmentStatus
-from base64 import urlsafe_b64decode
+from market.restapi import split_composite_key
 
 
 class CampaignsEndpoint(resource.Resource):
@@ -130,9 +130,8 @@ class SpecificCampaignEndpoint(resource.Resource):
                     }
                 }
         """
-        keys = self.campaign_composite_key.split()
-        campaign = self.community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
-                   if len(keys) == 2 and keys[0].isdigit() else None
+        keys = split_composite_key(self.campaign_composite_key)
+        campaign = self.community.data_manager.get_campaign(*keys) if keys is not None else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
@@ -179,9 +178,8 @@ class CampaignInvestmentsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        keys = self.campaign_composite_key.split()
-        campaign = self.community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
-                   if len(keys) == 2 and keys[0].isdigit() else None
+        keys = split_composite_key(self.campaign_composite_key)
+        campaign = self.community.data_manager.get_campaign(*keys) if keys is not None else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
@@ -219,16 +217,14 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
 
                     {"success": True}
         """
-        keys = self.campaign_composite_key.split()
-        campaign = self.community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
-                   if len(keys) == 2 and keys[0].isdigit() else None
+        keys = split_composite_key(self.campaign_composite_key)
+        campaign = self.community.data_manager.get_campaign(*keys) if keys is not None else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
-        keys = self.investment_composite_key.split()
-        investment = self.community.data_manager.get_investment(int(keys[0]), urlsafe_b64decode(keys[1])) \
-                   if len(keys) == 2 and keys[0].isdigit() else None
+        keys = split_composite_key(self.investment_composite_key)
+        investment = self.community.data_manager.get_investment(*keys) if keys is not None else None
         if not investment or investment.campaign_id != campaign.id:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "investment not found"})

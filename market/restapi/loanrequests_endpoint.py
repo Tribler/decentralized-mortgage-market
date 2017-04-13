@@ -4,7 +4,7 @@ from twisted.web import http, resource
 
 from market.models.loanrequest import LoanRequestStatus
 from market.models.mortgage import Mortgage, MortgageStatus
-from base64 import urlsafe_b64decode
+from market.restapi import split_composite_key
 
 
 class LoanRequestsEndpoint(resource.Resource):
@@ -83,9 +83,8 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                     {"success": True}
         """
 
-        keys = self.loan_request_composite_key.split()
-        loan_request = self.community.data_manager.get_loan_request(int(keys[0]), urlsafe_b64decode(keys[1])) \
-                       if len(keys) == 2 and keys[0].isdigit() else None
+        keys = split_composite_key(self.loan_request_composite_key)
+        loan_request = self.community.data_manager.get_loan_request(*keys) if keys is not None else None
         if not loan_request:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "loan request not found"})
