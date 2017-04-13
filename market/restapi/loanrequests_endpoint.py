@@ -13,9 +13,9 @@ class LoanRequestsEndpoint(resource.Resource):
     Only accessible by financial institutions.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
         """
@@ -46,10 +46,10 @@ class LoanRequestsEndpoint(resource.Resource):
                 }
         """
         return json.dumps({"loan_requests": [loan_request.to_dict(api_response=True) for
-                                             loan_request in self.market_community.data_manager.get_loan_requests()]})
+                                             loan_request in self.community.data_manager.get_loan_requests()]})
 
     def getChild(self, path, request):
-        return SpecificLoanRequestEndpoint(self.market_community, path)
+        return SpecificLoanRequestEndpoint(self.community, path)
 
 
 class SpecificLoanRequestEndpoint(resource.Resource):
@@ -57,9 +57,9 @@ class SpecificLoanRequestEndpoint(resource.Resource):
     This class handles requests for a specific loan request.
     """
 
-    def __init__(self, market_community, loan_request_composite_key):
+    def __init__(self, community, loan_request_composite_key):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
         self.loan_request_composite_key = loan_request_composite_key
 
     def render_PATCH(self, request):
@@ -84,7 +84,7 @@ class SpecificLoanRequestEndpoint(resource.Resource):
         """
 
         keys = self.loan_request_composite_key.split()
-        loan_request = self.market_community.data_manager.get_loan_request(int(keys[0]), urlsafe_b64decode(keys[1])) \
+        loan_request = self.community.data_manager.get_loan_request(int(keys[0]), urlsafe_b64decode(keys[1])) \
                        if len(keys) == 2 and keys[0].isdigit() else None
         if not loan_request:
             request.setResponseCode(http.NOT_FOUND)
@@ -113,10 +113,10 @@ class SpecificLoanRequestEndpoint(resource.Resource):
 
         if status == "ACCEPT":
             loan_request.status = LoanRequestStatus.ACCEPTED
-            user = self.market_community.data_manager.get_user(loan_request.user_id)
+            user = self.community.data_manager.get_user(loan_request.user_id)
             mortgage = Mortgage(user.mortgages.count(),
                                 loan_request.user_id,
-                                self.market_community.my_user.id,
+                                self.community.my_user.id,
                                 loan_request.house,
                                 loan_request.amount_wanted,
                                 loan_request.amount_wanted * float(parameters['ltv']),
@@ -128,9 +128,9 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                                 parameters['risk'],
                                 MortgageStatus.PENDING)
             user.mortgages.add(mortgage)
-            self.market_community.send_mortgage_offer(loan_request, mortgage)
+            self.community.send_mortgage_offer(loan_request, mortgage)
         else:
             loan_request.status = LoanRequestStatus.REJECTED
-            self.market_community.send_loan_reject(loan_request)
+            self.community.send_loan_reject(loan_request)
 
         return json.dumps({"success": True})

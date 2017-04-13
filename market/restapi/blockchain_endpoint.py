@@ -8,9 +8,9 @@ class BlockchainEndpoint(resource.Resource):
     This class handles requests regarding the blockchain in the mortgage market community.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
         """
@@ -40,4 +40,4 @@ class BlockchainEndpoint(resource.Resource):
         """
 
         return json.dumps({"blockchain": [block.to_dict(api_response=True) for
-                                          block in self.market_community.data_manager.get_blocks()]})
+                                          block in self.community.data_manager.get_blocks()]})

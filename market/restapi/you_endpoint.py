@@ -17,18 +17,18 @@ class YouEndpoint(resource.Resource):
     This class handles requests regarding your user in the mortgage market community.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
-        self.putChild("profile", YouProfileEndpoint(market_community))
-        self.putChild("investments", YouInvestmentsEndpoint(market_community))
-        self.putChild("mortgages", YouMortgagesEndpoint(market_community))
-        self.putChild("loanrequests", YouLoanRequestsEndpoint(market_community))
-        self.putChild("campaigns", YouCampaignsEndpoint(market_community))
+        self.putChild("profile", YouProfileEndpoint(community))
+        self.putChild("investments", YouInvestmentsEndpoint(community))
+        self.putChild("mortgages", YouMortgagesEndpoint(community))
+        self.putChild("loanrequests", YouLoanRequestsEndpoint(community))
+        self.putChild("campaigns", YouCampaignsEndpoint(community))
 
     def render_GET(self, request):
-        return json.dumps({"you": self.market_community.data_manager.you.to_dict(api_response=True)})
+        return json.dumps({"you": self.community.data_manager.you.to_dict(api_response=True)})
 
 
 class YouProfileEndpoint(resource.Resource):
@@ -36,9 +36,9 @@ class YouProfileEndpoint(resource.Resource):
     This class handles requests regarding your profile.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
         """
@@ -67,7 +67,7 @@ class YouProfileEndpoint(resource.Resource):
                     }
                 }
         """
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
 
         if not you.profile:
             request.setResponseCode(http.NOT_FOUND)
@@ -130,7 +130,7 @@ class YouProfileEndpoint(resource.Resource):
                           parameters.get('current_house_number'),
                           parameters.get('current_address'))
 
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
         if you.profile is None:
             you.profile = profile
         else:
@@ -149,9 +149,9 @@ class YouInvestmentsEndpoint(resource.Resource):
     This class handles requests regarding the investments of you.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
         """
@@ -180,7 +180,7 @@ class YouInvestmentsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
         if not you.role == Role.INVESTOR:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not an investor"})
@@ -188,7 +188,7 @@ class YouInvestmentsEndpoint(resource.Resource):
         return json.dumps({"investments": [investment.to_dict(api_response=True) for investment in you.investments]})
 
     def render_PUT(self, request):
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
 
         if not you.role == Role.INVESTOR:
             request.setResponseCode(http.BAD_REQUEST)
@@ -210,7 +210,7 @@ class YouInvestmentsEndpoint(resource.Resource):
         campaign_id = parameters['campaign_id']
         campaign_user_id = urlsafe_b64decode(str(parameters['campaign_user_id']))
 
-        campaign = self.market_community.data_manager.get_campaign(campaign_id, campaign_user_id)
+        campaign = self.community.data_manager.get_campaign(campaign_id, campaign_user_id)
         if campaign is None:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
@@ -220,7 +220,7 @@ class YouInvestmentsEndpoint(resource.Resource):
         you.investments.add(investment)
         campaign.investments.add(investment)
 
-        self.market_community.send_investment_offer(investment)
+        self.community.send_investment_offer(investment)
 
         return json.dumps({"success": True})
 
@@ -230,12 +230,12 @@ class YouLoanRequestsEndpoint(resource.Resource):
     This class handles requests regarding the loan requests of you.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
 
         if not you.role == Role.BORROWER:
             request.setResponseCode(http.BAD_REQUEST)
@@ -244,7 +244,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
         return json.dumps({"loan_requests": [loan_request.to_dict(api_response=True) for loan_request in you.loan_requests]})
 
     def render_PUT(self, request):
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
 
         if not you.role == Role.BORROWER:
             request.setResponseCode(http.BAD_REQUEST)
@@ -285,7 +285,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
 
         you.loan_requests.add(loan_request)
 
-        self.market_community.send_loan_request(loan_request)
+        self.community.send_loan_request(loan_request)
 
         # TODO(Martijn): Invoke TFTP here to send the documents to the banks
 
@@ -297,15 +297,15 @@ class YouMortgagesEndpoint(resource.Resource):
     This class handles requests regarding your mortgages.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def getChild(self, path, request):
-        return YouSpecificMortageEndpoint(self.market_community, path)
+        return YouSpecificMortageEndpoint(self.community, path)
 
     def render_GET(self, request):
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
         return json.dumps({"mortgages": [mortgage.to_dict(api_response=True) for mortgage in you.mortgages]})
 
 
@@ -313,9 +313,9 @@ class YouSpecificMortageEndpoint(resource.Resource):
     """
     This class handles requests regarding a specific mortgage.
     """
-    def __init__(self, market_community, morgage_composite_key):
+    def __init__(self, community, morgage_composite_key):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
         self.morgage_composite_key = morgage_composite_key
 
     def render_PATCH(self, request):
@@ -323,7 +323,7 @@ class YouSpecificMortageEndpoint(resource.Resource):
         Accept/reject a mortgage offer
         """
         keys = self.morgage_composite_key.split()
-        mortgage = self.market_community.data_manager.get_mortgage(int(keys[0]), urlsafe_b64decode(keys[1])) \
+        mortgage = self.community.data_manager.get_mortgage(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not mortgage:
             request.setResponseCode(http.NOT_FOUND)
@@ -345,10 +345,10 @@ class YouSpecificMortageEndpoint(resource.Resource):
 
         if status == "ACCEPT":
             mortgage.status = MortgageStatus.ACCEPTED
-            self.market_community.send_mortgage_accept(mortgage)
+            self.community.send_mortgage_accept(mortgage)
         else:
             mortgage.status = MortgageStatus.REJECTED
-            self.market_community.send_mortgage_reject(mortgage)
+            self.community.send_mortgage_reject(mortgage)
 
         return json.dumps({"success": True})
 
@@ -358,12 +358,12 @@ class YouCampaignsEndpoint(resource.Resource):
     This class handles requests regarding your campaigns.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
-        you = self.market_community.data_manager.you
+        you = self.community.data_manager.you
         campaigns = []
         for campaign in you.campaigns:
             campaign_dict = campaign.to_dict(api_response=True)

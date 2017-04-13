@@ -16,7 +16,7 @@ from market.models.user import Role
 
 class APIEndpoint(resource.Resource):
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
 
         child_handler_dict = {"users": UsersEndpoint,
@@ -24,12 +24,12 @@ class APIEndpoint(resource.Resource):
                               "blockchain": BlockchainEndpoint,
                               "you": YouEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
-            self.putChild(path, child_cls(market_community))
+            self.putChild(path, child_cls(community))
 
-        if market_community.my_role == Role.FINANCIAL_INSTITUTION:
+        if community.my_role == Role.FINANCIAL_INSTITUTION:
             # Only activate this endpoint if we are a bank. Used to accept/reject loan requests offers.
-            self.putChild("loanrequests", LoanRequestsEndpoint(market_community))
-            self.putChild("mortgages", MortgagesEndpoint(market_community))
+            self.putChild("loanrequests", LoanRequestsEndpoint(community))
+            self.putChild("mortgages", MortgagesEndpoint(community))
 
 
 class RootEndpoint(resource.Resource):
@@ -37,9 +37,9 @@ class RootEndpoint(resource.Resource):
     This class represents the root endpoint of the decentralized mortgage market.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
 
         self.putChild('', Redirect('/gui'))
-        self.putChild('api', APIEndpoint(market_community))
+        self.putChild('api', APIEndpoint(community))
         self.putChild('gui', File(os.path.join(BASE_DIR, 'webapp', 'dist')))

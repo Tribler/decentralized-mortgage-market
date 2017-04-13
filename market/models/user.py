@@ -10,6 +10,7 @@ from market.models.investment import Investment
 from market.models.profile import Profile
 from market.database.types import Enum
 from base64 import urlsafe_b64encode
+from market.defs import TRUSTED_BANKS
 
 
 class Role(PyEnum):
@@ -40,10 +41,19 @@ class User(Storm):
         self.role = role
 
     def to_dict(self, api_response=False):
-        return {
+        user_dict = {
             "id": urlsafe_b64encode(self.id) if api_response else self.id,
             "role": self.role.name if api_response else self.role.value
         }
+
+        if api_response:
+            bank_name = next((name for name, user_id in TRUSTED_BANKS.iteritems() if user_id == user_dict['id']), None)
+            if bank_name is not None:
+                user_dict['display_name'] = bank_name
+            elif self.profile is not None:
+                user_dict['display_name'] = '%s %s' % (self.profile.first_name, self.profile.last_name)
+
+        return user_dict
 
     @staticmethod
     def from_dict(user_dict):

@@ -9,9 +9,9 @@ class MortgagesEndpoint(resource.Resource):
     Only accessible by financial institutions.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
         """
@@ -57,4 +57,4 @@ class MortgagesEndpoint(resource.Resource):
         """
 
         return json.dumps({"mortgages": [mortgage.to_dict(api_response=True) for
-                                         mortgage in self.market_community.data_manager.get_mortgages()]})
+                                         mortgage in self.community.data_manager.get_mortgages()]})

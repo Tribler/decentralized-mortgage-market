@@ -12,9 +12,9 @@ class CampaignsEndpoint(resource.Resource):
     This class handles requests regarding campaigns in the mortgage market community.
     """
 
-    def __init__(self, market_community):
+    def __init__(self, community):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
 
     def render_GET(self, request):
         """
@@ -64,10 +64,10 @@ class CampaignsEndpoint(resource.Resource):
                 }
         """
         return json.dumps({"campaigns": [campaign.to_dict(api_response=True)
-                                         for campaign in self.market_community.data_manager.get_campaigns()]})
+                                         for campaign in self.community.data_manager.get_campaigns()]})
 
     def getChild(self, path, request):
-        return SpecificCampaignEndpoint(self.market_community, path)
+        return SpecificCampaignEndpoint(self.community, path)
 
 
 class SpecificCampaignEndpoint(resource.Resource):
@@ -75,12 +75,12 @@ class SpecificCampaignEndpoint(resource.Resource):
     This class handles requests for a specific campaign.
     """
 
-    def __init__(self, market_community, campaign_composite_key):
+    def __init__(self, community, campaign_composite_key):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
         self.campaign_composite_key = campaign_composite_key
 
-        self.putChild("investments", CampaignInvestmentsEndpoint(market_community, campaign_composite_key))
+        self.putChild("investments", CampaignInvestmentsEndpoint(community, campaign_composite_key))
 
     def render_GET(self, request):
         """
@@ -131,7 +131,7 @@ class SpecificCampaignEndpoint(resource.Resource):
                 }
         """
         keys = self.campaign_composite_key.split()
-        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
+        campaign = self.community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
@@ -144,13 +144,13 @@ class CampaignInvestmentsEndpoint(resource.Resource):
     """
     This class handles requests regarding investments of a particular campaign
     """
-    def __init__(self, market_community, campaign_composite_key):
+    def __init__(self, community, campaign_composite_key):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
         self.campaign_composite_key = campaign_composite_key
 
     def getChild(self, path, request):
-        return SpecificCampaignInvestmentEndpoint(self.market_community, self.campaign_composite_key, path)
+        return SpecificCampaignInvestmentEndpoint(self.community, self.campaign_composite_key, path)
 
     def render_GET(self, request):
         """
@@ -180,7 +180,7 @@ class CampaignInvestmentsEndpoint(resource.Resource):
                 }
         """
         keys = self.campaign_composite_key.split()
-        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
+        campaign = self.community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
@@ -193,9 +193,9 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
     """
     This class handles requests for a specific investment in a campaign
     """
-    def __init__(self, market_community, campaign_composite_key, investment_composite_key):
+    def __init__(self, community, campaign_composite_key, investment_composite_key):
         resource.Resource.__init__(self)
-        self.market_community = market_community
+        self.community = community
         self.campaign_composite_key = campaign_composite_key
         self.investment_composite_key = investment_composite_key
 
@@ -220,14 +220,14 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
                     {"success": True}
         """
         keys = self.campaign_composite_key.split()
-        campaign = self.market_community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
+        campaign = self.community.data_manager.get_campaign(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not campaign:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "campaign not found"})
 
         keys = self.investment_composite_key.split()
-        investment = self.market_community.data_manager.get_investment(int(keys[0]), urlsafe_b64decode(keys[1])) \
+        investment = self.community.data_manager.get_investment(int(keys[0]), urlsafe_b64decode(keys[1])) \
                    if len(keys) == 2 and keys[0].isdigit() else None
         if not investment or investment.campaign_id != campaign.id:
             request.setResponseCode(http.NOT_FOUND)
@@ -249,10 +249,10 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
 
         if status == "ACCEPT":
             investment.status = InvestmentStatus.ACCEPTED
-            self.market_community.send_investment_accept(investment)
-            self.market_community.send_campaign_update(campaign, investment)
+            self.community.send_investment_accept(investment)
+            self.community.send_campaign_update(campaign, investment)
         else:
             investment.status = InvestmentStatus.REJECTED
-            self.market_community.send_investment_reject(investment)
+            self.community.send_investment_reject(investment)
 
         return json.dumps({"success": True})
