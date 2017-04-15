@@ -1,18 +1,17 @@
 import os
-import time
 
 from storm.database import create_database
 from storm.store import Store
+from storm.expr import Desc, Column
 
 from market.models.user import User
 from market.models.loanrequest import LoanRequest
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.campaign import Campaign
-from market.defs import BASE_DIR
+from market.models.agreement import Agreement
 from market.models.block import Block
-from storm.expr import Desc
-
+from market.defs import BASE_DIR
 
 class MarketDataManager:
     """
@@ -109,10 +108,17 @@ class MarketDataManager:
         """
         return self.store.find(Campaign)
 
+    def add_agreement(self, agreement):
+        self.store.add(agreement)
+
+    def get_agreement(self, agreement_id):
+        self.store.get(Agreement, agreement_id)
+
     def add_block(self, block):
-        block.insert_time = int(time.time())
-        block.hash()
         self.store.add(block)
+
+    def get_block(self, block_id):
+        self.store.get(Block, block_id)
 
     def get_blocks(self):
         """
@@ -121,16 +127,12 @@ class MarketDataManager:
         """
         return self.store.find(Block)
 
-    def get_latest_block(self, user_id=None):
+    def get_latest_block(self):
         """
         Get the latest Block from the blochchain.
         :return: the latest Block
         """
-        if user_id is None:
-            return self.store.find(Block).order_by(Desc(Block.id)).config(limit=1).one()
-        else:
-            return self.store.find(Block, Block.signee == user_id) \
-                             .order_by(Desc(Block.sequence_number_signee)).config(limit=1).one()
+        return self.store.find(Block).order_by(Desc(Column('rowid'))).config(limit=1).one()
 
     def flush(self):
         self.store.flush()

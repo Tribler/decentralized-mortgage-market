@@ -1,7 +1,10 @@
 import os
 import time
+import hashlib
 import logging
 
+from base64 import b64encode
+from collections import OrderedDict
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
@@ -19,23 +22,33 @@ from market.dispersy.requestcache import RandomNumberCache
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import Mortgage, MortgageStatus
 from market.models.user import User, Role
-from market.restapi.rest_manager import RESTManager
 from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus, Investment
 from market.models import investment
 from market.models.profile import Profile
 from market.models.block import Block
+from market.models.agreement import Agreement
+from market.restapi.rest_manager import RESTManager
+from market.util.uint256 import bytes_to_uint256
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
+BLOCK_CREATION_INTERNAL = 1
+
+BLOCK_TARGET_SPACING = 10 * 60
+BLOCK_TARGET_TIMESPAN = 14 * 24 * 60 * 60
+BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
+BLOCK_GENESIS_HASH = '\00' * 32
+BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+BLOCK_DIFFICULTY_MIN = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
-GENESIS_HASH = '\00' * 32
 
 
-class SignRequestCache(RandomNumberCache):
+class AgreementRequestCache(RandomNumberCache):
 
     def __init__(self, community):
-        super(SignRequestCache, self).__init__(community.request_cache, u'sign-request')
+        super(AgreementRequestCache, self).__init__(community.request_cache, u'agreement-request')
         self.community = community
 
     def on_timeout(self):
@@ -48,6 +61,7 @@ class MarketCommunity(Community):
         super(MarketCommunity, self).__init__(dispersy, master, my_member)
         self.logger = logging.getLogger('MarketLogger')
         self.id_to_candidate = {}
+        self.incoming_agreements = OrderedDict()
         self.data_manager = None
         self.rest_manager = None
         self.market_api = None
@@ -62,10 +76,12 @@ class MarketCommunity(Community):
         self.rest_manager = RESTManager(self, rest_api_port)
         self.market_api = self.rest_manager.start()
 
-        self.register_task("commit", LoopingCall(self.data_manager.commit)).start(COMMIT_INTERVAL)
-        self.register_task("cleanup", LoopingCall(self.cleanup)).start(CLEANUP_INTERVAL)
+        self.register_task('commit', LoopingCall(self.data_manager.commit)).start(COMMIT_INTERVAL)
+        self.register_task('cleanup', LoopingCall(self.cleanup)).start(CLEANUP_INTERVAL)
+        if self.my_user.role == Role.FINANCIAL_INSTITUTION:
+            self.register_task('create_block', LoopingCall(self.create_block)).start(BLOCK_CREATION_INTERNAL)
 
-        self.logger.info("MarketCommunity initialized")
+        self.logger.info('MarketCommunity initialized')
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -85,122 +101,144 @@ class MarketCommunity(Community):
         # EEsA7sdN6Y3NqAO3n9F4PXbMG9eqt1z9j/+YJ6lkeuPFlCPCqamEcA58tDuIGmRV
         # V0AyzBHbqAbbqWmfVPLTCxDu1cfAOBoJFaU=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000407bacf5ae4d3fe94d49a7f94b7239e9c2d878b29" + \
-                     "f0fbdb7374d5b6a09d9d6fba80d3807affd0ba45ba1ac1c278ca59bec422d8a44b5fefaabcdd62c2778414c01da4" + \
-                     "578b304b104b00eec74de98dcda803b79fd1783d76cc1bd7aab75cfd8fff9827a9647ae3c59423c2a9a984700e7c" + \
-                     "b43b881a6455574032cc11dba806dba9699f54f2d30b10eed5c7c0381a0915a5"
-        master = dispersy.get_member(public_key=master_key.decode("HEX"))
+        master_key = '3081a7301006072a8648ce3d020106052b81040027038192000407bacf5ae4d3fe94d49a7f94b7239e9c2d878b29' + \
+                     'f0fbdb7374d5b6a09d9d6fba80d3807affd0ba45ba1ac1c278ca59bec422d8a44b5fefaabcdd62c2778414c01da4' + \
+                     '578b304b104b00eec74de98dcda803b79fd1783d76cc1bd7aab75cfd8fff9827a9647ae3c59423c2a9a984700e7c' + \
+                     'b43b881a6455574032cc11dba806dba9699f54f2d30b10eed5c7c0381a0915a5'
+        master = dispersy.get_member(public_key=master_key.decode('hex'))
         return [master]
 
     def initiate_meta_messages(self):
         meta_messages = super(MarketCommunity, self).initiate_meta_messages()
 
-        return meta_messages + [Message(self, u"user-request",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_user_request),
-                                Message(self, u"user-response",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_user_response),
-                                Message(self, u"loan-request",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_loan_request),
-                                Message(self, u"loan-reject",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_loan_reject),
-                                Message(self, u"mortgage-offer",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_mortgage_offer),
-                                Message(self, u"mortgage-accept",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_mortgage_accept),
-                                Message(self, u"mortgage-reject",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_mortgage_reject),
-                                Message(self, u"investment-offer",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_investment_offer),
-                                Message(self, u"investment-accept",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_investment_accept),
-                                Message(self, u"investment-reject",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_investment_reject),
-                                Message(self, u"campaign-update",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        FullSyncDistribution(enable_sequence_number=False,
-                                                             synchronization_direction=u"DESC",
-                                                             priority=128),
-                                        CommunityDestination(node_count=10),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_campaign_update),
-                                Message(self, u"sign-request",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_sign_request),
-                                Message(self, u"sign-response",
-                                        MemberAuthentication(),
-                                        PublicResolution(),
-                                        DirectDistribution(),
-                                        CandidateDestination(),
-                                        ProtobufPayload(),
-                                        self._generic_timeline_check,
-                                        self.on_sign_response)]
+        return meta_messages + [
+            # Messages for gossiping user information
+            Message(self, u"user-request",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_user_request),
+            Message(self, u"user-response",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_user_response),
+            # Mortgage agreement messages
+            Message(self, u"loan-request",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_loan_request),
+            Message(self, u"loan-reject",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_loan_reject),
+            Message(self, u"mortgage-offer",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_mortgage_offer),
+            Message(self, u"mortgage-accept",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_mortgage_accept),
+            Message(self, u"mortgage-reject",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_mortgage_reject),
+            # Investment agreement messages
+            Message(self, u"investment-offer",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_investment_offer),
+            Message(self, u"investment-accept",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_investment_accept),
+            Message(self, u"investment-reject",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_investment_reject),
+            Message(self, u"campaign-update",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    FullSyncDistribution(enable_sequence_number=False,
+                                         synchronization_direction=u"DESC",
+                                         priority=128),
+                    CommunityDestination(node_count=10),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_campaign_update),
+            # Blockchain related messages
+            Message(self, u"agreement-request",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_agreement_request),
+            Message(self, u"agreement-response",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_agreement_response),
+            Message(self, u"agreement",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_agreement),
+            Message(self, u"block",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_block)
+        ]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MarketConversion(self)]
@@ -238,6 +276,15 @@ class MarketCommunity(Community):
                             destination=candidates,
                             payload=(payload_dict,))
         return self.dispersy.store_update_forward([message], False, False, True)
+
+    def multicast_message(self, msg_type, payload_dict, role=None, exclude=None):
+        candidates = [self.id_to_candidate[user.id] for user in self.data_manager.get_users()
+                      if user.id in self.id_to_candidate and (role is None or user.role == role)]
+
+        if exclude in candidates:
+            candidates.remove(exclude)
+
+        return self.send_message(msg_type, tuple(candidates), payload_dict)
 
     @property
     def my_role(self):
@@ -407,7 +454,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
 
-            self.send_sign_request(mortgage=mortgage)
+            self.send_agreement_request(mortgage=mortgage)
 
             mortgage.status = MortgageStatus.ACCEPTED
 
@@ -480,7 +527,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
 
-            self.send_sign_request(investment=investment)
+            self.send_agreement_request(investment=investment)
 
             investment.status = InvestmentStatus.ACCEPTED
 
@@ -554,80 +601,167 @@ class MarketCommunity(Community):
             if investment and self.data_manager.get_investment(investment.id, investment.user_id) is None:
                 campaign.investments.add(investment)
 
-    def send_sign_request(self, mortgage=None, investment=None):
+    def send_agreement_request(self, mortgage=None, investment=None):
         assert mortgage is not None or investment is not None
 
-        cache = self.request_cache.add(SignRequestCache(self))
+        cache = self.request_cache.add(AgreementRequestCache(self))
 
-        my_latest_block = self.data_manager.get_latest_block(self.my_user_id)
+        to_id = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id).user_id \
+                if mortgage is None else mortgage.user_id
 
-        myblock = Block()
-        myblock.signee = self.my_user_id
-        myblock.sequence_number_signee = my_latest_block.sequence_number_signee + 1 if my_latest_block else 0
-        myblock.previous_hash_signee = my_latest_block.block_hash if my_latest_block else GENESIS_HASH
+        agreement = Agreement()
+        agreement.from_id = self.my_user_id
+        agreement.to_id = to_id
+        agreement.document = mortgage.to_bin() if mortgage else investment.to_bin()
+        agreement.time = int(time.time())
+        agreement.sign(self.my_member)
 
-        if mortgage is None:
-            myblock.document = investment.to_bin()
-            destination_id = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id).user_id
-        else:
-            myblock.document = mortgage.to_bin()
-            destination_id = mortgage.user_id
+        return self.send_message_to_ids(u'agreement-request', (to_id,), {'identifier': cache.number,
+                                                                         'agreement': agreement.to_dict()})
 
-        myblock.sign(self.my_member)
-        self.data_manager.add_block(myblock)
-
-        return self.send_message_to_ids(u'sign-request', (destination_id,), {'identifier': cache.number,
-                                                                             'block': myblock.to_dict()})
-
-    def on_sign_request(self, messages):
+    def on_agreement_request(self, messages):
         for message in messages:
-            block = Block.from_dict(message.payload.dictionary['block'])
-            if block is None:
-                self.logger.warning('Dropping invalid sign-request from %s', message.candidate.sock_addr)
+            agreement = Agreement.from_dict(message.payload.dictionary['agreement'])
+            if agreement is None:
+                self.logger.warning('Dropping invalid agreement-request from %s', message.candidate.sock_addr)
                 continue
-            elif not block.verify(message.candidate.get_member()):
-                self.logger.warning('Dropping sign-request with incorrect signature')
+            elif not agreement.verify(message.candidate.get_member()):
+                self.logger.warning('Dropping agreement-request with incorrect signature')
                 continue
 
-            self.logger.debug('Got sign-request from %s', message.candidate.sock_addr)
+            self.logger.debug('Got agreement-request from %s', message.candidate.sock_addr)
 
-            # Save incoming block
-            self.data_manager.add_block(block)
+            # TODO: check agreement
+            agreement.sign(self.my_member)
+            self.data_manager.add_agreement(agreement)
 
-            # Create own block
-            my_latest_block = self.data_manager.get_latest_block(self.my_user_id)
+            self.send_agreement_response(message.candidate, agreement, message.payload.dictionary['identifier'])
 
-            myblock = Block()
-            myblock.signee = self.my_user_id
-            myblock.sequence_number_signee = my_latest_block.sequence_number_signee + 1 if my_latest_block else 0
-            myblock.previous_hash_signee = my_latest_block.block_hash if my_latest_block else GENESIS_HASH
-            # TODO: check this!
-            myblock.document = block.document
-            myblock.sign(self.my_member)
-            self.data_manager.add_block(myblock)
+            self.incoming_agreements[agreement.id] = agreement
+            self.multicast_message(u'agreement', {'agreement': agreement.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
-            self.send_sign_response(message.candidate, myblock, message.payload.dictionary['identifier'])
+    def send_agreement_response(self, candidate, agreement, identifier):
+        return self.send_message(u'agreement-response', (candidate,), {'identifier': identifier,
+                                                                       'agreement': agreement.to_dict()})
 
-    def send_sign_response(self, candidate, block, identifier):
-        return self.send_message(u'sign-response', (candidate,), {'identifier': identifier,
-                                                                  'block': block.to_dict()})
-
-    def on_sign_response(self, messages):
+    def on_agreement_response(self, messages):
         for message in messages:
-            cache = self.request_cache.get(u'sign-request', message.payload.dictionary['identifier'])
+            cache = self.request_cache.get(u'agreement-request', message.payload.dictionary['identifier'])
             if not cache:
-                self.logger.warning("Dropping unexpected sign-response from %s", message.candidate.sock_addr)
+                self.logger.warning("Dropping unexpected agreement-response from %s", message.candidate.sock_addr)
                 continue
 
+            agreement = Agreement.from_dict(message.payload.dictionary['agreement'])
+            if agreement is None:
+                self.logger.warning('Dropping invalid agreement-response from %s', message.candidate.sock_addr)
+                continue
+            elif not agreement.verify(message.candidate.get_member()):
+                self.logger.warning('Dropping agreement-response with incorrect signature')
+
+            self.logger.debug('Got agreement-response from %s', message.candidate.sock_addr)
+
+            # TODO: check agreement
+            self.data_manager.add_agreement(agreement)
+
+            self.incoming_agreements[agreement.id] = agreement
+            self.multicast_message(u'agreement', {'agreement': agreement.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+
+    def on_agreement(self, messages):
+        for message in messages:
+            agreement = Agreement.from_dict(message.payload.dictionary['agreement'])
+            self.logger.debug('Got agreement with id %s', b64encode(agreement.id))
+
+            # Forward if needed
+            if agreement.id not in self.incoming_agreements:
+                self.incoming_agreements[agreement.id] = agreement
+                self.multicast_message(u'agreement', {'agreement': agreement.to_dict()},
+                                       role=Role.FINANCIAL_INSTITUTION, exclude=message.candidate)
+
+    def on_block(self, messages):
+        for message in messages:
             block = Block.from_dict(message.payload.dictionary['block'])
-            if block is None:
-                self.logger.warning('Dropping invalid sign-response from %s', message.candidate.sock_addr)
+            if not block:
+                self.logger.warning('Dropping invalid block from %s', message.candidate.sock_addr)
                 continue
-            elif not block.verify(message.candidate.get_member()):
-                self.logger.warning('Dropping sign-response with incorrect signature')
 
-            self.logger.debug('Got sign-response from %s', message.candidate.sock_addr)
+            # TODO: check block
+            # TODO: reorganize chain
 
-            # Save incoming block
-            # TODO: check block!
+            # Make sure we stop trying to create blocks with the agreements in this block
+            for agreement in block.agreements:
+                if agreement.id in self.incoming_agreements:
+                    del self.incoming_agreements[agreement.id]
+
             self.data_manager.add_block(block)
+
+            self.logger.debug('Added received block with %s agreement(s)', len(block.agreements))
+
+    def create_block(self):
+        prev_block = self.data_manager.get_latest_block()
+
+        # Determine difficulty for the next block
+        if prev_block is not None:
+            # Go back BLOCK_TARGET_BLOCKSPAN
+            start_block = prev_block
+            for _ in range(BLOCK_TARGET_BLOCKSPAN):
+                start_block = self.data_manager.get_block(start_block.previous_hash)
+                if start_block is None:
+                    break
+
+            target_difficulty = prev_block.target_difficulty
+            if start_block is not None:
+                target_difficulty *= (prev_block.time - start_block.time) / BLOCK_TARGET_TIMESPAN
+        else:
+            target_difficulty = BLOCK_DIFFICULTY_INIT
+
+        target_difficulty = max(target_difficulty, BLOCK_DIFFICULTY_MIN)
+
+        block = Block()
+        block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
+        block.target_difficulty = target_difficulty
+        block.time = int(time.time())
+
+        # TODO: support more then 1 previous agreement
+        # TODO: prioritize?
+        agreements = []
+        dependencies = {}
+        for agreement in self.incoming_agreements.values():
+            if agreement.previous_hash and self.data_manager.get_agreement(agreement.previous_hash) is None:
+                dependencies[agreement.previous_hash] = agreement
+            else:
+                agreements.append(agreement)
+
+        while agreements:
+            agreement = agreements.pop()
+            block.agreements.append(agreement)
+
+            # Max block size is currently 10
+            if len(block.agreements) >= 10:
+                break
+
+            if agreement.id in dependencies:
+                agreements.insert(0, dependencies[agreement.id])
+
+        if block.agreements:
+            if bytes_to_uint256(self.get_proof(block)) < block.target_difficulty:
+                self.logger.debug('Block target difficulty 0x%064x', block.target_difficulty)
+
+                # Save block
+                self.data_manager.add_block(block)
+
+                # Remove agreements from incoming_agreements
+                for agreement in block.agreements:
+                    self.incoming_agreements.pop(agreement.id)
+
+                self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
+
+                self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+            else:
+                self.logger.debug('Block target difficulty 0x%064x not met', block.target_difficulty)
+
+    def get_proof(self, block):
+        # TODO: use proof-of-stake
+        return hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, self.my_user_id)).digest()
+
+    def check_proof(self, block, proof):
+        return self.get_proof(block) == proof

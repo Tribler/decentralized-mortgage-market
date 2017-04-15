@@ -58,14 +58,22 @@ message CampaignUpdateMessage {
     optional Investment investment = 3;
 }
 
-message SignatureRequest {
+message AgreementRequestMessage {
     required uint32 identifier = 1;
-    required Block block = 2;
+    required Agreement agreement = 2;
 }
 
-message SignatureResponse {
+message AgreementResponseMessage {
     required uint32 identifier = 1;
-    required Block block = 2;
+    required Agreement agreement = 2;
+}
+
+message AgreementMessage {
+    required Agreement agreement = 1;
+}
+
+message BlockMessage {
+    required Block block = 1;
 }
 
 // Objects that are included in the Dispersy messages
@@ -144,7 +152,7 @@ message Campaign {
     required uint32 mortgage_id = 3;
     required bytes mortgage_user_id = 4;
     required double amount = 5;
-    required int64 end_time = 6;
+    required uint32 end_time = 6;
     required bool completed = 7;
     repeated Investment investments = 8;
 }
@@ -155,10 +163,20 @@ message User {
     optional Profile profile = 3;
 }
 
+message Agreement {
+    required bytes previous_hash = 1;
+    required bytes from_id = 2;
+    required bytes from_signature = 3;
+    required bytes to_id = 4;
+    required bytes to_signature = 5;
+    required bytes document = 6;
+    required uint32 time = 7;
+}
+
 message Block {
-    required bytes signee = 1;
-    required bytes document = 2;
-    required int32 sequence_number_signee = 3;
-    required bytes previous_hash_signee = 4;
-    required bytes signature = 5;
+    required bytes previous_hash = 1;
+    required bytes merkle_root_hash = 2;
+    required bytes target_difficulty = 3;
+    required uint32 time = 4;
+    repeated Agreement agreements = 5;
 }

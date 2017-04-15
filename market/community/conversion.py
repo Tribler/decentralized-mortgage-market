@@ -20,8 +20,10 @@ class MarketConversion(BinaryConversion):
                      u'investment-accept': (chr(9), pb.InvestmentAcceptMessage),
                      u'investment-reject': (chr(10), pb.InvestmentRejectMessage),
                      u'campaign-update': (chr(11), pb.CampaignUpdateMessage),
-                     u'sign-request': (chr(12), pb.SignatureRequest),
-                     u'sign-response': (chr(13), pb.SignatureResponse)}
+                     u'agreement-request': (chr(12), pb.AgreementRequestMessage),
+                     u'agreement-response': (chr(13), pb.AgreementResponseMessage),
+                     u'agreement': (chr(14), pb.AgreementMessage),
+                     u'block': (chr(15), pb.BlockMessage)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,

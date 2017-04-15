@@ -84,13 +84,22 @@ CREATE TABLE IF NOT EXISTS investment(
   PRIMARY KEY (id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS agreement(
+  id             TEXT PRIMARY KEY,
+  previous_hash  TEXT,
+  from_id        TEXT NOT NULL,
+  from_signature TEXT,
+  to_id          TEST NOT NULL,
+  to_signature   TEXT,
+  document       TEXT NOT NULL,
+  block          TEXT NOT NULL,
+  time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS blockchain(
-  id                     INTEGER PRIMARY KEY,
-  signee                 TEXT NOT NULL,
-  document               TEXT NOT NULL,
-  sequence_number_signee INTEGER NOT NULL,
-  previous_hash_signee   TEXT NOT NULL,
-  signature              TEXT NOT NULL,
-  block_hash             TEXT NOT NULL,
-  insert_time            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  id                TEXT PRIMARY KEY,
+  previous_hash     TEXT NOT NULL,
+  merkle_root_hash  TEXT NOT NULL,
+  target_difficulty TEXT NOT NULL,
+  time              TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
