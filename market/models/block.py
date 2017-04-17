@@ -61,7 +61,12 @@ class Block(object):
         self._target_difficulty = uint256_to_bytes(value)
 
     def merkle_tree(self):
-        return MerkleTree([agreement.id for agreement in self.agreements])
+        leaves = [agreement.id for agreement in self.agreements]
+        if not leaves:
+            leaves.append('\00' * 32)
+        if len(leaves) % 2 == 1:
+            leaves.append(leaves[-1])
+        return MerkleTree(leaves)
 
     def to_dict(self, api_response=False):
         return {
@@ -79,5 +84,5 @@ class Block(object):
         block.merkle_root_hash = block_dict['merkle_root_hash']
         block._target_difficulty = block_dict['target_difficulty']
         block.time = block_dict['time']
-        block.agreements = [Agreement.from_dict(agreement_dict) for agreement_dict in block_dict['agreements']]
+        block.agreements = [Agreement.from_dict(agreement_dict) for agreement_dict in block_dict.get('agreements', [])]
         return block

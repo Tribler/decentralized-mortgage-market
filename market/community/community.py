@@ -36,7 +36,7 @@ CLEANUP_INTERVAL = 60
 BLOCK_CREATION_INTERNAL = 1
 
 BLOCK_TARGET_SPACING = 10 * 60
-BLOCK_TARGET_TIMESPAN = 14 * 24 * 60 * 60
+BLOCK_TARGET_TIMESPAN = 20 * 60  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
 BLOCK_GENESIS_HASH = '\00' * 32
 BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -684,6 +684,8 @@ class MarketCommunity(Community):
                 self.logger.warning('Dropping invalid block from %s', message.candidate.sock_addr)
                 continue
 
+            self.logger.debug('Got block with id %s', b64encode(block.id))
+
             # TODO: check block
             # TODO: reorganize chain
 
@@ -710,11 +712,11 @@ class MarketCommunity(Community):
 
             target_difficulty = prev_block.target_difficulty
             if start_block is not None:
-                target_difficulty *= (prev_block.time - start_block.time) / BLOCK_TARGET_TIMESPAN
+                target_difficulty *= float(prev_block.time - start_block.time) / BLOCK_TARGET_TIMESPAN
         else:
             target_difficulty = BLOCK_DIFFICULTY_INIT
 
-        target_difficulty = max(target_difficulty, BLOCK_DIFFICULTY_MIN)
+        target_difficulty = min(target_difficulty, BLOCK_DIFFICULTY_MIN)
 
         block = Block()
         block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
@@ -742,26 +744,22 @@ class MarketCommunity(Community):
             if agreement.id in dependencies:
                 agreements.insert(0, dependencies[agreement.id])
 
-        if block.agreements:
-            if bytes_to_uint256(self.get_proof(block)) < block.target_difficulty:
-                self.logger.debug('Block target difficulty 0x%064x', block.target_difficulty)
+        if self.check_proof(block):
+            self.logger.debug('Block target difficulty 0x%064x', block.target_difficulty)
 
-                # Save block
-                self.data_manager.add_block(block)
+            # Save block
+            self.data_manager.add_block(block)
 
-                # Remove agreements from incoming_agreements
-                for agreement in block.agreements:
-                    self.incoming_agreements.pop(agreement.id)
+            # Remove agreements from incoming_agreements
+            for agreement in block.agreements:
+                self.incoming_agreements.pop(agreement.id)
 
-                self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
+            self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
 
-                self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
-            else:
-                self.logger.debug('Block target difficulty 0x%064x not met', block.target_difficulty)
+            self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+        else:
+            self.logger.debug('Block target difficulty 0x%064x not met', block.target_difficulty)
 
-    def get_proof(self, block):
-        # TODO: use proof-of-stake
-        return hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, self.my_user_id)).digest()
-
-    def check_proof(self, block, proof):
-        return self.get_proof(block) == proof
+    def check_proof(self, block):
+        proof = hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, self.my_user_id)).digest()
+        return bytes_to_uint256(proof) < block.target_difficulty

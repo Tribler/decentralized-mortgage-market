@@ -118,7 +118,7 @@ class MarketDataManager:
         self.store.add(block)
 
     def get_block(self, block_id):
-        self.store.get(Block, block_id)
+        return self.store.get(Block, block_id)
 
     def get_blocks(self):
         """
