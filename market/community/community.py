@@ -12,6 +12,7 @@ from market.database.datamanager import MarketDataManager
 from market.community.conversion import MarketConversion
 from market.community.payload import ProtobufPayload
 from market.dispersy.authentication import MemberAuthentication
+from market.dispersy.candidate import Candidate
 from market.dispersy.community import Community
 from market.dispersy.conversion import DefaultConversion
 from market.dispersy.destination import CommunityDestination, CandidateDestination
@@ -33,15 +34,17 @@ from market.util.uint256 import bytes_to_uint256
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
-BLOCK_CREATION_INTERNAL = 1
 
+BLOCK_CREATION_INTERNAL = 1
 BLOCK_TARGET_SPACING = 10 * 60
 BLOCK_TARGET_TIMESPAN = 20 * 60  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
-BLOCK_GENESIS_HASH = '\00' * 32
 BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 BLOCK_DIFFICULTY_MIN = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+BLOCK_GENESIS_HASH = '\00' * 32
 
+MAX_CLOCK_DRIFT = 15 * 60
+MAX_PACKET_SIZE = 1500
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
 
 
@@ -683,10 +686,12 @@ class MarketCommunity(Community):
             if not block:
                 self.logger.warning('Dropping invalid block from %s', message.candidate.sock_addr)
                 continue
+            elif not self.check_block(block):
+                self.logger.warning('Dropping illegal block from %s', message.candidate.sock_addr)
+                continue
 
             self.logger.debug('Got block with id %s', b64encode(block.id))
 
-            # TODO: check block
             # TODO: reorganize chain
 
             # Make sure we stop trying to create blocks with the agreements in this block
@@ -759,6 +764,39 @@ class MarketCommunity(Community):
             self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
         else:
             self.logger.debug('Block target difficulty 0x%064x not met', block.target_difficulty)
+
+    def check_block(self, block):
+        # Check block size
+        meta = self.get_meta_message(u'block')
+        message = meta.impl(authentication=(self.my_member,),
+                            distribution=(self.claim_global_time(),),
+                            destination=(Candidate('0.0.0.0', 0)),
+                            payload=({'block': block},))
+        if len(message.packet) > MAX_PACKET_SIZE:
+            return False
+
+        # Check proof
+        if self.check_proof(block):
+            return False
+
+        # Check block time
+        if block.time > int(time.time()) + MAX_CLOCK_DRIFT:
+            return False
+
+        # Check agreements times
+        for agreement in self.block.agreements:
+            if block.time < agreement.time:
+                return False
+
+        # Check agreements for duplicates
+        if len(block.agreements) != len(set([agreement.id for agreement in block.agreements])):
+            return False
+
+        # Check agreements root hash
+        if block.merkle_root_hash != block.merkle_tree.build():
+            return False
+
+        return True
 
     def check_proof(self, block):
         proof = hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, self.my_user_id)).digest()
