@@ -72,6 +72,10 @@ message AgreementMessage {
     required Agreement agreement = 1;
 }
 
+message BlockRequestMessage {
+    required bytes block_id = 1;
+}
+
 message BlockMessage {
     required Block block = 1;
 }

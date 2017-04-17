@@ -25,7 +25,6 @@ class Block(object):
 
     def __init__(self):
         self.previous_hash = ''
-        self.merkle_root_hash = ''
         self.time = 0
         self.agreements = []
 
@@ -33,9 +32,7 @@ class Block(object):
         self.agreements = []
 
     def __storm_pre_flush__(self):
-        self.merkle_root_hash = self.merkle_tree().build()
-        # TODO: fail if we already set the id and the hash has changed
-        # Note that we need to calculate the merkle root hash before the id
+        assert not self._id or self._id == self.id, 'Block.id has changed'
         self._id = self.id
 
         store = Store.of(self)
@@ -60,6 +57,7 @@ class Block(object):
         # https://bitcoin.stackexchange.com/questions/2924/how-to-calculate-new-bits-value
         self._target_difficulty = uint256_to_bytes(value)
 
+    @property
     def merkle_tree(self):
         leaves = [agreement.id for agreement in self.agreements]
         if not leaves:

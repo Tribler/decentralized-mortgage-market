@@ -12,6 +12,8 @@ from market.models.campaign import Campaign
 from market.models.agreement import Agreement
 from market.models.block import Block
 from market.defs import BASE_DIR
+from market.models.bestchain import BestChain
+
 
 class MarketDataManager:
     """
@@ -133,6 +135,14 @@ class MarketDataManager:
         :return: the latest Block
         """
         return self.store.find(Block).order_by(Desc(Column('rowid'))).config(limit=1).one()
+
+    def get_best_chain(self):
+        best_chain = self.store.get(BestChain, 0)
+        if best_chain is None:
+            from market.community.community import BLOCK_GENESIS_HASH
+            best_chain = BestChain(BLOCK_GENESIS_HASH, 0, 0)
+            self.store.add(best_chain)
+        return best_chain
 
     def flush(self):
         self.store.flush()

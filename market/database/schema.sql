@@ -103,3 +103,10 @@ CREATE TABLE IF NOT EXISTS blockchain(
   target_difficulty TEXT NOT NULL,
   time              TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS best_chain(
+  id       INTEGER PRIMARY KEY,
+  block_id TEXT,
+  height   INTEGER,
+  score    INTEGER
+);

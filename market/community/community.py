@@ -58,6 +58,18 @@ class AgreementRequestCache(RandomNumberCache):
         pass
 
 
+class BlockRequestCache(RandomNumberCache):
+
+    def __init__(self, community, block_id):
+        super(BlockRequestCache, self).__init__(community.request_cache, u'block-request')
+        self.community = community
+        self.block_id = block_id
+
+    def on_timeout(self):
+        # Retry to download block
+        self.community.send_block_request(self.block_id)
+
+
 class MarketCommunity(Community):
 
     def __init__(self, dispersy, master, my_member):
@@ -65,6 +77,7 @@ class MarketCommunity(Community):
         self.logger = logging.getLogger('MarketLogger')
         self.id_to_candidate = {}
         self.incoming_agreements = OrderedDict()
+        self.incoming_blocks = {}
         self.data_manager = None
         self.rest_manager = None
         self.market_api = None
@@ -233,6 +246,14 @@ class MarketCommunity(Community):
                     ProtobufPayload(),
                     self._generic_timeline_check,
                     self.on_agreement),
+            Message(self, u"block-request",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_block_request),
             Message(self, u"block",
                     MemberAuthentication(),
                     PublicResolution(),
@@ -680,6 +701,21 @@ class MarketCommunity(Community):
                 self.multicast_message(u'agreement', {'agreement': agreement.to_dict()},
                                        role=Role.FINANCIAL_INSTITUTION, exclude=message.candidate)
 
+    def send_block_request(self, block_id):
+        self.request_cache.add(BlockRequestCache(self, block_id))
+        candidate = next((self.id_to_candidate[user.id] for user in self.data_manager.get_users() \
+                          if user.id in self.id_to_candidate and user.role == Role.FINANCIAL_INSTITUTION), None)
+        self.send_message(u'block-request', (candidate,), {'block_id': block_id})
+
+    def on_block_request(self, messages):
+        for message in messages:
+            block_id = message.payload.dictionary['block_id']
+            self.logger.debug('Got block-request for id %s', b64encode(block_id))
+
+            block = self.data_manager.get_block(block_id)
+            if block is not None:
+                self.send_message(u'block', (message.candidate,), {'block': block.to_dict()})
+
     def on_block(self, messages):
         for message in messages:
             block = Block.from_dict(message.payload.dictionary['block'])
@@ -692,19 +728,41 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got block with id %s', b64encode(block.id))
 
-            # TODO: reorganize chain
+            # If we're trying to download this block, stop it
+            # TODO: fix this
+            for cache in self.request_cache._identifiers.values():
+                if isinstance(cache, BlockRequestCache) and cache.block_id == block.id:
+                    self.request_cache.pop(cache.prefix, cache.number)
 
             # Make sure we stop trying to create blocks with the agreements in this block
             for agreement in block.agreements:
                 if agreement.id in self.incoming_agreements:
                     del self.incoming_agreements[agreement.id]
 
-            self.data_manager.add_block(block)
+            # Are we dealing with an orphan block?
+            if block.previous_hash != BLOCK_GENESIS_HASH and not self.data_manager.get_block(block.previous_hash):
+                # Postpone processing the current block and request missing blocks
+                self.incoming_blocks[block.id] = block
+                # TODO: address issues with memory filling up
+                self.send_block_request(block.previous_hash)
+                self.logger.debug('Postpone block with id %s', b64encode(block.id))
+                continue
 
+            # TODO: reorganize chain
+
+            self.data_manager.add_block(block)
             self.logger.debug('Added received block with %s agreement(s)', len(block.agreements))
 
+            # Process any orphan blocks that depend on this one
+            for orphan in self.incoming_blocks.values():
+                if orphan.previous_hash == block.id:
+                    self.data_manager.add_block(orphan)
+                    del self.incoming_blocks[orphan.id]
+                    self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
+
     def create_block(self):
-        prev_block = self.data_manager.get_latest_block()
+        best_chain = self.data_manager.get_best_chain()
+        prev_block = self.data_manager.get_block(best_chain.block_id)
 
         # Determine difficulty for the next block
         if prev_block is not None:
@@ -725,6 +783,7 @@ class MarketCommunity(Community):
 
         block = Block()
         block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
+        block.merkle_root_hash = block.merkle_tree.build()
         block.target_difficulty = target_difficulty
         block.time = int(time.time())
 
@@ -754,6 +813,8 @@ class MarketCommunity(Community):
 
             # Save block
             self.data_manager.add_block(block)
+            best_chain.block_id = block.id
+            best_chain.height += 1
 
             # Remove agreements from incoming_agreements
             for agreement in block.agreements:
@@ -770,8 +831,8 @@ class MarketCommunity(Community):
         meta = self.get_meta_message(u'block')
         message = meta.impl(authentication=(self.my_member,),
                             distribution=(self.claim_global_time(),),
-                            destination=(Candidate('0.0.0.0', 0)),
-                            payload=({'block': block},))
+                            destination=(Candidate(('1.1.1.1', 1), False),),
+                            payload=({'block': block.to_dict()},))
         if len(message.packet) > MAX_PACKET_SIZE:
             return False
 
@@ -779,12 +840,16 @@ class MarketCommunity(Community):
         if self.check_proof(block):
             return False
 
+        # Check for duplicate blocks
+        if self.data_manager.get_block(block.id):
+            return False
+
         # Check block time
         if block.time > int(time.time()) + MAX_CLOCK_DRIFT:
             return False
 
         # Check agreements times
-        for agreement in self.block.agreements:
+        for agreement in block.agreements:
             if block.time < agreement.time:
                 return False
 
