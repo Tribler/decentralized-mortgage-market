@@ -722,7 +722,7 @@ class MarketCommunity(Community):
             if not block:
                 self.logger.warning('Dropping invalid block from %s', message.candidate.sock_addr)
                 continue
-            elif not self.check_block(block):
+            elif not self.check_block(block, message.candidate.get_member().public_key):
                 self.logger.warning('Dropping illegal block from %s', message.candidate.sock_addr)
                 continue
 
@@ -734,11 +734,6 @@ class MarketCommunity(Community):
                 if isinstance(cache, BlockRequestCache) and cache.block_id == block.id:
                     self.request_cache.pop(cache.prefix, cache.number)
 
-            # Make sure we stop trying to create blocks with the agreements in this block
-            for agreement in block.agreements:
-                if agreement.id in self.incoming_agreements:
-                    del self.incoming_agreements[agreement.id]
-
             # Are we dealing with an orphan block?
             if block.previous_hash != BLOCK_GENESIS_HASH and not self.data_manager.get_block(block.previous_hash):
                 # Postpone processing the current block and request missing blocks
@@ -748,121 +743,134 @@ class MarketCommunity(Community):
                 self.logger.debug('Postpone block with id %s', b64encode(block.id))
                 continue
 
-            # TODO: reorganize chain
-
-            self.data_manager.add_block(block)
+            self.process_block(block)
             self.logger.debug('Added received block with %s agreement(s)', len(block.agreements))
 
             # Process any orphan blocks that depend on this one
             for orphan in self.incoming_blocks.values():
                 if orphan.previous_hash == block.id:
-                    self.data_manager.add_block(orphan)
-                    del self.incoming_blocks[orphan.id]
+                    self.process_block(orphan)
                     self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
+                    del self.incoming_blocks[orphan.id]
 
-    def create_block(self):
+    def process_block(self, block):
+        # Save block
+        self.data_manager.add_block(block)
+
+        # Get best chain
         best_chain = self.data_manager.get_best_chain()
-        prev_block = self.data_manager.get_block(best_chain.block_id)
 
-        # Determine difficulty for the next block
-        if prev_block is not None:
-            # Go back BLOCK_TARGET_BLOCKSPAN
-            start_block = prev_block
-            for _ in range(BLOCK_TARGET_BLOCKSPAN):
-                start_block = self.data_manager.get_block(start_block.previous_hash)
-                if start_block is None:
-                    break
-
-            target_difficulty = prev_block.target_difficulty
-            if start_block is not None:
-                target_difficulty *= float(prev_block.time - start_block.time) / BLOCK_TARGET_TIMESPAN
-        else:
-            target_difficulty = BLOCK_DIFFICULTY_INIT
-
-        target_difficulty = min(target_difficulty, BLOCK_DIFFICULTY_MIN)
-
-        block = Block()
-        block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
-        block.merkle_root_hash = block.merkle_tree.build()
-        block.target_difficulty = target_difficulty
-        block.time = int(time.time())
-
-        # TODO: support more then 1 previous agreement
-        # TODO: prioritize?
-        agreements = []
-        dependencies = {}
-        for agreement in self.incoming_agreements.values():
-            if agreement.previous_hash and self.data_manager.get_agreement(agreement.previous_hash) is None:
-                dependencies[agreement.previous_hash] = agreement
-            else:
-                agreements.append(agreement)
-
-        while agreements:
-            agreement = agreements.pop()
-            block.agreements.append(agreement)
-
-            # Max block size is currently 10
-            if len(block.agreements) >= 10:
+        # Calculate height of the chain this block is the head of
+        new_height = 1
+        cur_block = block
+        while cur_block:
+            if cur_block.previous_hash == best_chain.block_id:
+                new_height += best_chain.height
                 break
+            cur_block = self.data_manager.get_block(cur_block.previous_hash)
+            if cur_block is not None:
+                new_height += 1
 
-            if agreement.id in dependencies:
-                agreements.insert(0, dependencies[agreement.id])
-
-        if self.check_proof(block):
-            self.logger.debug('Block target difficulty 0x%064x', block.target_difficulty)
-
-            # Save block
-            self.data_manager.add_block(block)
+        # For now, the longest chain wins
+        if new_height > best_chain.height:
             best_chain.block_id = block.id
-            best_chain.height += 1
+            best_chain.height = new_height
 
-            # Remove agreements from incoming_agreements
-            for agreement in block.agreements:
-                self.incoming_agreements.pop(agreement.id)
+        # Make sure we stop trying to create blocks with the agreements in this block
+        for agreement in block.agreements:
+            if agreement.id in self.incoming_agreements:
+                del self.incoming_agreements[agreement.id]
 
-            self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
-
-            self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
-        else:
-            self.logger.debug('Block target difficulty 0x%064x not met', block.target_difficulty)
-
-    def check_block(self, block):
-        # Check block size
+    def check_block(self, block, user_id):
         meta = self.get_meta_message(u'block')
         message = meta.impl(authentication=(self.my_member,),
                             distribution=(self.claim_global_time(),),
                             destination=(Candidate(('1.1.1.1', 1), False),),
                             payload=({'block': block.to_dict()},))
         if len(message.packet) > MAX_PACKET_SIZE:
+            self.logger.debug('Block failed check (block too large)')
             return False
 
-        # Check proof
-        if self.check_proof(block):
+        if not self.check_proof(block, user_id):
+            # Don't log message when mining
+            if user_id != self.my_user_id:
+                self.logger.debug('Block failed check (incorrect proof)')
             return False
 
-        # Check for duplicate blocks
         if self.data_manager.get_block(block.id):
+            self.logger.debug('Block failed check (duplicate block)')
             return False
 
-        # Check block time
         if block.time > int(time.time()) + MAX_CLOCK_DRIFT:
+            self.logger.debug('Block failed check (max clock drift exceeded)')
             return False
 
-        # Check agreements times
         for agreement in block.agreements:
             if block.time < agreement.time:
+                self.logger.debug('Block failed check (block created before agreement)')
                 return False
 
-        # Check agreements for duplicates
         if len(block.agreements) != len(set([agreement.id for agreement in block.agreements])):
+            self.logger.debug('Block failed check (duplicate agreements)')
             return False
 
-        # Check agreements root hash
         if block.merkle_root_hash != block.merkle_tree.build():
+            self.logger.debug('Block failed check (incorrect merkle root hash)')
             return False
 
         return True
 
-    def check_proof(self, block):
-        proof = hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, self.my_user_id)).digest()
+    def check_proof(self, block, user_id):
+        proof = hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, user_id)).digest()
         return bytes_to_uint256(proof) < block.target_difficulty
+
+    def create_block(self):
+        best_chain = self.data_manager.get_best_chain()
+        prev_block = self.data_manager.get_block(best_chain.block_id)
+
+        block = Block()
+        block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
+        block.merkle_root_hash = block.merkle_tree.build()
+        block.target_difficulty = self.get_next_difficulty(prev_block)
+        block.time = int(time.time())
+
+        # Find dependencies
+        agreements = []
+        dependencies = {}
+        for agreement in self.incoming_agreements.values():
+            if agreement.previous_hash and self.data_manager.get_agreement(agreement.previous_hash) is None:
+                # TODO: support more then 1 previous agreement
+                dependencies[agreement.previous_hash] = agreement
+            else:
+                agreements.append(agreement)
+
+        # Add agreements to block
+        while agreements and len(block.agreements) < 10:
+            agreement = agreements.pop()
+            block.agreements.append(agreement)
+            if agreement.id in dependencies:
+                agreements.insert(0, dependencies[agreement.id])
+
+        if self.check_block(block, self.my_user_id):
+            self.logger.debug('Mined block with target difficulty 0x%064x', block.target_difficulty)
+            self.process_block(block)
+            self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
+            self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+
+    def get_next_difficulty(self, block):
+        # Determine difficulty for the next block
+        if block is not None:
+            # Go back BLOCK_TARGET_BLOCKSPAN
+            start_block = block
+            for _ in range(BLOCK_TARGET_BLOCKSPAN):
+                start_block = self.data_manager.get_block(start_block.previous_hash)
+                if start_block is None:
+                    break
+
+            target_difficulty = block.target_difficulty
+            if start_block is not None:
+                target_difficulty *= float(block.time - start_block.time) / BLOCK_TARGET_TIMESPAN
+        else:
+            target_difficulty = BLOCK_DIFFICULTY_INIT
+
+        return min(target_difficulty, BLOCK_DIFFICULTY_MIN)
