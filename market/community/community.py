@@ -722,7 +722,7 @@ class MarketCommunity(Community):
             if not block:
                 self.logger.warning('Dropping invalid block from %s', message.candidate.sock_addr)
                 continue
-            elif not self.check_block(block, message.candidate.get_member().public_key):
+            elif not self.check_block(block):
                 self.logger.warning('Dropping illegal block from %s', message.candidate.sock_addr)
                 continue
 
@@ -781,7 +781,7 @@ class MarketCommunity(Community):
             if agreement.id in self.incoming_agreements:
                 del self.incoming_agreements[agreement.id]
 
-    def check_block(self, block, user_id):
+    def check_block(self, block):
         meta = self.get_meta_message(u'block')
         message = meta.impl(authentication=(self.my_member,),
                             distribution=(self.claim_global_time(),),
@@ -791,10 +791,14 @@ class MarketCommunity(Community):
             self.logger.debug('Block failed check (block too large)')
             return False
 
-        if not self.check_proof(block, user_id):
+        if not self.check_proof(block):
             # Don't log message when mining
-            if user_id != self.my_user_id:
+            if block.miner != self.my_user_id:
                 self.logger.debug('Block failed check (incorrect proof)')
+            return False
+
+        if not block.verify():
+            self.logger.debug('Block failed check (invalid signature)')
             return False
 
         if self.data_manager.get_block(block.id):
@@ -820,8 +824,8 @@ class MarketCommunity(Community):
 
         return True
 
-    def check_proof(self, block, user_id):
-        proof = hashlib.sha256('%d%s%s%s' % (block.time, block.previous_hash, block.merkle_root_hash, user_id)).digest()
+    def check_proof(self, block):
+        proof = hashlib.sha256(str(block)).digest()
         return bytes_to_uint256(proof) < block.target_difficulty
 
     def create_block(self):
@@ -851,7 +855,9 @@ class MarketCommunity(Community):
             if agreement.id in dependencies:
                 agreements.insert(0, dependencies[agreement.id])
 
-        if self.check_block(block, self.my_user_id):
+        block.sign(self.my_member)
+
+        if self.check_block(block):
             self.logger.debug('Mined block with target difficulty 0x%064x', block.target_difficulty)
             self.process_block(block)
             self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))

@@ -100,6 +100,8 @@ CREATE TABLE IF NOT EXISTS blockchain(
   id                TEXT PRIMARY KEY,
   previous_hash     TEXT NOT NULL,
   merkle_root_hash  TEXT NOT NULL,
+  miner             TEXT NOT NULL,
+  miner_signature   TEXT NOT NULL,
   target_difficulty TEXT NOT NULL,
   time              TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
