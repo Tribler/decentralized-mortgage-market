@@ -747,13 +747,16 @@ class MarketCommunity(Community):
             if not self.process_block(block):
                 continue
             self.logger.debug('Added received block with %s agreement(s)', len(block.agreements))
+            self.process_blocks_after(block)
 
-            # Process any orphan blocks that depend on this one
-            for orphan in self.incoming_blocks.values():
-                if orphan.previous_hash == block.id:
-                    del self.incoming_blocks[orphan.id]
-                    if self.process_block(orphan):
-                        self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
+    def process_blocks_after(self, block):
+        # Process any orphan blocks that depend on the current block
+        for orphan in self.incoming_blocks.values():
+            if orphan.previous_hash == block.id:
+                del self.incoming_blocks[orphan.id]
+                if self.process_block(orphan):
+                    self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
+                    self.process_blocks_after(orphan)
 
     def process_block(self, block):
         # We have already checked the proof of this block, but not whether the target_difficulty itself is as expected.
