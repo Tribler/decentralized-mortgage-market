@@ -1,16 +1,17 @@
 from enum import Enum as PyEnum
 
+from base64 import urlsafe_b64encode
 from storm.base import Storm
 from storm.properties import Int, RawStr
 from storm.references import ReferenceSet, Reference
+
 from market.models.loanrequest import LoanRequest
 from market.models.campaign import Campaign
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.profile import Profile
 from market.database.types import Enum
-from base64 import urlsafe_b64encode
-from market.defs import TRUSTED_BANKS
+from market.defs import VERIFIED_BANKS
 
 
 class Role(PyEnum):
@@ -47,7 +48,7 @@ class User(Storm):
         }
 
         if api_response:
-            bank_name = next((name for name, user_id in TRUSTED_BANKS.iteritems() if user_id == user_dict['id']), None)
+            bank_name = next((name for name, user_id in VERIFIED_BANKS.iteritems() if user_id == user_dict['id']), None)
             if bank_name is not None:
                 user_dict['display_name'] = bank_name
             elif self.profile is not None:

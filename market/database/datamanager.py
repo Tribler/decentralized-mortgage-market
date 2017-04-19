@@ -9,7 +9,7 @@ from market.models.loanrequest import LoanRequest
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.campaign import Campaign
-from market.models.agreement import Agreement
+from market.models.contract import Contract
 from market.models.block import Block
 from market.defs import BASE_DIR
 from market.models.bestchain import BestChain
@@ -110,11 +110,11 @@ class MarketDataManager:
         """
         return self.store.find(Campaign)
 
-    def add_agreement(self, agreement):
-        self.store.add(agreement)
+    def add_contract(self, contract):
+        self.store.add(contract)
 
-    def get_agreement(self, agreement_id):
-        self.store.get(Agreement, agreement_id)
+    def get_contract(self, contract_id):
+        self.store.get(Contract, contract_id)
 
     def add_block(self, block):
         self.store.add(block)

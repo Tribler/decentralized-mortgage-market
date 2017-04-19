@@ -20,9 +20,9 @@ class MarketConversion(BinaryConversion):
                      u'investment-accept': (chr(9), pb.InvestmentAcceptMessage),
                      u'investment-reject': (chr(10), pb.InvestmentRejectMessage),
                      u'campaign-update': (chr(11), pb.CampaignUpdateMessage),
-                     u'agreement-request': (chr(12), pb.AgreementRequestMessage),
-                     u'agreement-response': (chr(13), pb.AgreementResponseMessage),
-                     u'agreement': (chr(14), pb.AgreementMessage),
+                     u'signature-request': (chr(12), pb.SignatureRequestMessage),
+                     u'signature-response': (chr(13), pb.SignatureResponseMessage),
+                     u'contract': (chr(14), pb.ContractMessage),
                      u'block-request': (chr(15), pb.BlockRequestMessage),
                      u'block': (chr(16), pb.BlockMessage)}
 

@@ -28,7 +28,7 @@ from market.models.investment import InvestmentStatus, Investment
 from market.models import investment
 from market.models.profile import Profile
 from market.models.block import Block
-from market.models.agreement import Agreement
+from market.models.contract import Contract
 from market.restapi.rest_manager import RESTManager
 from market.util.uint256 import bytes_to_uint256
 from market.util.math import median
@@ -49,10 +49,10 @@ MAX_PACKET_SIZE = 1500
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
 
 
-class AgreementRequestCache(RandomNumberCache):
+class SignatureRequestCache(RandomNumberCache):
 
     def __init__(self, community):
-        super(AgreementRequestCache, self).__init__(community.request_cache, u'agreement-request')
+        super(SignatureRequestCache, self).__init__(community.request_cache, u'signature-request')
         self.community = community
 
     def on_timeout(self):
@@ -77,7 +77,7 @@ class MarketCommunity(Community):
         super(MarketCommunity, self).__init__(dispersy, master, my_member)
         self.logger = logging.getLogger('MarketLogger')
         self.id_to_candidate = {}
-        self.incoming_agreements = OrderedDict()
+        self.incoming_contracts = OrderedDict()
         self.incoming_blocks = {}
         self.data_manager = None
         self.rest_manager = None
@@ -223,30 +223,30 @@ class MarketCommunity(Community):
                     self._generic_timeline_check,
                     self.on_campaign_update),
             # Blockchain related messages
-            Message(self, u"agreement-request",
+            Message(self, u"signature-request",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_agreement_request),
-            Message(self, u"agreement-response",
+                    self.on_signature_request),
+            Message(self, u"signature-response",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_agreement_response),
-            Message(self, u"agreement",
+                    self.on_signature_response),
+            Message(self, u"contract",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_agreement),
+                    self.on_contract),
             Message(self, u"block-request",
                     MemberAuthentication(),
                     PublicResolution(),
@@ -479,7 +479,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
 
-            self.send_agreement_request(mortgage=mortgage)
+            self.send_signature_request(mortgage=mortgage)
 
             mortgage.status = MortgageStatus.ACCEPTED
 
@@ -552,7 +552,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
 
-            self.send_agreement_request(investment=investment)
+            self.send_signature_request(investment=investment)
 
             investment.status = InvestmentStatus.ACCEPTED
 
@@ -626,80 +626,80 @@ class MarketCommunity(Community):
             if investment and self.data_manager.get_investment(investment.id, investment.user_id) is None:
                 campaign.investments.add(investment)
 
-    def send_agreement_request(self, mortgage=None, investment=None):
+    def send_signature_request(self, mortgage=None, investment=None):
         assert mortgage is not None or investment is not None
 
-        cache = self.request_cache.add(AgreementRequestCache(self))
+        cache = self.request_cache.add(SignatureRequestCache(self))
 
         to_id = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id).user_id \
                 if mortgage is None else mortgage.user_id
 
-        agreement = Agreement()
-        agreement.from_id = self.my_user_id
-        agreement.to_id = to_id
-        agreement.document = mortgage.to_bin() if mortgage else investment.to_bin()
-        agreement.time = int(time.time())
-        agreement.sign(self.my_member)
+        contract = Contract()
+        contract.from_id = self.my_user_id
+        contract.to_id = to_id
+        contract.document = mortgage.to_bin() if mortgage else investment.to_bin()
+        contract.time = int(time.time())
+        contract.sign(self.my_member)
 
-        return self.send_message_to_ids(u'agreement-request', (to_id,), {'identifier': cache.number,
-                                                                         'agreement': agreement.to_dict()})
+        return self.send_message_to_ids(u'signature-request', (to_id,), {'identifier': cache.number,
+                                                                         'contract': contract.to_dict()})
 
-    def on_agreement_request(self, messages):
+    def on_signature_request(self, messages):
         for message in messages:
-            agreement = Agreement.from_dict(message.payload.dictionary['agreement'])
-            if agreement is None:
-                self.logger.warning('Dropping invalid agreement-request from %s', message.candidate.sock_addr)
+            contract = Contract.from_dict(message.payload.dictionary['contract'])
+            if contract is None:
+                self.logger.warning('Dropping invalid signature-request from %s', message.candidate.sock_addr)
                 continue
-            elif not agreement.verify(message.candidate.get_member()):
-                self.logger.warning('Dropping agreement-request with incorrect signature')
+            elif not contract.verify(message.candidate.get_member()):
+                self.logger.warning('Dropping signature-request with incorrect signature')
                 continue
 
-            self.logger.debug('Got agreement-request from %s', message.candidate.sock_addr)
+            self.logger.debug('Got signature-request from %s', message.candidate.sock_addr)
 
-            # TODO: check agreement
-            agreement.sign(self.my_member)
-            self.data_manager.add_agreement(agreement)
+            # TODO: check contract
+            contract.sign(self.my_member)
+            self.data_manager.add_contract(contract)
 
-            self.send_agreement_response(message.candidate, agreement, message.payload.dictionary['identifier'])
+            self.send_signature_response(message.candidate, contract, message.payload.dictionary['identifier'])
 
-            self.incoming_agreements[agreement.id] = agreement
-            self.multicast_message(u'agreement', {'agreement': agreement.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+            self.incoming_contracts[contract.id] = contract
+            self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
-    def send_agreement_response(self, candidate, agreement, identifier):
-        return self.send_message(u'agreement-response', (candidate,), {'identifier': identifier,
-                                                                       'agreement': agreement.to_dict()})
+    def send_signature_response(self, candidate, contract, identifier):
+        return self.send_message(u'signature-response', (candidate,), {'identifier': identifier,
+                                                                       'contract': contract.to_dict()})
 
-    def on_agreement_response(self, messages):
+    def on_signature_response(self, messages):
         for message in messages:
-            cache = self.request_cache.get(u'agreement-request', message.payload.dictionary['identifier'])
+            cache = self.request_cache.get(u'signature-request', message.payload.dictionary['identifier'])
             if not cache:
-                self.logger.warning("Dropping unexpected agreement-response from %s", message.candidate.sock_addr)
+                self.logger.warning("Dropping unexpected signature-response from %s", message.candidate.sock_addr)
                 continue
 
-            agreement = Agreement.from_dict(message.payload.dictionary['agreement'])
-            if agreement is None:
-                self.logger.warning('Dropping invalid agreement-response from %s', message.candidate.sock_addr)
+            contract = Contract.from_dict(message.payload.dictionary['contract'])
+            if contract is None:
+                self.logger.warning('Dropping invalid signature-response from %s', message.candidate.sock_addr)
                 continue
-            elif not agreement.verify(message.candidate.get_member()):
-                self.logger.warning('Dropping agreement-response with incorrect signature')
+            elif not contract.verify(message.candidate.get_member()):
+                self.logger.warning('Dropping signature-response with incorrect signature')
 
-            self.logger.debug('Got agreement-response from %s', message.candidate.sock_addr)
+            self.logger.debug('Got signature-response from %s', message.candidate.sock_addr)
 
-            # TODO: check agreement
-            self.data_manager.add_agreement(agreement)
+            # TODO: check contract
+            self.data_manager.add_contract(contract)
 
-            self.incoming_agreements[agreement.id] = agreement
-            self.multicast_message(u'agreement', {'agreement': agreement.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+            self.incoming_contracts[contract.id] = contract
+            self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
-    def on_agreement(self, messages):
+    def on_contract(self, messages):
         for message in messages:
-            agreement = Agreement.from_dict(message.payload.dictionary['agreement'])
-            self.logger.debug('Got agreement with id %s', b64encode(agreement.id))
+            contract = Contract.from_dict(message.payload.dictionary['contract'])
+            self.logger.debug('Got contract with id %s', b64encode(contract.id))
 
             # Forward if needed
-            if agreement.id not in self.incoming_agreements:
-                self.incoming_agreements[agreement.id] = agreement
-                self.multicast_message(u'agreement', {'agreement': agreement.to_dict()},
+            if contract.id not in self.incoming_contracts:
+                self.incoming_contracts[contract.id] = contract
+                self.multicast_message(u'contract', {'contract': contract.to_dict()},
                                        role=Role.FINANCIAL_INSTITUTION, exclude=message.candidate)
 
     def send_block_request(self, block_id):
@@ -746,7 +746,7 @@ class MarketCommunity(Community):
 
             if not self.process_block(block):
                 continue
-            self.logger.debug('Added received block with %s agreement(s)', len(block.agreements))
+            self.logger.debug('Added received block with %s contract(s)', len(block.contracts))
             self.process_blocks_after(block)
 
     def process_blocks_after(self, block):
@@ -755,7 +755,7 @@ class MarketCommunity(Community):
             if orphan.previous_hash == block.id:
                 del self.incoming_blocks[orphan.id]
                 if self.process_block(orphan):
-                    self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
+                    self.logger.debug('Added postponed block with %s contract(s)', len(orphan.contracts))
                     self.process_blocks_after(orphan)
 
     def process_block(self, block):
@@ -788,26 +788,21 @@ class MarketCommunity(Community):
             best_chain.block_id = block.id
             best_chain.height = new_height
 
-        # Make sure we stop trying to create blocks with the agreements in this block
-        for agreement in block.agreements:
-            if agreement.id in self.incoming_agreements:
-                del self.incoming_agreements[agreement.id]
+        # Make sure we stop trying to create blocks with the contracts in this block
+        for contract in block.contracts:
+            if contract.id in self.incoming_contracts:
+                del self.incoming_contracts[contract.id]
 
         return True
 
     def check_block(self, block):
-        meta = self.get_meta_message(u'block')
-        message = meta.impl(authentication=(self.my_member,),
-                            distribution=(self.claim_global_time(),),
-                            destination=(Candidate(('1.1.1.1', 1), False),),
-                            payload=({'block': block.to_dict()},))
-        if len(message.packet) > MAX_PACKET_SIZE:
+        if self.get_block_packet_size(block) > MAX_PACKET_SIZE:
             self.logger.debug('Block failed check (block too large)')
             return False
 
         if not self.check_proof(block):
-            # Don't log message when mining
-            if block.miner != self.my_user_id:
+            # Don't log message when we created the block
+            if block.creator != self.my_user_id:
                 self.logger.debug('Block failed check (incorrect proof)')
             return False
 
@@ -823,13 +818,13 @@ class MarketCommunity(Community):
             self.logger.debug('Block failed check (max clock drift exceeded)')
             return False
 
-        for agreement in block.agreements:
-            if block.time < agreement.time:
-                self.logger.debug('Block failed check (block created before agreement)')
+        for contract in block.contracts:
+            if block.time < contract.time:
+                self.logger.debug('Block failed check (block created before contract)')
                 return False
 
-        if len(block.agreements) != len(set([agreement.id for agreement in block.agreements])):
-            self.logger.debug('Block failed check (duplicate agreements)')
+        if len(block.contracts) != len(set([contract.id for contract in block.contracts])):
+            self.logger.debug('Block failed check (duplicate contracts)')
             return False
 
         if block.merkle_root_hash != block.merkle_tree.build():
@@ -853,33 +848,42 @@ class MarketCommunity(Community):
 
         block = Block()
         block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
-        block.merkle_root_hash = block.merkle_tree.build()
         block.target_difficulty = self.get_next_difficulty(prev_block)
         block.time = int(time.time())
 
+        # Placeholder information (for calculating packet size)
+        block.merkle_root_hash = block.merkle_tree.build()
+        block.sign(self.my_member)
+
         # Find dependencies
-        agreements = []
+        contracts = []
         dependencies = {}
-        for agreement in self.incoming_agreements.values():
-            if agreement.previous_hash and self.data_manager.get_agreement(agreement.previous_hash) is None:
-                # TODO: support more then 1 previous agreement
-                dependencies[agreement.previous_hash] = agreement
+        for contract in self.incoming_contracts.values():
+            if contract.previous_hash and self.data_manager.get_contract(contract.previous_hash) is None:
+                # TODO: support more then 1 previous contract
+                dependencies[contract.previous_hash] = contract
             else:
-                agreements.append(agreement)
+                contracts.append(contract)
 
-        # Add agreements to block
-        while agreements and len(block.agreements) < 10:
-            agreement = agreements.pop()
-            block.agreements.append(agreement)
-            if agreement.id in dependencies:
-                agreements.insert(0, dependencies[agreement.id])
+        # Add contracts to block
+        while contracts:
+            contract = contracts.pop()
+            block.contracts.append(contract)
+            if contract.id in dependencies:
+                contracts.insert(0, dependencies[contract.id])
 
+            if self.get_block_packet_size(block) > MAX_PACKET_SIZE:
+                block.contracts.pop()
+                break
+
+        # Calculate final merkle root hash + sign block
+        block.merkle_root_hash = block.merkle_tree.build()
         block.sign(self.my_member)
 
         if self.check_block(block):
-            self.logger.debug('Mined block with target difficulty 0x%064x', block.target_difficulty)
+            self.logger.debug('Created block with target difficulty 0x%064x', block.target_difficulty)
             if self.process_block(block):
-                self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
+                self.logger.debug('Added created block with %s contract(s)', len(block.contracts))
                 self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
     def get_next_difficulty(self, block):
@@ -905,3 +909,11 @@ class MarketCommunity(Community):
                 return None
             result.append(current)
         return result
+
+    def get_block_packet_size(self, block):
+        meta = self.get_meta_message(u'block')
+        message = meta.impl(authentication=(self.my_member,),
+                            distribution=(self.claim_global_time(),),
+                            destination=(Candidate(('1.1.1.1', 1), False),),
+                            payload=({'block': block.to_dict()},))
+        return len(message.packet)

@@ -58,18 +58,18 @@ message CampaignUpdateMessage {
     optional Investment investment = 3;
 }
 
-message AgreementRequestMessage {
+message SignatureRequestMessage {
     required uint32 identifier = 1;
-    required Agreement agreement = 2;
+    required Contract contract = 2;
 }
 
-message AgreementResponseMessage {
+message SignatureResponseMessage {
     required uint32 identifier = 1;
-    required Agreement agreement = 2;
+    required Contract contract = 2;
 }
 
-message AgreementMessage {
-    required Agreement agreement = 1;
+message ContractMessage {
+    required Contract contract = 1;
 }
 
 message BlockRequestMessage {
@@ -167,7 +167,7 @@ message User {
     optional Profile profile = 3;
 }
 
-message Agreement {
+message Contract {
     required bytes previous_hash = 1;
     required bytes from_id = 2;
     required bytes from_signature = 3;
@@ -181,8 +181,8 @@ message Block {
     required bytes previous_hash = 1;
     required bytes merkle_root_hash = 2;
     required bytes target_difficulty = 3;
-    required bytes miner = 4;
-    required bytes miner_signature = 5;
+    required bytes creator = 4;
+    required bytes creator_signature = 5;
     required uint32 time = 6;
-    repeated Agreement agreements = 7;
+    repeated Contract contracts = 7;
 }

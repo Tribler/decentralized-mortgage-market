@@ -2,17 +2,14 @@ import hashlib
 
 from base64 import urlsafe_b64encode
 from storm.properties import Int, RawStr
-from protobuf_to_dict import dict_to_protobuf
-
-from market.community.market_pb2 import Agreement as AgreementPB
 
 
-class Agreement(object):
+class Contract(object):
     """
-    This class represents an agreement between 2 users.
+    This class represents an contract between 2 users.
     """
 
-    __storm_table__ = 'agreement'
+    __storm_table__ = 'contract'
     _id = RawStr(name='id', primary=True)
     previous_hash = RawStr()
     from_id = RawStr()
@@ -60,9 +57,6 @@ class Agreement(object):
         elif member.public_key == self.to_id:
             return member.verify(str(self), self.to_signature)
 
-    def to_bin(self):
-        return dict_to_protobuf(AgreementPB, self.to_dict()).SerializeToString()
-
     def to_dict(self, api_response=False):
         return {
             'previous_hash': urlsafe_b64encode(self.previous_hash) if api_response else self.previous_hash,
@@ -75,13 +69,13 @@ class Agreement(object):
         }
 
     @staticmethod
-    def from_dict(agreement_dict):
-        agreement = Agreement()
-        agreement.previous_hash = agreement_dict['previous_hash']
-        agreement.from_id = agreement_dict['from_id']
-        agreement.from_signature = agreement_dict['from_signature']
-        agreement.to_id = agreement_dict['to_id']
-        agreement.to_signature = agreement_dict['to_signature']
-        agreement.document = agreement_dict['document']
-        agreement.time = agreement_dict['time']
-        return agreement
+    def from_dict(contract_dict):
+        contract = Contract()
+        contract.previous_hash = contract_dict['previous_hash']
+        contract.from_id = contract_dict['from_id']
+        contract.from_signature = contract_dict['from_signature']
+        contract.to_id = contract_dict['to_id']
+        contract.to_signature = contract_dict['to_signature']
+        contract.document = contract_dict['document']
+        contract.time = contract_dict['time']
+        return contract

@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS investment(
   PRIMARY KEY (id, user_id)
 );
 
-CREATE TABLE IF NOT EXISTS agreement(
+CREATE TABLE IF NOT EXISTS contract(
   id             TEXT PRIMARY KEY,
   previous_hash  TEXT,
   from_id        TEXT NOT NULL,
@@ -100,8 +100,8 @@ CREATE TABLE IF NOT EXISTS blockchain(
   id                TEXT PRIMARY KEY,
   previous_hash     TEXT NOT NULL,
   merkle_root_hash  TEXT NOT NULL,
-  miner             TEXT NOT NULL,
-  miner_signature   TEXT NOT NULL,
+  creator           TEXT NOT NULL,
+  creator_signature TEXT NOT NULL,
   target_difficulty TEXT NOT NULL,
   time              TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
