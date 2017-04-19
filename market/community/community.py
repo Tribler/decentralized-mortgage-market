@@ -31,6 +31,7 @@ from market.models.block import Block
 from market.models.agreement import Agreement
 from market.restapi.rest_manager import RESTManager
 from market.util.uint256 import bytes_to_uint256
+from market.util.math import median
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
@@ -822,6 +823,11 @@ class MarketCommunity(Community):
             self.logger.debug('Block failed check (incorrect merkle root hash)')
             return False
 
+        past_blocks = self.get_past_blocks(block, 11)
+        if past_blocks and block.time > median([b.time for b in past_blocks]):
+            self.logger.debug('Block failed check (block time larger than median time of past 11 blocks)')
+            return False
+
         return True
 
     def check_proof(self, block):
@@ -866,17 +872,23 @@ class MarketCommunity(Community):
     def get_next_difficulty(self, block):
         # Determine difficulty for the next block
         if block is not None:
-            # Go back BLOCK_TARGET_BLOCKSPAN
-            start_block = block
-            for _ in range(BLOCK_TARGET_BLOCKSPAN):
-                start_block = self.data_manager.get_block(start_block.previous_hash)
-                if start_block is None:
-                    break
-
             target_difficulty = block.target_difficulty
-            if start_block is not None:
-                target_difficulty *= float(block.time - start_block.time) / BLOCK_TARGET_TIMESPAN
+
+            # Go back BLOCK_TARGET_BLOCKSPAN
+            past_blocks = self.get_past_blocks(block, BLOCK_TARGET_BLOCKSPAN)
+            if past_blocks:
+                target_difficulty *= float(block.time - past_blocks[-1].time) / BLOCK_TARGET_TIMESPAN
         else:
             target_difficulty = BLOCK_DIFFICULTY_INIT
 
         return min(target_difficulty, BLOCK_DIFFICULTY_MIN)
+
+    def get_past_blocks(self, block, num_past):
+        result = []
+        current = block
+        for _ in range(num_past):
+            current = self.data_manager.get_block(current.previous_hash)
+            if current is None:
+                return None
+            result.append(current)
+        return result
