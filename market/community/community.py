@@ -744,17 +744,25 @@ class MarketCommunity(Community):
                 self.logger.debug('Postpone block with id %s', b64encode(block.id))
                 continue
 
-            self.process_block(block)
+            if not self.process_block(block):
+                continue
             self.logger.debug('Added received block with %s agreement(s)', len(block.agreements))
 
             # Process any orphan blocks that depend on this one
             for orphan in self.incoming_blocks.values():
                 if orphan.previous_hash == block.id:
-                    self.process_block(orphan)
-                    self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
                     del self.incoming_blocks[orphan.id]
+                    if self.process_block(orphan):
+                        self.logger.debug('Added postponed block with %s agreement(s)', len(orphan.agreements))
 
     def process_block(self, block):
+        # We have already checked the proof of this block, but not whether the target_difficulty itself is as expected.
+        # Note that we can't to this in check_block, because at that time the previous block may not be known yet.
+        prev_block = self.data_manager.get_block(block.previous_hash)
+        if block.target_difficulty != self.get_next_difficulty(prev_block):
+            self.logger.debug('Block processing failed (unexpected target difficulty)')
+            return False
+
         # Save block
         self.data_manager.add_block(block)
 
@@ -781,6 +789,8 @@ class MarketCommunity(Community):
         for agreement in block.agreements:
             if agreement.id in self.incoming_agreements:
                 del self.incoming_agreements[agreement.id]
+
+        return True
 
     def check_block(self, block):
         meta = self.get_meta_message(u'block')
@@ -865,9 +875,9 @@ class MarketCommunity(Community):
 
         if self.check_block(block):
             self.logger.debug('Mined block with target difficulty 0x%064x', block.target_difficulty)
-            self.process_block(block)
-            self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
-            self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+            if self.process_block(block):
+                self.logger.debug('Added mined block with %s agreement(s)', len(block.agreements))
+                self.multicast_message(u'block', {'block': block.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
     def get_next_difficulty(self, block):
         # Determine difficulty for the next block
