@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS mortgage(
   duration        INTEGER,
   risk            TEXT,
   status          INTEGER,
+  contract_id     TEXT,
   PRIMARY KEY (id, user_id)
 );
 
@@ -81,6 +82,7 @@ CREATE TABLE IF NOT EXISTS investment(
   campaign_id      INTEGER,
   campaign_user_id TEXT,
   status           INTEGER,
+  contract_id      TEXT,
   PRIMARY KEY (id, user_id)
 );
 
@@ -92,6 +94,7 @@ CREATE TABLE IF NOT EXISTS contract(
   to_id          TEST NOT NULL,
   to_signature   TEXT,
   document       TEXT NOT NULL,
+  contract_type  INTEGER,
   block          TEXT NOT NULL,
   time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

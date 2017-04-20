@@ -28,7 +28,7 @@ from market.models.investment import InvestmentStatus, Investment
 from market.models import investment
 from market.models.profile import Profile
 from market.models.block import Block
-from market.models.contract import Contract
+from market.models.contract import Contract, ContractType
 from market.restapi.rest_manager import RESTManager
 from market.util.uint256 import bytes_to_uint256
 from market.util.math import median
@@ -473,13 +473,13 @@ class MarketCommunity(Community):
             mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
                                                       message.payload.dictionary['mortgage_user_id'])
 
-            if not mortgage:
+            if mortgage is None:
                 self.logger.warning('Dropping mortgage-accept from %s (unknown mortgage)', message.candidate.sock_addr)
                 continue
 
             self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
 
-            self.send_signature_request(mortgage=mortgage)
+            self.send_contract(mortgage.to_bin(), ContractType.MORTGAGE, self.my_user_id, mortgage.user_id)
 
             mortgage.status = MortgageStatus.ACCEPTED
 
@@ -487,7 +487,6 @@ class MarketCommunity(Community):
             finance_goal = mortgage.amount - mortgage.bank_amount
             campaign = Campaign(self.data_manager.you.campaigns.count(), self.my_user_id, mortgage.id, mortgage.user_id, finance_goal, end_time, False)
             self.data_manager.you.campaigns.add(campaign)
-            self.send_campaign_update(campaign)
 
     def send_mortgage_reject(self, mortgage):
         return self.send_message_to_ids(u'mortgage-reject', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
@@ -552,7 +551,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
 
-            self.send_signature_request(investment=investment)
+            self.send_contract(investment.to_bin(), ContractType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
 
             investment.status = InvestmentStatus.ACCEPTED
 
@@ -626,23 +625,13 @@ class MarketCommunity(Community):
             if investment and self.data_manager.get_investment(investment.id, investment.user_id) is None:
                 campaign.investments.add(investment)
 
-    def send_signature_request(self, mortgage=None, investment=None):
-        assert mortgage is not None or investment is not None
-
+    def send_signature_request(self, contract):
         cache = self.request_cache.add(SignatureRequestCache(self))
 
-        to_id = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id).user_id \
-                if mortgage is None else mortgage.user_id
+        destionation_id = contract.to_id if contract.from_id == self.my_user_id else contract.from_id
 
-        contract = Contract()
-        contract.from_id = self.my_user_id
-        contract.to_id = to_id
-        contract.document = mortgage.to_bin() if mortgage else investment.to_bin()
-        contract.time = int(time.time())
-        contract.sign(self.my_member)
-
-        return self.send_message_to_ids(u'signature-request', (to_id,), {'identifier': cache.number,
-                                                                         'contract': contract.to_dict()})
+        return self.send_message_to_ids(u'signature-request', (destionation_id,), {'identifier': cache.number,
+                                                                                   'contract': contract.to_dict()})
 
     def on_signature_request(self, messages):
         for message in messages:
@@ -656,9 +645,23 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got signature-request from %s', message.candidate.sock_addr)
 
+            if contract.contract_type == ContractType.INVESTMENT:
+                # Find & set previous_hash
+                investment = contract.get_object()
+                campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+                if campaign is None:
+                    self.warning('Could not find campaign')
+                    continue
+                mortgage = self.data_manager.get_mortgage(campaign.mortgage_id, campaign.mortgage_user_id)
+                if mortgage is None:
+                    self.warning('Could not find mortgage')
+                    continue
+                contract.previous_hash = mortgage.contract_id
+
             # TODO: check contract
+
             contract.sign(self.my_member)
-            self.data_manager.add_contract(contract)
+            self.finalize_contract(contract)
 
             self.send_signature_response(message.candidate, contract, message.payload.dictionary['identifier'])
 
@@ -682,11 +685,13 @@ class MarketCommunity(Community):
                 continue
             elif not contract.verify(message.candidate.get_member()):
                 self.logger.warning('Dropping signature-response with incorrect signature')
+                continue
 
             self.logger.debug('Got signature-response from %s', message.candidate.sock_addr)
 
             # TODO: check contract
-            self.data_manager.add_contract(contract)
+
+            self.finalize_contract(contract)
 
             self.incoming_contracts[contract.id] = contract
             self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
@@ -922,3 +927,38 @@ class MarketCommunity(Community):
                             destination=(Candidate(('1.1.1.1', 1), False),),
                             payload=({'block': block.to_dict()},))
         return len(message.packet)
+
+    def send_contract(self, document, contract_type, from_id, to_id):
+        assert to_id == self.my_user_id or from_id == self.my_user_id
+
+        contract = Contract()
+        contract.from_id = from_id
+        contract.to_id = to_id
+        contract.document = document
+        contract.contract_type = contract_type
+        contract.time = int(time.time())
+        contract.sign(self.my_member)
+
+        return self.send_signature_request(contract)
+
+    def finalize_contract(self, contract):
+        # Add contract to database
+        self.data_manager.add_contract(contract)
+
+        # Link to mortgage/investment
+        obj = contract.get_object()
+        if isinstance(obj, Mortgage):
+            mortgage = self.data_manager.get_mortgage(obj.id, obj.user_id)
+            mortgage.contract_id = contract.id
+            # Send campaign update
+            if self.my_role == Role.FINANCIAL_INSTITUTION:
+                campaign = self.data_manager.get_campaign_for_mortgage(mortgage)
+                self.send_campaign_update(campaign)
+
+        elif isinstance(obj, Investment):
+            investment = self.data_manager.get_investment(obj.id, obj.user_id)
+            investment.contract_id = contract.id
+            # Send campaign update
+            if self.my_role == Role.FINANCIAL_INSTITUTION:
+                campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+                self.send_campaign_update(campaign, investment)

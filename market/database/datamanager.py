@@ -78,6 +78,12 @@ class MarketDataManager:
         """
         return self.store.get(Mortgage, (mortgage_id, user_id))
 
+    def get_mortgage_for_investment(self, investment):
+        return self.store.find(Mortgage, Mortgage.id == Campaign.mortgage_id,
+                               Mortgage.user_id == Campaign.mortgage_user_id,
+                               investment.campaign_id == Campaign.id,
+                               investment.campaign_user_id == Campaign.user_id).one()
+
     def get_mortgages(self):
         """
         Get all mortgages in the market.
@@ -103,6 +109,10 @@ class MarketDataManager:
         """
         return self.store.get(Campaign, (campaign_id, user_id))
 
+    def get_campaign_for_mortgage(self, mortgage):
+        return self.store.find(Campaign, Campaign.mortgage_id == mortgage.id,
+                               Campaign.mortgage_user_id == mortgage.user_id).one()
+
     def get_campaigns(self):
         """
         Get all campaigns in the market.
@@ -114,7 +124,7 @@ class MarketDataManager:
         self.store.add(contract)
 
     def get_contract(self, contract_id):
-        self.store.get(Contract, contract_id)
+        return self.store.get(Contract, contract_id)
 
     def add_block(self, block):
         self.store.add(block)

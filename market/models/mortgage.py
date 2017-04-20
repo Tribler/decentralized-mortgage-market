@@ -1,13 +1,14 @@
 from enum import Enum as PyEnum
 
+from base64 import urlsafe_b64encode
 from storm.base import Storm
 from storm.properties import Int, Float, Unicode, RawStr
 from storm.references import Reference
-from market.models.house import House
-from market.database.types import Enum
-from base64 import urlsafe_b64encode
-from market.community.market_pb2 import Mortgage as MortgagePB
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
+
+from market.community.market_pb2 import Mortgage as MortgagePB
+from market.database.types import Enum
+from market.models.house import House
 
 
 class MortgageStatus(PyEnum):
@@ -28,8 +29,8 @@ class Mortgage(Storm):
     This class represents a mortgage of a specific user. Each mortgage is tied to a house.
     """
 
-    __storm_table__ = "mortgage"
-    __storm_primary__ = "id", "user_id"
+    __storm_table__ = 'mortgage'
+    __storm_primary__ = 'id', 'user_id'
     id = Int()
     user_id = RawStr()
     bank_id = RawStr()
@@ -44,9 +45,10 @@ class Mortgage(Storm):
     duration = Int()
     risk = Unicode()
     status = Enum(MortgageStatus)
+    contract_id = RawStr()
 
     def __init__(self, identifier, user_id, bank_id, house, amount, bank_amount, mortgage_type, interest_rate, max_invest_rate,
-                 default_rate, duration, risk, status):
+                 default_rate, duration, risk, status, contract_id=''):
         self.id = identifier
         self.user_id = user_id
         self.bank_id = bank_id
@@ -60,22 +62,24 @@ class Mortgage(Storm):
         self.duration = duration
         self.risk = risk
         self.status = status
+        self.contract_id = contract_id
 
     def to_dict(self, api_response=False):
         return {
-            "id": self.id,
-            "user_id": urlsafe_b64encode(self.user_id) if api_response else self.user_id,
-            "bank_id": urlsafe_b64encode(self.bank_id) if api_response else self.bank_id,
-            "house": self.house.to_dict(),
-            "amount": self.amount,
-            "bank_amount": self.bank_amount,
-            "mortgage_type": self.mortgage_type.name if api_response else self.mortgage_type.value,
-            "interest_rate": self.interest_rate,
-            "max_invest_rate": self.max_invest_rate,
-            "default_rate": self.default_rate,
-            "duration": self.duration,
-            "risk": self.risk,
-            "status": self.status.name if api_response else self.status.value
+            'id': self.id,
+            'user_id': urlsafe_b64encode(self.user_id) if api_response else self.user_id,
+            'bank_id': urlsafe_b64encode(self.bank_id) if api_response else self.bank_id,
+            'house': self.house.to_dict(),
+            'amount': self.amount,
+            'bank_amount': self.bank_amount,
+            'mortgage_type': self.mortgage_type.name if api_response else self.mortgage_type.value,
+            'interest_rate': self.interest_rate,
+            'max_invest_rate': self.max_invest_rate,
+            'default_rate': self.default_rate,
+            'duration': self.duration,
+            'risk': self.risk,
+            'status': self.status.name if api_response else self.status.value,
+            'contract_id': urlsafe_b64encode(self.contract_id) if api_response else self.contract_id
         }
 
     @staticmethod
@@ -104,13 +108,14 @@ class Mortgage(Storm):
                         mortgage_dict['default_rate'],
                         mortgage_dict['duration'],
                         mortgage_dict['risk'],
-                        status)
+                        status,
+                        mortgage_dict['contract_id'])
 
     def to_bin(self):
         return dict_to_protobuf(MortgagePB, self.to_dict()).SerializeToString()
 
     @staticmethod
-    def from_bin(self, binary):
+    def from_bin(binary):
         msg = MortgagePB()
         msg.ParseFromString(binary)
         return Mortgage.from_dict(protobuf_to_dict(msg))

@@ -131,6 +131,7 @@ message Investment {
     required uint32 campaign_id = 6;
     required bytes campaign_user_id = 7;
     required uint32 status = 8;
+    optional bytes contract_id = 9;
 }
 
 message Mortgage {
@@ -148,6 +149,7 @@ message Mortgage {
     required string risk = 12;
     required uint32 status = 13;
     optional Campaign campaign = 14;
+    optional bytes contract_id = 15;
 }
 
 message Campaign {
@@ -174,7 +176,8 @@ message Contract {
     required bytes to_id = 4;
     required bytes to_signature = 5;
     required bytes document = 6;
-    required uint32 time = 7;
+    required uint32 contract_type = 7;
+    required uint32 time = 8;
 }
 
 message Block {

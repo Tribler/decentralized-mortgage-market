@@ -246,7 +246,6 @@ class SpecificCampaignInvestmentEndpoint(resource.Resource):
         if status == "ACCEPT":
             investment.status = InvestmentStatus.ACCEPTED
             self.community.send_investment_accept(investment)
-            self.community.send_campaign_update(campaign, investment)
         else:
             investment.status = InvestmentStatus.REJECTED
             self.community.send_investment_reject(investment)
