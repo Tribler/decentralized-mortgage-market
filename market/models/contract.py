@@ -31,7 +31,7 @@ class Contract(object):
         self.time = 0
 
     def __storm_pre_flush__(self):
-        # TODO: fail if we already set the id and the hash has changed
+        assert not self._id or self._id == self.id, 'Contract.id has changed'
         self._id = self.id
 
     def __str__(self):
