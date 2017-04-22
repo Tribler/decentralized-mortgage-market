@@ -859,7 +859,12 @@ class MarketCommunity(Community):
         contracts = []
         dependencies = {}
         for contract in self.incoming_contracts.values():
-            if contract.previous_hash and self.data_manager.get_contract(contract.previous_hash) is None:
+            # Get the previous contract from memory or the database
+            prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
+                            self.data_manager.get_contract(contract.previous_hash) if contract.previous_hash else None
+
+            # We need to wait until the previous contract is received and on the blockchain
+            if contract.previous_hash and (prev_contract is None or not prev_contract.block):
                 # TODO: support more then 1 previous contract
                 dependencies[contract.previous_hash] = contract
             else:
