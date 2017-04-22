@@ -1,7 +1,6 @@
 import os
 
 from storm.database import create_database
-from storm.store import Store
 from storm.expr import Desc, Column
 
 from market.models.user import User
@@ -11,8 +10,9 @@ from market.models.investment import Investment
 from market.models.campaign import Campaign
 from market.models.contract import Contract
 from market.models.block import Block
-from market.defs import BASE_DIR
 from market.models.bestchain import BestChain
+from market.database.store import MarketStore
+from market.defs import BASE_DIR
 
 
 class MarketDataManager:
@@ -22,7 +22,7 @@ class MarketDataManager:
 
     def __init__(self, market_db):
         self.database = create_database('sqlite:' + market_db)
-        self.store = Store(self.database)
+        self.store = MarketStore(self.database)
 
         with open(os.path.join(BASE_DIR, 'database', 'schema.sql')) as fp:
             schema = fp.read()
