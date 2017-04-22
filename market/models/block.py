@@ -32,7 +32,7 @@ class Block(object):
         self.contracts = []
 
     def __storm_loaded__(self):
-        self.contracts = []
+        self.contracts = [contract for contract in self._contracts]
 
     def __storm_pre_flush__(self):
         assert not self._id or self._id == self.id, 'Block.id has changed'
