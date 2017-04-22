@@ -8,9 +8,10 @@ from collections import OrderedDict
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
-from market.database.datamanager import MarketDataManager
+from market.community import accept
 from market.community.conversion import MarketConversion
 from market.community.payload import ProtobufPayload
+from market.database.datamanager import MarketDataManager
 from market.dispersy.authentication import MemberAuthentication
 from market.dispersy.candidate import Candidate
 from market.dispersy.community import Community
@@ -392,13 +393,9 @@ class MarketCommunity(Community):
 
         return self.send_message_to_ids(u'loan-request', (loan_request.bank_id,), msg_dict)
 
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.BORROWER)
     def on_loan_request(self, messages):
         for message in messages:
-            if self.my_role != Role.FINANCIAL_INSTITUTION:
-                self.logger.warning('Dropping loan-request from %s (not a financial institution)',
-                                    message.candidate.sock_addr)
-                continue
-
             self.logger.debug('Got loan-request from %s', message.candidate.sock_addr)
 
             loan_request_dict = message.payload.dictionary['loan_request']
@@ -421,6 +418,7 @@ class MarketCommunity(Community):
         return self.send_message_to_ids(u'loan-reject', (loan_request.user_id,), {'loan_request_id': loan_request.id,
                                                                                   'loan_request_user_id': loan_request.user_id})
 
+    @accept(local=Role.BORROWER, remote=Role.FINANCIAL_INSTITUTION)
     def on_loan_reject(self, messages):
         for message in messages:
             loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'],
@@ -438,6 +436,7 @@ class MarketCommunity(Community):
                                          'loan_request_user_id': loan_request.user_id,
                                          'mortgage': mortgage.to_dict()})
 
+    @accept(local=Role.BORROWER, remote=Role.FINANCIAL_INSTITUTION)
     def on_mortgage_offer(self, message):
         for message in message:
             loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'],
@@ -468,6 +467,7 @@ class MarketCommunity(Community):
         return self.send_message_to_ids(u'mortgage-accept', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
                                                                                   'mortgage_user_id': mortgage.user_id})
 
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.BORROWER)
     def on_mortgage_accept(self, messages):
         for message in messages:
             mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
@@ -492,6 +492,7 @@ class MarketCommunity(Community):
         return self.send_message_to_ids(u'mortgage-reject', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
                                                                                   'mortgage_user_id': mortgage.user_id})
 
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.BORROWER)
     def on_mortgage_reject(self, messages):
         for message in messages:
             mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
@@ -513,6 +514,7 @@ class MarketCommunity(Community):
                                         {'investment': investment.to_dict(),
                                          'investor_profile': self.data_manager.you.profile.to_dict()})
 
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.INVESTOR)
     def on_investment_offer(self, messages):
         for message in messages:
             investment_dict = message.payload.dictionary['investment']
@@ -540,6 +542,7 @@ class MarketCommunity(Community):
                                         {'investment_id': investment.id,
                                          'investment_user_id': investment.user_id})
 
+    @accept(local=Role.INVESTOR, remote=Role.FINANCIAL_INSTITUTION)
     def on_investment_accept(self, messages):
         for message in messages:
             investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'],
@@ -559,6 +562,7 @@ class MarketCommunity(Community):
         return self.send_message_to_ids(u'investment-reject', (investment.user_id,), {'investment_id': investment.id,
                                                                                       'investment_user_id': investment.user_id})
 
+    @accept(local=Role.INVESTOR, remote=Role.FINANCIAL_INSTITUTION)
     def on_investment_reject(self, messages):
         for message in messages:
             investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'],
@@ -696,6 +700,7 @@ class MarketCommunity(Community):
             self.incoming_contracts[contract.id] = contract
             self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
+    @accept(local=Role.FINANCIAL_INSTITUTION)
     def on_contract(self, messages):
         for message in messages:
             contract = Contract.from_dict(message.payload.dictionary['contract'])
@@ -713,6 +718,7 @@ class MarketCommunity(Community):
                           if user.id in self.id_to_candidate and user.role == Role.FINANCIAL_INSTITUTION), None)
         self.send_message(u'block-request', (candidate,), {'block_id': block_id})
 
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.FINANCIAL_INSTITUTION)
     def on_block_request(self, messages):
         for message in messages:
             block_id = message.payload.dictionary['block_id']
@@ -722,6 +728,7 @@ class MarketCommunity(Community):
             if block is not None:
                 self.send_message(u'block', (message.candidate,), {'block': block.to_dict()})
 
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.FINANCIAL_INSTITUTION)
     def on_block(self, messages):
         for message in messages:
             block = Block.from_dict(message.payload.dictionary['block'])
