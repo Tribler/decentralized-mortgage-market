@@ -479,9 +479,10 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
 
-            self.send_contract(mortgage.to_bin(), ContractType.MORTGAGE, self.my_user_id, mortgage.user_id)
-
+            # Set status before creating the contract
             mortgage.status = MortgageStatus.ACCEPTED
+
+            self.send_contract(mortgage.to_bin(), ContractType.MORTGAGE, self.my_user_id, mortgage.user_id)
 
             end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
             finance_goal = mortgage.amount - mortgage.bank_amount
@@ -554,9 +555,10 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
 
-            self.send_contract(investment.to_bin(), ContractType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
-
+            # Set status before creating the contract
             investment.status = InvestmentStatus.ACCEPTED
+
+            self.send_contract(investment.to_bin(), ContractType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
 
     def send_investment_reject(self, investment):
         return self.send_message_to_ids(u'investment-reject', (investment.user_id,), {'investment_id': investment.id,
@@ -662,15 +664,10 @@ class MarketCommunity(Community):
                     continue
                 contract.previous_hash = mortgage.contract_id
 
-            # TODO: check contract
-
-            contract.sign(self.my_member)
-            self.finalize_contract(contract)
-
-            self.send_signature_response(message.candidate, contract, message.payload.dictionary['identifier'])
-
-            self.incoming_contracts[contract.id] = contract
-            self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+            if self.process_contract(contract, sign=True):
+                self.send_signature_response(message.candidate, contract, message.payload.dictionary['identifier'])
+                self.incoming_contracts[contract.id] = contract
+                self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
     def send_signature_response(self, candidate, contract, identifier):
         return self.send_message(u'signature-response', (candidate,), {'identifier': identifier,
@@ -693,12 +690,9 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got signature-response from %s', message.candidate.sock_addr)
 
-            # TODO: check contract
-
-            self.finalize_contract(contract)
-
-            self.incoming_contracts[contract.id] = contract
-            self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
+            if self.process_contract(contract):
+                self.incoming_contracts[contract.id] = contract
+                self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
     @accept(local=Role.FINANCIAL_INSTITUTION)
     def on_contract(self, messages):
@@ -948,24 +942,45 @@ class MarketCommunity(Community):
 
         return self.send_signature_request(contract)
 
-    def finalize_contract(self, contract):
-        # Add contract to database
-        self.data_manager.add_contract(contract)
-
+    def process_contract(self, contract, sign=False):
         # Link to mortgage/investment
         obj = contract.get_object()
         if isinstance(obj, Mortgage):
+            # Check if information from the database matches the contract
             mortgage = self.data_manager.get_mortgage(obj.id, obj.user_id)
+            if mortgage.to_bin() != contract.document or contract.previous_hash:
+                self.logger.warning('Could not process contract (contract does not match mortgage)')
+                return False
+
+            # Link to mortgage
             mortgage.contract_id = contract.id
+
             # Send campaign update
             if self.my_role == Role.FINANCIAL_INSTITUTION:
                 campaign = self.data_manager.get_campaign_for_mortgage(mortgage)
                 self.send_campaign_update(campaign)
 
         elif isinstance(obj, Investment):
+            # Check if information from the database matches the contract
             investment = self.data_manager.get_investment(obj.id, obj.user_id)
+            mortgage = self.data_manager.get_mortgage_for_investment(investment)
+            if investment.to_bin() != contract.document or mortgage is None or \
+               mortgage.contract_id != contract.previous_hash:
+                self.logger.warning('Could not process contract (contract does not match investment)')
+                return False
+
+            # Link to investment
             investment.contract_id = contract.id
+
             # Send campaign update
             if self.my_role == Role.FINANCIAL_INSTITUTION:
                 campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
                 self.send_campaign_update(campaign, investment)
+
+        if sign:
+            contract.sign(self.my_member)
+
+        # Add contract to database
+        self.data_manager.add_contract(contract)
+
+        return True
