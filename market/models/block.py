@@ -24,7 +24,7 @@ class Block(object):
     creator_signature = RawStr()
     _target_difficulty = RawStr(name='target_difficulty')
     time = Int()
-    _contracts = ReferenceSet(_id, Contract.block)
+    _contracts = ReferenceSet(_id, Contract.block, order_by=Contract.block_order)
 
     def __init__(self):
         self.previous_hash = ''
@@ -39,9 +39,10 @@ class Block(object):
         self._id = self.id
 
         store = Store.of(self)
-        for contract in self.contracts:
-            if contract not in self._contracts:
-                self._contracts.add(store.get(Contract, contract.id) or contract)
+        for index, contract in enumerate(self.contracts):
+            contract = store.get(Contract, contract.id) or contract
+            contract.block_order = index
+            self._contracts.add(contract)
 
     def __str__(self):
         return '%s %s %s %s %d' % (self.previous_hash, self.merkle_root_hash, self.creator, self._target_difficulty, self.time)

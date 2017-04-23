@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS contract(
   document       TEXT NOT NULL,
   contract_type  INTEGER,
   block          TEXT NOT NULL,
+  block_order    INTEGER,
   time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
