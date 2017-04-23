@@ -29,6 +29,7 @@ from market.models.investment import InvestmentStatus, Investment
 from market.models import investment
 from market.models.profile import Profile
 from market.models.block import Block
+from market.models.block_index import BlockIndex
 from market.models.contract import Contract, ContractType
 from market.restapi.rest_manager import RESTManager
 from market.util.uint256 import bytes_to_uint256
@@ -89,7 +90,7 @@ class MarketCommunity(Community):
 
         market_db = os.path.join(self.dispersy.working_directory, 'market.db')
         self.data_manager = MarketDataManager(market_db)
-        self.data_manager.load_my_user(self.my_user_id, Role(role))
+        self.data_manager.initialize(self.my_user_id, Role(role))
 
         self.rest_manager = RESTManager(self, rest_api_port)
         self.market_api = self.rest_manager.start()
@@ -776,23 +777,26 @@ class MarketCommunity(Community):
         self.data_manager.add_block(block)
 
         # Get best chain
-        best_chain = self.data_manager.get_best_chain()
+        latest_index = self.data_manager.get_block_indexes(limit=1)[0]
 
         # Calculate height of the chain this block is the head of
-        new_height = 1
+        block_ids = []
+        from_height = 0
         cur_block = block
         while cur_block:
-            if cur_block.previous_hash == best_chain.block_id:
-                new_height += best_chain.height
+            block_ids.append(cur_block.id)
+            block_index = self.data_manager.get_block_index(cur_block.previous_hash)
+            if block_index is not None:
+                # We can connect to the best chain
+                from_height = block_index.height
                 break
             cur_block = self.data_manager.get_block(cur_block.previous_hash)
-            if cur_block is not None:
-                new_height += 1
 
         # For now, the longest chain wins
-        if new_height > best_chain.height:
-            best_chain.block_id = block.id
-            best_chain.height = new_height
+        if len(block_ids) + from_height > latest_index.height:
+            self.data_manager.remove_block_indexes(from_height + 1)
+            for index, block_id in enumerate(reversed(block_ids)):
+                self.data_manager.add_block_index(BlockIndex(block_id, from_height + 1 + index))
 
         # Make sure we stop trying to create blocks with the contracts in this block
         for contract in block.contracts:
@@ -849,8 +853,8 @@ class MarketCommunity(Community):
         return bytes_to_uint256(proof) < block.target_difficulty
 
     def create_block(self):
-        best_chain = self.data_manager.get_best_chain()
-        prev_block = self.data_manager.get_block(best_chain.block_id)
+        latest_index = self.data_manager.get_block_indexes(limit=1)[0]
+        prev_block = self.data_manager.get_block(latest_index.block_id) if latest_index is not None else None
 
         block = Block()
         block.previous_hash = prev_block.id if prev_block is not None else BLOCK_GENESIS_HASH
@@ -865,16 +869,17 @@ class MarketCommunity(Community):
         contracts = []
         dependencies = {}
         for contract in self.incoming_contracts.values():
-            # Get the previous contract from memory or the database
-            prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
-                            self.data_manager.get_contract(contract.previous_hash) if contract.previous_hash else None
-
-            # We need to wait until the previous contract is received and on the blockchain
-            if contract.previous_hash and (prev_contract is None or not prev_contract.block):
-                # TODO: support more then 1 previous contract
-                dependencies[contract.previous_hash] = contract
-            else:
-                contracts.append(contract)
+            if contract.previous_hash:
+                # Get the previous contract from memory or the database
+                prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
+                                self.data_manager.get_contract(contract.previous_hash)
+                on_blockchain = self.data_manager.contract_on_blockchain(prev_contract.id)
+                # We need to wait until the previous contract is received and on the blockchain
+                if prev_contract is None or not on_blockchain:
+                    # TODO: support more then 1 previous contract
+                    dependencies[contract.previous_hash] = contract
+                    continue
+            contracts.append(contract)
 
         # Add contracts to block
         while contracts:

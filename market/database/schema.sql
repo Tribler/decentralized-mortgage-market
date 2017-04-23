@@ -115,9 +115,8 @@ CREATE TABLE IF NOT EXISTS block_contract(
   PRIMARY KEY (block_id, contract_id)
 );
 
-CREATE TABLE IF NOT EXISTS best_chain(
-  id       INTEGER PRIMARY KEY,
-  block_id TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS block_index(
+  block_id TEXT PRIMARY KEY,
   height   INTEGER NOT NULL,
   score    INTEGER NOT NULL
 );

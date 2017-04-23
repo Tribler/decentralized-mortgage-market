@@ -1,7 +1,7 @@
 import os
 
 from storm.database import create_database
-from storm.expr import Desc, Column
+from storm.expr import Desc
 
 from market.models.user import User
 from market.models.loanrequest import LoanRequest
@@ -10,7 +10,8 @@ from market.models.investment import Investment
 from market.models.campaign import Campaign
 from market.models.contract import Contract
 from market.models.block import Block
-from market.models.bestchain import BestChain
+from market.models.block_index import BlockIndex
+from market.models.block_contract import BlockContract
 from market.database.store import MarketStore
 from market.defs import BASE_DIR
 
@@ -31,7 +32,8 @@ class MarketDataManager:
 
         self.you = None
 
-    def load_my_user(self, user_id, role):
+    def initialize(self, user_id, role):
+        # Load or create local user
         user = self.get_user(user_id)
         if user is None:
             user = User(user_id, role=role)
@@ -40,6 +42,11 @@ class MarketDataManager:
             # Update role
             user.role = role
         self.you = user
+
+        # Ensure we have a BlockIndex with height 0
+        if self.get_block_indexes(limit=1).count() == 0:
+            from market.community.community import BLOCK_GENESIS_HASH
+            self.add_block_index(BlockIndex(BLOCK_GENESIS_HASH, 0))
 
     def add_user(self, user):
         self.store.add(user)
@@ -126,6 +133,20 @@ class MarketDataManager:
     def get_contract(self, contract_id):
         return self.store.get(Contract, contract_id)
 
+    def contract_on_blockchain(self, contract_id):
+        # Find blocks that contain this contract
+        block_ids = []
+        block_contracts = self.store.find(BlockContract, BlockContract.contract_id == contract_id)
+        if block_contracts:
+            for block_contract in block_contracts:
+                block_ids.append(block_contract.block_id)
+
+        # Find out if any of the blocks are on the best chain
+        for block_id in block_ids:
+            if self.get_block_index(block_id):
+                return True
+        return False
+
     def add_block(self, block):
         self.store.add(block)
 
@@ -139,20 +160,17 @@ class MarketDataManager:
         """
         return self.store.find(Block)
 
-    def get_latest_block(self):
-        """
-        Get the latest Block from the blochchain.
-        :return: the latest Block
-        """
-        return self.store.find(Block).order_by(Desc(Column('rowid'))).config(limit=1).one()
+    def add_block_index(self, block_index):
+        self.store.add(block_index)
 
-    def get_best_chain(self):
-        best_chain = self.store.get(BestChain, 0)
-        if best_chain is None:
-            from market.community.community import BLOCK_GENESIS_HASH
-            best_chain = BestChain(BLOCK_GENESIS_HASH, 0, 0)
-            self.store.add(best_chain)
-        return best_chain
+    def get_block_index(self, block_id):
+        return self.store.get(BlockIndex, block_id)
+
+    def get_block_indexes(self, limit=500):
+        return self.store.find(BlockIndex).order_by(Desc(BlockIndex.height)).config(limit=500)
+
+    def remove_block_indexes(self, from_height):
+        self.store.find(BlockIndex, BlockIndex.height >= from_height).remove()
 
     def flush(self):
         self.store.flush()
