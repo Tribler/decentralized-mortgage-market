@@ -91,16 +91,14 @@ CREATE TABLE IF NOT EXISTS contract(
   previous_hash  TEXT,
   from_id        TEXT NOT NULL,
   from_signature TEXT,
-  to_id          TEST NOT NULL,
+  to_id          TEXT NOT NULL,
   to_signature   TEXT,
   document       TEXT NOT NULL,
-  contract_type  INTEGER,
-  block          TEXT NOT NULL,
-  block_order    INTEGER,
+  contract_type  INTEGER NOT NULL,
   time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS blockchain(
+CREATE TABLE IF NOT EXISTS block(
   id                TEXT PRIMARY KEY,
   previous_hash     TEXT NOT NULL,
   merkle_root_hash  TEXT NOT NULL,
@@ -110,9 +108,16 @@ CREATE TABLE IF NOT EXISTS blockchain(
   time              TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS block_contract(
+  block_id    TEXT NOT NULL,
+  contract_id TEXT NOT NULL,
+  position    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (block_id, contract_id)
+);
+
 CREATE TABLE IF NOT EXISTS best_chain(
   id       INTEGER PRIMARY KEY,
-  block_id TEXT,
-  height   INTEGER,
-  score    INTEGER
+  block_id TEXT NOT NULL,
+  height   INTEGER NOT NULL,
+  score    INTEGER NOT NULL
 );

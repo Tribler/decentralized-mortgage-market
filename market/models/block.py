@@ -6,9 +6,10 @@ from storm.properties import Int, RawStr
 from storm.references import ReferenceSet
 from storm.store import Store
 
-from market.models.contract import Contract
-from market.util.uint256 import bytes_to_uint256, uint256_to_bytes
 from market.dispersy.crypto import LibNaCLPK
+from market.models.contract import Contract
+from market.models.block_contract import BlockContract
+from market.util.uint256 import bytes_to_uint256, uint256_to_bytes
 
 
 class Block(object):
@@ -16,7 +17,7 @@ class Block(object):
     This class represents a single block on the blockchain.
     """
 
-    __storm_table__ = 'blockchain'
+    __storm_table__ = 'block'
     _id = RawStr(name='id', primary=True)
     previous_hash = RawStr()
     merkle_root_hash = RawStr()
@@ -24,7 +25,7 @@ class Block(object):
     creator_signature = RawStr()
     _target_difficulty = RawStr(name='target_difficulty')
     time = Int()
-    _contracts = ReferenceSet(_id, Contract.block, order_by=Contract.block_order)
+    _contracts = ReferenceSet(_id, BlockContract.block_id, BlockContract.contract_id, Contract._id, order_by=BlockContract.position)
 
     def __init__(self):
         self.previous_hash = ''
@@ -40,9 +41,10 @@ class Block(object):
 
         store = Store.of(self)
         for index, contract in enumerate(self.contracts):
-            contract = store.get(Contract, contract.id) or contract
-            contract.block_order = index
-            self._contracts.add(contract)
+            self._contracts.add(store.get(Contract, contract.id) or contract)
+            # Store contract position within block
+            block_contract = store.get(BlockContract, (self._id, contract.id))
+            block_contract.position = index
 
     def __str__(self):
         return '%s %s %s %s %d' % (self.previous_hash, self.merkle_root_hash, self.creator, self._target_difficulty, self.time)

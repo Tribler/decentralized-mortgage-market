@@ -29,8 +29,6 @@ class Contract(object):
     to_signature = RawStr()
     document = RawStr()
     contract_type = Enum(ContractType)
-    block = RawStr()
-    block_order = Int()
     time = Int()
 
     def __init__(self):
@@ -40,8 +38,6 @@ class Contract(object):
         self.to_id = ''
         self.to_signature = ''
         self.document = ''
-        self.block = ''
-        self.block_order = 0
         self.time = 0
 
     def __storm_pre_flush__(self):
