@@ -4,7 +4,7 @@ import hashlib
 import logging
 
 from base64 import b64encode
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
@@ -867,8 +867,8 @@ class MarketCommunity(Community):
 
         # Find dependencies
         contracts = []
-        dependencies = {}
-        for contract in self.incoming_contracts.values():
+        dependencies = defaultdict(list)
+        for contract in self.incoming_contracts.itervalues():
             if contract.previous_hash:
                 # Get the previous contract from memory or the database
                 prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
@@ -876,21 +876,22 @@ class MarketCommunity(Community):
                 on_blockchain = self.data_manager.contract_on_blockchain(prev_contract.id)
                 # We need to wait until the previous contract is received and on the blockchain
                 if prev_contract is None or not on_blockchain:
-                    # TODO: support more then 1 previous contract
-                    dependencies[contract.previous_hash] = contract
+                    dependencies[contract.previous_hash].append(contract)
                     continue
             contracts.append(contract)
 
         # Add contracts to block
         while contracts:
-            contract = contracts.pop()
+            contract = contracts.pop(0)
             block.contracts.append(contract)
-            if contract.id in dependencies:
-                contracts.insert(0, dependencies[contract.id])
-
             if self.get_block_packet_size(block) > MAX_PACKET_SIZE:
                 block.contracts.pop()
                 break
+
+            if contract.id in dependencies:
+                # Put dependencies at the front of the list, so they will be processed in the next iterations
+                for index, dependency in enumerate(dependencies[contract.id]):
+                    contracts.insert(index, dependency)
 
         # Calculate final merkle root hash + sign block
         block.merkle_root_hash = block.merkle_tree.build()
