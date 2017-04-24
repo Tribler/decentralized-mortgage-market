@@ -74,7 +74,7 @@ class Contract(object):
             return Investment.from_bin(self.document)
 
     def to_dict(self, api_response=False):
-        return {
+        contract_dict = {
             'previous_hash': urlsafe_b64encode(self.previous_hash) if api_response else self.previous_hash,
             'from_id': urlsafe_b64encode(self.from_id) if api_response else self.from_id,
             'from_signature': urlsafe_b64encode(self.from_signature) if api_response else self.from_signature,
@@ -84,6 +84,11 @@ class Contract(object):
             'contract_type': self.contract_type.name if api_response else self.contract_type.value,
             'time': self.time
         }
+
+        if api_response:
+            contract_dict['id'] = urlsafe_b64encode(self.id)
+
+        return contract_dict
 
     @staticmethod
     def from_dict(contract_dict):

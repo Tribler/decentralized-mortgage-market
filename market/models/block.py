@@ -86,15 +86,20 @@ class Block(object):
         return MerkleTree(leaves)
 
     def to_dict(self, api_response=False):
-        return {
+        block_dict = {
             'previous_hash': urlsafe_b64encode(self.previous_hash) if api_response else self.previous_hash,
-            'merkle_root_hash': self.merkle_root_hash if api_response else self.merkle_root_hash,
-            'creator': self.creator if api_response else self.creator,
-            'creator_signature': self.creator_signature if api_response else self.creator_signature,
-            'target_difficulty': self._target_difficulty if api_response else self._target_difficulty,
+            'merkle_root_hash': urlsafe_b64encode(self.merkle_root_hash) if api_response else self.merkle_root_hash,
+            'creator': urlsafe_b64encode(self.creator) if api_response else self.creator,
+            'creator_signature': urlsafe_b64encode(self.creator_signature) if api_response else self.creator_signature,
+            'target_difficulty': self._target_difficulty.encode('hex') if api_response else self._target_difficulty,
             'time': self.time,
-            'contracts': [contract.to_dict() for contract in self.contracts]
+            'contracts': [contract.to_dict(api_response=api_response) for contract in self.contracts]
         }
+
+        if api_response:
+            block_dict['id'] = urlsafe_b64encode(self.id)
+
+        return block_dict
 
     @staticmethod
     def from_dict(block_dict):

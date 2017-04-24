@@ -1,0 +1,37 @@
+<div *ngFor="let block of blocks; let i=index">
+    <h4>Block {{ i + 1 }}</h4>
+    <div class="row">
+        <div class="col-xs-3 text">Current hash</div>
+        <div class="col-xs-9 text"><a [routerLink]="[block.id]">{{ block.id }}</a></div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Previous hash</div>
+        <div *ngIf="block.previous_hash == 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='" class="col-xs-9 text">{{ block.previous_hash }}</div>
+        <div *ngIf="block.previous_hash != 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='" class="col-xs-9 text"><a [routerLink]="[block.previous_hash]">{{ block.previous_hash }}</a></div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Size</div>
+        <div class="col-xs-9 text link">{{ block.contracts.length }} contract(s)</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Merkle root hash</div>
+        <div class="col-xs-9 text">{{ block.merkle_root_hash }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Target difficulty</div>
+        <div class="col-xs-9 text">0x{{ block.target_difficulty }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Timestamp</div>
+        <div class="col-xs-9 text">{{ block.time * 1000 | date:'dd-MM-yyyy HH:mm:ss Z' }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Creator</div>
+        <div class="col-xs-9 text">{{ block.creator }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Creator signature</div>
+        <div class="col-xs-9 text">{{ block.creator_signature }}</div>
+    </div>
+</div>
+<br>

@@ -23,14 +23,16 @@ import { CampaignsComponent } from './campaigns/campaigns.component';
 import { BankerCampaignsComponent } from './campaigns/banker-campaigns.component';
 import { InvestorCampaignsComponent } from './campaigns/investor-campaigns.component';
 
-import { BlockchainComponent } from './blockchain/blockchain.component';
+import { BlockComponent } from './blocks/block.component';
+import { BlocksComponent } from './blocks/blocks.component';
 
 const routes: Routes = [
     { path: '', redirectTo: 'profile', pathMatch: 'full' },
     { path: 'profile', component: ProfileComponent },
     { path: 'mortgages', component: MortgagesComponent },
     { path: 'campaigns', component: CampaignsComponent },
-    { path: 'blockchain', component: BlockchainComponent }
+    { path: 'blocks', component: BlocksComponent },
+    { path: 'blocks/:id', component: BlockComponent },
 ];
 
 @NgModule({
@@ -44,7 +46,8 @@ const routes: Routes = [
         BankerCampaignsComponent,
         InvestorCampaignsComponent,
         StatusComponentComponent,
-        BlockchainComponent,
+        BlocksComponent,
+        BlockComponent,
         GroupByPipe,
     ],
     imports: [

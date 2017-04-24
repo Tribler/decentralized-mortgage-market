@@ -3,11 +3,11 @@ import { Component, OnInit } from '@angular/core';
 import { MarketService } from '../shared/market.service';
 
 @Component({
-    selector: 'blockchain',
-    templateUrl: 'blockchain.component.html',
-    styleUrls: ['./blockchain.component.css']
+    selector: 'blocks',
+    templateUrl: 'blocks.component.html',
+    styleUrls: ['./blocks.component.css']
 })
-export class BlockchainComponent implements OnInit {
+export class BlocksComponent implements OnInit {
     blocks = [];
 
     constructor(public marketService: MarketService) { }

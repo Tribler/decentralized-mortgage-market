@@ -1,0 +1,70 @@
+<div>
+    <h4><a [routerLink]="['/blocks']"><span class="glyphicon glyphicon-arrow-left text-muted" aria-hidden="true"></span></a> Block {{ block.id }}</h4>
+    <div class="row">
+        <div class="col-xs-3 text">Previous hash</div>
+        <div class="col-xs-9 text">{{ block.previous_hash }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Merkle root hash</div>
+        <div class="col-xs-9 text">{{ block.merkle_root_hash }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Target difficulty</div>
+        <div class="col-xs-9 text">0x{{ block.target_difficulty }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Timestamp</div>
+        <div class="col-xs-9 text">{{ block.time * 1000 | date:'dd-MM-yyyy HH:mm:ss Z' }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Creator</div>
+        <div class="col-xs-9 text">{{ block.creator }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Creator signature</div>
+        <div class="col-xs-9 text">{{ block.creator_signature }}</div>
+    </div>
+
+    <div class="row" *ngFor="let contract of block.contracts; let i=index">
+        <div class="col-xs-12 text">
+            <h4>Contract {{ i + 1 }}</h4>
+            <div class="row">
+                <div class="col-xs-3 text">Current contract</div>
+                <div class="col-xs-9 text">{{ contract.id }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">Previous contract</div>
+                <div class="col-xs-9 text">{{ contract.previous_hash || 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">Document</div>
+                <div class="col-xs-9 text">{{ contract.document }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">To public key</div>
+                <div class="col-xs-9 text">{{ contract.to_id }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">To signature</div>
+                <div class="col-xs-9 text">{{ contract.to_signature }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">From public key</div>
+                <div class="col-xs-9 text">{{ contract.from_id }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">From signature</div>
+                <div class="col-xs-9 text">{{ contract.from_signature }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">Contract type</div>
+                <div class="col-xs-9 text">{{ contract.contract_type }}</div>
+            </div>
+            <div class="row">
+                <div class="col-xs-3 text">Time</div>
+                <div class="col-xs-9 text">{{ contract.time * 1000 | date:'dd-MM-yyyy HH:mm:ss Z' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>

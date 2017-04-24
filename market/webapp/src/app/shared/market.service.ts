@@ -120,8 +120,12 @@ export class MarketService {
             .map(res => res.json());
     }
 
+    getBlock(block_id): Observable<Object[]> {
+        return this._http.get(this._api_base + `/blocks/${block_id}`)
+            .map(res => res.json().block);
+    }
     getBlocks(): Observable<Object[]> {
-        return this._http.get(this._api_base + '/blockchain')
-            .map(res => res.json().blockchain);
+        return this._http.get(this._api_base + '/blocks')
+            .map(res => res.json().blocks);
     }
 }

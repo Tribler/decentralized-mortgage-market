@@ -1,0 +1,11 @@
+div {
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+.row {
+    margin: 2px 0;
+}
+.text {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+}
