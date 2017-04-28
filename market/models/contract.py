@@ -2,7 +2,7 @@ import hashlib
 
 from enum import Enum as PyEnum
 from base64 import urlsafe_b64encode
-from storm.properties import Int, RawStr
+from storm.properties import Int, RawStr, Bool
 
 from market.database.types import Enum
 from market.models.mortgage import Mortgage
@@ -29,6 +29,7 @@ class Contract(object):
     to_signature = RawStr()
     document = RawStr()
     contract_type = Enum(ContractType)
+    untransferred = Bool()
     time = Int()
 
     def __init__(self):
@@ -38,6 +39,7 @@ class Contract(object):
         self.to_id = ''
         self.to_signature = ''
         self.document = ''
+        self.untransferred = True
         self.time = 0
 
     def __storm_pre_flush__(self):

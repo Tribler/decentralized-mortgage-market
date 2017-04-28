@@ -699,7 +699,46 @@ class MarketCommunity(Community):
     def on_contract(self, messages):
         for message in messages:
             contract = Contract.from_dict(message.payload.dictionary['contract'])
-            self.logger.debug('Got contract with id %s', b64encode(contract.id))
+            if self.incoming_contracts.get(contract.id) or self.data_manager.get_contract(contract.id):
+                self.logger.debug('Dropping contract %s (duplicate)', b64encode(contract.id))
+                continue
+
+            # Check if contract is allowed
+            if contract.previous_hash:
+                prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
+                                self.data_manager.get_contract(contract.previous_hash)
+                if prev_contract is None:
+                    # Drop contract if the previous one is unknown
+                    self.logger.warning('Dropping contract %s (parent is unknown)', b64encode(contract.id))
+                    continue
+                elif not prev_contract.untransferred:
+                    # Drop contract if the previous one is already transferred (avoids double spending)
+                    self.logger.warning('Dropping contract %s (attempt to double spend)', b64encode(contract.id))
+                    continue
+
+                if contract.contract_type == ContractType.INVESTMENT:
+                    # Find all contracts that depend on this mortgage
+                    contracts = self.data_manager.find_contracts(Contract.previous_hash == prev_contract.id)
+                    contracts = list(contracts) if contracts.count() > 0 else []
+                    contracts += [c for c in self.incoming_contracts.values()
+                                  if c.previous_hash == prev_contract.id]
+                    contracts.append(contract)
+
+                    # Make sure the sum of all investments does not surpass the maximum allowed amount
+                    mortgage = prev_contract.get_object()
+                    maximum_value = mortgage.amount - mortgage.bank_amount
+                    current_value = sum([c.get_object().amount for c in contracts
+                                         if c.contract_type == ContractType.INVESTMENT])
+
+                    if current_value > maximum_value:
+                        self.logger.warning('Dropping contract %s (attempt to overspend)', b64encode(contract.id))
+                        continue
+                else:
+                    prev_contract.untransferred = False
+
+            contract.untransferred = True
+
+            self.logger.debug('Got contract %s', b64encode(contract.id))
 
             # Forward if needed
             if contract.id not in self.incoming_contracts:
@@ -734,7 +773,7 @@ class MarketCommunity(Community):
                 self.logger.warning('Dropping illegal block from %s', message.candidate.sock_addr)
                 continue
 
-            self.logger.debug('Got block with id %s', b64encode(block.id))
+            self.logger.debug('Got block %s', b64encode(block.id))
 
             # If we're trying to download this block, stop it
             # TODO: fix this
@@ -748,7 +787,7 @@ class MarketCommunity(Community):
                 self.incoming_blocks[block.id] = block
                 # TODO: address issues with memory filling up
                 self.send_block_request(block.previous_hash)
-                self.logger.debug('Postpone block with id %s', b64encode(block.id))
+                self.logger.debug('Postpone block %s', b64encode(block.id))
                 continue
 
             if not self.process_block(block):

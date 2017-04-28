@@ -133,6 +133,9 @@ class MarketDataManager:
     def get_contract(self, contract_id):
         return self.store.get(Contract, contract_id)
 
+    def find_contracts(self, *args):
+        return self.store.find(Contract, *args)
+
     def contract_on_blockchain(self, contract_id):
         # Find blocks that contain this contract
         block_ids = []
