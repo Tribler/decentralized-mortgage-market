@@ -3,11 +3,7 @@ syntax = "proto2";
 package market;
 
 // Dispersy messages
-message UserRequestMessage {
-    required User user = 1;
-}
-
-message UserResponseMessage {
+message UserMessage {
     required User user = 1;
 }
 

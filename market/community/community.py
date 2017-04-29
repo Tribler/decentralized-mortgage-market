@@ -130,23 +130,15 @@ class MarketCommunity(Community):
         meta_messages = super(MarketCommunity, self).initiate_meta_messages()
 
         return meta_messages + [
-            # Messages for gossiping user information
-            Message(self, u"user-request",
+            # Message for gossiping user information
+            Message(self, u"user",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_user_request),
-            Message(self, u"user-response",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ProtobufPayload(),
-                    self._generic_timeline_check,
-                    self.on_user_response),
+                    self.on_user),
             # Mortgage-specific agreement messages
             Message(self, u"loan-request",
                     MemberAuthentication(),
@@ -256,10 +248,15 @@ class MarketCommunity(Community):
             if candidate.last_walk_reply < time.time() - 300:
                 self.id_to_candidate.pop(user_id)
 
+    def on_introduction_request(self, messages):
+        super(MarketCommunity, self).on_introduction_request(messages)
+        for message in messages:
+            self.send_user(message.candidate)
+
     def on_introduction_response(self, messages):
         super(MarketCommunity, self).on_introduction_response(messages)
         for message in messages:
-            self.send_user_request(message.candidate)
+            self.send_user(message.candidate)
 
     def send_message_to_ids(self, msg_type, user_ids, payload_dict):
         candidates = []
@@ -334,12 +331,6 @@ class MarketCommunity(Community):
             else:
                 user.profile.merge(profile)
 
-    def send_user_request(self, candidate):
-        self.send_message(u'user-request', (candidate,), {'user': self.my_user_dict})
-
-    def send_user_response(self, candidate):
-        self.send_message(u'user-response', (candidate,), {'user': self.my_user_dict})
-
     def _process_user(self, candidate, user_dict):
         user = User.from_dict(user_dict)
         self.add_or_update_user(candidate, role=user.role)
@@ -349,20 +340,13 @@ class MarketCommunity(Community):
             self.add_or_update_profile(candidate, profile)
         return user
 
-    def on_user_request(self, messages):
-        for message in messages:
-            user = self._process_user(message.candidate, message.payload.dictionary['user'])
-            self.logger.debug('Got user-request from %s (role=%s)',
-                              message.candidate.sock_addr,
-                              user.role)
-            self.send_user_response(message.candidate)
+    def send_user(self, candidate):
+        self.send_message(u'user', (candidate,), {'user': self.my_user_dict})
 
-    def on_user_response(self, messages):
+    def on_user(self, messages):
         for message in messages:
             user = self._process_user(message.candidate, message.payload.dictionary['user'])
-            self.logger.debug('Got user-response from %s (role=%s)',
-                              message.candidate.sock_addr,
-                              user.role)
+            self.logger.debug('Got user from %s (role=%s)', message.candidate.sock_addr, user.role)
 
     def send_loan_request(self, loan_request):
         msg_dict = {'loan_request': loan_request.to_dict(),

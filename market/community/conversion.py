@@ -9,19 +9,18 @@ class MarketConversion(BinaryConversion):
     def __init__(self, community):
         super(MarketConversion, self).__init__(community, "\x02")
 
-        msg_types = {u'user-request': (chr(1), pb.UserRequestMessage),
-                     u'user-response': (chr(2), pb.UserResponseMessage),
-                     u'loan-request': (chr(3), pb.LoanRequestMessage),
-                     u'loan-reject': (chr(4), pb.LoanRejectMessage),
-                     u'offer': (chr(5), pb.OfferMessage),
-                     u'accept': (chr(6), pb.AcceptMessage),
-                     u'reject': (chr(7), pb.RejectMessage),
-                     u'campaign-update': (chr(8), pb.CampaignUpdateMessage),
-                     u'signature-request': (chr(9), pb.SignatureRequestMessage),
-                     u'signature-response': (chr(10), pb.SignatureResponseMessage),
-                     u'contract': (chr(11), pb.ContractMessage),
-                     u'block-request': (chr(12), pb.BlockRequestMessage),
-                     u'block': (chr(13), pb.BlockMessage)}
+        msg_types = {u'user': (chr(1), pb.UserMessage),
+                     u'loan-request': (chr(2), pb.LoanRequestMessage),
+                     u'loan-reject': (chr(3), pb.LoanRejectMessage),
+                     u'offer': (chr(4), pb.OfferMessage),
+                     u'accept': (chr(5), pb.AcceptMessage),
+                     u'reject': (chr(6), pb.RejectMessage),
+                     u'campaign-update': (chr(7), pb.CampaignUpdateMessage),
+                     u'signature-request': (chr(8), pb.SignatureRequestMessage),
+                     u'signature-response': (chr(9), pb.SignatureResponseMessage),
+                     u'contract': (chr(10), pb.ContractMessage),
+                     u'block-request': (chr(11), pb.BlockRequestMessage),
+                     u'block': (chr(12), pb.BlockMessage)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,
