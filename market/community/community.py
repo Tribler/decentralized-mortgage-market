@@ -148,14 +148,6 @@ class MarketCommunity(Community):
                     ProtobufPayload(),
                     self._generic_timeline_check,
                     self.on_loan_request),
-            Message(self, u"loan-reject",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ProtobufPayload(),
-                    self._generic_timeline_check,
-                    self.on_loan_reject),
             # Agreement messages
             Message(self, u"offer",
                     MemberAuthentication(),
@@ -375,21 +367,10 @@ class MarketCommunity(Community):
 
             user.loan_requests.add(loan_request)
 
-    def send_loan_reject(self, loan_request):
-        return self.send_message_to_ids(u'loan-reject', (loan_request.user_id,), {'loan_request_id': loan_request.id,
-                                                                                  'loan_request_user_id': loan_request.user_id})
-
-    @accept(local=Role.BORROWER, remote=Role.FINANCIAL_INSTITUTION)
-    def on_loan_reject(self, messages):
-        for message in messages:
-            loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'],
-                                                              message.payload.dictionary['loan_request_user_id'])
-
-            if loan_request:
-                self.logger.debug('Got loan-reject from %s', message.candidate.sock_addr)
-                loan_request.status = LoanRequestStatus.REJECTED
-            else:
-                self.logger.warning('Dropping loan-reject from %s (unknown loan request)', message.candidate.sock_addr)
+    def reject_loan_request(self, loan_request):
+        return self.send_message_to_ids(u'reject', (loan_request.user_id,), {'object_type': ContractType.LOANREQUEST,
+                                                                             'object_id': loan_request.id,
+                                                                             'object_user_id': loan_request.user_id})
 
     def offer_mortgage(self, loan_request, mortgage):
         return self.send_message_to_ids(u'offer', (mortgage.user_id,), {'mortgage': mortgage.to_dict()})
@@ -509,7 +490,16 @@ class MarketCommunity(Community):
             dictionary = message.payload.dictionary
             sock_addr = message.candidate.sock_addr
 
-            if dictionary['object_type'] == ContractType.MORTGAGE:
+            if dictionary['object_type'] == ContractType.LOANREQUEST:
+                loanrequest = self.data_manager.get_loan_request(dictionary['object_id'], dictionary['object_user_id'])
+                if loanrequest is None:
+                    self.logger.warning('Dropping loanrequest reject from %s (unknown loanrequest)', sock_addr)
+                    continue
+
+                self.logger.debug('Got loanrequest reject from %s', sock_addr)
+                loanrequest.status = LoanRequestStatus.REJECTED
+
+            elif dictionary['object_type'] == ContractType.MORTGAGE:
                 mortgage = self.data_manager.get_mortgage(dictionary['object_id'], dictionary['object_user_id'])
                 if mortgage is None:
                     self.logger.warning('Dropping mortgage reject from %s (unknown mortgage)', sock_addr)

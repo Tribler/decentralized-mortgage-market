@@ -10,9 +10,10 @@ from market.models.investment import Investment
 
 
 class ContractType(IntEnum):
-    MORTGAGE = 0
-    INVESTMENT = 1
-    TRANSACTION = 2
+    LOANREQUEST = 0
+    MORTGAGE = 1
+    INVESTMENT = 2
+    TRANSACTION = 3
 
 
 class Contract(object):

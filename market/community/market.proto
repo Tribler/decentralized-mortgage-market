@@ -12,11 +12,6 @@ message LoanRequestMessage {
     required BorrowersProfile borrowers_profile = 2;
 }
 
-message LoanRejectMessage {
-    required uint32 loan_request_id = 1;
-    required bytes loan_request_user_id = 2;
-}
-
 message OfferMessage {
     optional Mortgage mortgage = 1;
     optional Investment investment = 2;

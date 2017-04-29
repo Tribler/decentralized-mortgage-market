@@ -132,6 +132,6 @@ class SpecificLoanRequestEndpoint(resource.Resource):
             self.community.offer_mortgage(loan_request, mortgage)
         else:
             loan_request.status = LoanRequestStatus.REJECTED
-            self.community.send_loan_reject(loan_request)
+            self.community.reject_loan_request(loan_request)
 
         return json.dumps({"success": True})
