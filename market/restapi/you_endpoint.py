@@ -221,7 +221,7 @@ class YouInvestmentsEndpoint(resource.Resource):
         you.investments.add(investment)
         campaign.investments.add(investment)
 
-        self.community.send_investment_offer(investment)
+        self.community.offer_investment(investment)
 
         return json.dumps({"success": True})
 
@@ -345,10 +345,10 @@ class YouSpecificMortageEndpoint(resource.Resource):
 
         if status == "ACCEPT":
             mortgage.status = MortgageStatus.ACCEPTED
-            self.community.send_mortgage_accept(mortgage)
+            self.community.accept_mortgage(mortgage)
         else:
             mortgage.status = MortgageStatus.REJECTED
-            self.community.send_mortgage_reject(mortgage)
+            self.community.reject_mortgage(mortgage)
 
         return json.dumps({"success": True})
 

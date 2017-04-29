@@ -45,20 +45,22 @@ CREATE TABLE IF NOT EXISTS house(
 );
 
 CREATE TABLE IF NOT EXISTS mortgage(
-  id              INTEGER,
-  user_id         TEXT,
-  bank_id         TEXT,
-  house_id        INTEGER,
-  amount          FLOAT,
-  bank_amount     FLOAT,
-  mortgage_type   INTEGER,
-  interest_rate   FLOAT,
-  max_invest_rate FLOAT,
-  default_rate    FLOAT,
-  duration        INTEGER,
-  risk            TEXT,
-  status          INTEGER,
-  contract_id     TEXT,
+  id                   INTEGER,
+  user_id              TEXT,
+  bank_id              TEXT,
+  house_id             INTEGER,
+  amount               FLOAT,
+  bank_amount          FLOAT,
+  mortgage_type        INTEGER,
+  interest_rate        FLOAT,
+  max_invest_rate      FLOAT,
+  default_rate         FLOAT,
+  duration             INTEGER,
+  risk                 TEXT,
+  status               INTEGER,
+  loan_request_id      INTEGER,
+  loan_request_user_id TEXT,
+  contract_id          TEXT,
   PRIMARY KEY (id, user_id)
 );
 
@@ -69,7 +71,6 @@ CREATE TABLE IF NOT EXISTS campaign(
   mortgage_user_id TEXT,
   amount           FLOAT,
   end_time         INTEGER,
-  completed        INTEGER,
   PRIMARY KEY (id, user_id)
 );
 
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS contract(
   to_id          TEXT NOT NULL,
   to_signature   TEXT,
   document       TEXT NOT NULL,
-  contract_type  INTEGER NOT NULL,
+  type           INTEGER NOT NULL,
   untransferred  INTEGER NOT NULL DEFAULT 0,
   time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

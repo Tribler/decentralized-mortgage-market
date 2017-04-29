@@ -26,7 +26,6 @@ from market.models.mortgage import Mortgage, MortgageStatus
 from market.models.user import User, Role
 from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus, Investment
-from market.models import investment
 from market.models.profile import Profile
 from market.models.block import Block
 from market.models.block_index import BlockIndex
@@ -148,7 +147,7 @@ class MarketCommunity(Community):
                     ProtobufPayload(),
                     self._generic_timeline_check,
                     self.on_user_response),
-            # Mortgage agreement messages
+            # Mortgage-specific agreement messages
             Message(self, u"loan-request",
                     MemberAuthentication(),
                     PublicResolution(),
@@ -165,55 +164,32 @@ class MarketCommunity(Community):
                     ProtobufPayload(),
                     self._generic_timeline_check,
                     self.on_loan_reject),
-            Message(self, u"mortgage-offer",
+            # Agreement messages
+            Message(self, u"offer",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_mortgage_offer),
-            Message(self, u"mortgage-accept",
+                    self.on_offer),
+            Message(self, u"accept",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_mortgage_accept),
-            Message(self, u"mortgage-reject",
+                    self.on_accept),
+            Message(self, u"reject",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_mortgage_reject),
-            # Investment agreement messages
-            Message(self, u"investment-offer",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ProtobufPayload(),
-                    self._generic_timeline_check,
-                    self.on_investment_offer),
-            Message(self, u"investment-accept",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ProtobufPayload(),
-                    self._generic_timeline_check,
-                    self.on_investment_accept),
-            Message(self, u"investment-reject",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ProtobufPayload(),
-                    self._generic_timeline_check,
-                    self.on_investment_reject),
+                    self.on_reject),
+            # Notification message
             Message(self, u"campaign-update",
                     MemberAuthentication(),
                     PublicResolution(),
@@ -431,152 +407,144 @@ class MarketCommunity(Community):
             else:
                 self.logger.warning('Dropping loan-reject from %s (unknown loan request)', message.candidate.sock_addr)
 
-    def send_mortgage_offer(self, loan_request, mortgage):
-        return self.send_message_to_ids(u'mortgage-offer', (mortgage.user_id,),
-                                        {'loan_request_id': loan_request.id,
-                                         'loan_request_user_id': loan_request.user_id,
-                                         'mortgage': mortgage.to_dict()})
+    def offer_mortgage(self, loan_request, mortgage):
+        return self.send_message_to_ids(u'offer', (mortgage.user_id,), {'mortgage': mortgage.to_dict()})
 
-    @accept(local=Role.BORROWER, remote=Role.FINANCIAL_INSTITUTION)
-    def on_mortgage_offer(self, message):
-        for message in message:
-            loan_request = self.data_manager.get_loan_request(message.payload.dictionary['loan_request_id'],
-                                                              message.payload.dictionary['loan_request_user_id'])
+    def accept_mortgage(self, mortgage):
+        return self.send_message_to_ids(u'accept', (mortgage.bank_id,), {'object_type': ContractType.MORTGAGE,
+                                                                         'object_id': mortgage.id,
+                                                                         'object_user_id': mortgage.user_id})
 
-            if not loan_request:
-                self.logger.warning('Dropping mortgage-offer from %s (unknown loan request)', message.candidate.sock_addr)
-                continue
+    def reject_mortgage(self, mortgage):
+        return self.send_message_to_ids(u'reject', (mortgage.bank_id,), {'object_type': ContractType.MORTGAGE,
+                                                                         'object_id': mortgage.id,
+                                                                         'object_user_id': mortgage.user_id})
 
-            self.logger.debug('Got mortgage-offer from %s', message.candidate.sock_addr)
-
-            mortgage_dict = message.payload.dictionary['mortgage']
-            mortgage = Mortgage.from_dict(mortgage_dict)
-
-            if mortgage is None:
-                self.logger.warning('Dropping invalid mortgage-offer from %s', message.candidate.sock_addr)
-                continue
-
-            self.add_or_update_user(message.candidate, role=Role.FINANCIAL_INSTITUTION)
-
-            # TODO: check if sender == mortgage.bank_id
-
-            loan_request.status = LoanRequestStatus.ACCEPTED
-            loan_request.mortgage = mortgage
-            self.data_manager.you.mortgages.add(mortgage)
-
-    def send_mortgage_accept(self, mortgage):
-        return self.send_message_to_ids(u'mortgage-accept', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
-                                                                                  'mortgage_user_id': mortgage.user_id})
-
-    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.BORROWER)
-    def on_mortgage_accept(self, messages):
-        for message in messages:
-            mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
-                                                      message.payload.dictionary['mortgage_user_id'])
-
-            if mortgage is None:
-                self.logger.warning('Dropping mortgage-accept from %s (unknown mortgage)', message.candidate.sock_addr)
-                continue
-
-            self.logger.debug('Got mortgage-accept from %s', message.candidate.sock_addr)
-
-            # Set status before creating the contract
-            mortgage.status = MortgageStatus.ACCEPTED
-
-            self.send_contract(mortgage.to_bin(), ContractType.MORTGAGE, self.my_user_id, mortgage.user_id)
-
-            end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
-            finance_goal = mortgage.amount - mortgage.bank_amount
-            campaign = Campaign(self.data_manager.you.campaigns.count(), self.my_user_id, mortgage.id, mortgage.user_id, finance_goal, end_time, False)
-            self.data_manager.you.campaigns.add(campaign)
-
-    def send_mortgage_reject(self, mortgage):
-        return self.send_message_to_ids(u'mortgage-reject', (mortgage.bank_id,), {'mortgage_id': mortgage.id,
-                                                                                  'mortgage_user_id': mortgage.user_id})
-
-    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.BORROWER)
-    def on_mortgage_reject(self, messages):
-        for message in messages:
-            mortgage = self.data_manager.get_mortgage(message.payload.dictionary['mortgage_id'],
-                                                      message.payload.dictionary['mortgage_user_id'])
-
-            if mortgage:
-                self.logger.debug('Got mortgage-reject from %s', message.candidate.sock_addr)
-                mortgage.status = MortgageStatus.REJECTED
-            else:
-                self.logger.warning('Dropping mortgage-reject from %s (unknown mortgage)', message.candidate.sock_addr)
-
-    def send_investment_offer(self, investment):
+    def offer_investment(self, investment):
         campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
         if campaign is None:
             self.logger.error('Cannot send investment-offer (unknown campaign)')
             return False
 
-        return self.send_message_to_ids(u'investment-offer', (campaign.user_id,),
+        return self.send_message_to_ids(u'offer', (campaign.user_id,),
                                         {'investment': investment.to_dict(),
-                                         'investor_profile': self.data_manager.you.profile.to_dict()})
+                                         'profile': self.data_manager.you.profile.to_dict()})
 
-    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.INVESTOR)
-    def on_investment_offer(self, messages):
+    def accept_investment(self, investment):
+        return self.send_message_to_ids(u'accept', (investment.user_id,),
+                                        {'object_type': ContractType.INVESTMENT,
+                                         'object_id': investment.id,
+                                         'object_user_id': investment.user_id})
+
+    def reject_investment(self, investment):
+        return self.send_message_to_ids(u'reject', (investment.user_id,), {'object_type': ContractType.INVESTMENT,
+                                                                           'object_id': investment.id,
+                                                                           'object_user_id': investment.user_id})
+
+    def on_offer(self, message):
+        for message in message:
+            dictionary = message.payload.dictionary
+            sock_addr = message.candidate.sock_addr
+
+            if set(('mortgage',)) <= set(dictionary):
+                mortgage = Mortgage.from_dict(dictionary['mortgage'])
+                if mortgage is None:
+                    self.logger.warning('Dropping invalid mortgage offer from %s', sock_addr)
+                    continue
+                elif mortgage.bank_id != message.candidate.get_member().public_key:
+                    self.logger.warning('Dropping mortgage offer from %s (wrong sender)', sock_addr)
+                    continue
+
+                loan_request = self.data_manager.get_loan_request(mortgage.loan_request_id, mortgage.loan_request_user_id)
+                if not loan_request:
+                    self.logger.warning('Dropping mortgage offer from %s (unknown loan request)', sock_addr)
+                    continue
+
+                self.logger.debug('Got mortgage offer from %s', sock_addr)
+                self.add_or_update_user(message.candidate, role=Role.FINANCIAL_INSTITUTION)
+                loan_request.status = LoanRequestStatus.ACCEPTED
+                loan_request.mortgage = mortgage
+                self.data_manager.you.mortgages.add(mortgage)
+
+            elif set(('investment', 'profile')) <= set(dictionary):
+                investment = Investment.from_dict(dictionary['investment'])
+                campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+                if campaign is None:
+                    self.logger.warning('Dropping investment offer from %s (unknown campaign)', sock_addr)
+                    continue
+                elif campaign.investment + investment.amount > campaign.amount:
+                    self.logger.warning('Auto-rejecting investment offer from %s (amount too large)', sock_addr)
+                    self.reject_investment(investment)
+                    continue
+
+                self.logger.debug('Got investment offer from %s', sock_addr)
+                profile = Profile.from_dict(dictionary['profile'])
+                self.add_or_update_profile(message.candidate, profile)
+                campaign.investments.add(investment)
+
+            else:
+                self.logger.warning('Dropping offer from %s (unexpected payload)', message.candidate.sock_addr)
+
+    def on_accept(self, messages):
         for message in messages:
-            investment_dict = message.payload.dictionary['investment']
-            investment = Investment.from_dict(investment_dict)
+            dictionary = message.payload.dictionary
+            sock_addr = message.candidate.sock_addr
 
-            campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+            if dictionary['object_type'] == ContractType.MORTGAGE:
+                mortgage = self.data_manager.get_mortgage(dictionary['object_id'], dictionary['object_user_id'])
+                if mortgage is None:
+                    self.logger.warning('Dropping mortgage accept from %s (unknown mortgage)', sock_addr)
+                    continue
 
-            if campaign is None:
-                self.logger.warning('Dropping investment-offer from %s (unknown campaign)', message.candidate.sock_addr)
-                continue
+                self.logger.debug('Got mortgage accept from %s', sock_addr)
+                mortgage.status = MortgageStatus.ACCEPTED
+                self.send_contract(mortgage.to_bin(), ContractType.MORTGAGE, self.my_user_id, mortgage.user_id)
 
-            # TODO: auto reject if we are offered more money than we need
+                # Create campaign
+                end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
+                finance_goal = mortgage.amount - mortgage.bank_amount
+                campaign = Campaign(self.data_manager.you.campaigns.count(), self.my_user_id,
+                                    mortgage.id, mortgage.user_id, finance_goal, end_time, False)
+                self.data_manager.you.campaigns.add(campaign)
 
-            profile_dict = message.payload.dictionary['investor_profile']
-            profile = Profile.from_dict(profile_dict)
-            self.add_or_update_profile(message.candidate, profile)
+            elif dictionary['object_type'] == ContractType.INVESTMENT:
+                investment = self.data_manager.get_investment(dictionary['object_id'], dictionary['object_user_id'])
+                if investment is None:
+                    self.logger.warning('Dropping investment accept from %s (unknown investment)', sock_addr)
+                    continue
 
-            campaign.investments.add(investment)
+                self.logger.debug('Got investment accept from %s', sock_addr)
+                investment.status = InvestmentStatus.ACCEPTED
+                self.send_contract(investment.to_bin(), ContractType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
 
-            self.logger.debug('Got investment-offer from %s', message.candidate.sock_addr)
+            else:
+                self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)
 
-    def send_investment_accept(self, investment):
-        # TODO: send along a bank profile?
-        return self.send_message_to_ids(u'investment-accept', (investment.user_id,),
-                                        {'investment_id': investment.id,
-                                         'investment_user_id': investment.user_id})
-
-    @accept(local=Role.INVESTOR, remote=Role.FINANCIAL_INSTITUTION)
-    def on_investment_accept(self, messages):
+    def on_reject(self, messages):
         for message in messages:
-            investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'],
-                                                          message.payload.dictionary['investment_user_id'])
+            dictionary = message.payload.dictionary
+            sock_addr = message.candidate.sock_addr
 
-            if investment is None:
-                self.logger.warning('Dropping investment-accept from %s (unknown investment)', message.candidate.sock_addr)
-                continue
+            if dictionary['object_type'] == ContractType.MORTGAGE:
+                mortgage = self.data_manager.get_mortgage(dictionary['object_id'], dictionary['object_user_id'])
+                if mortgage is None:
+                    self.logger.warning('Dropping mortgage reject from %s (unknown mortgage)', sock_addr)
+                    continue
 
-            self.logger.debug('Got investment-accept from %s', message.candidate.sock_addr)
+                self.logger.debug('Got mortgage reject from %s', sock_addr)
+                mortgage.status = MortgageStatus.REJECTED
 
-            # Set status before creating the contract
-            investment.status = InvestmentStatus.ACCEPTED
+            elif dictionary['object_type'] == ContractType.INVESTMENT:
+                investment = self.data_manager.get_investment(dictionary['object_id'], dictionary['object_user_id'])
+                if investment is None:
+                    self.logger.warning('Dropping investment reject from %s (unknown investment)', sock_addr)
+                    continue
 
-            self.send_contract(investment.to_bin(), ContractType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
+                self.logger.debug('Got investment reject from %s', sock_addr)
+                investment.status = InvestmentStatus.REJECTED
 
-    def send_investment_reject(self, investment):
-        return self.send_message_to_ids(u'investment-reject', (investment.user_id,), {'investment_id': investment.id,
-                                                                                      'investment_user_id': investment.user_id})
-
-    @accept(local=Role.INVESTOR, remote=Role.FINANCIAL_INSTITUTION)
-    def on_investment_reject(self, messages):
-        for message in messages:
-            investment = self.data_manager.get_investment(message.payload.dictionary['investment_id'],
-                                                          message.payload.dictionary['investment_user_id'])
-
-            if investment is None:
-                self.logger.warning('Dropping investment-reject from %s (unknown investment)', message.candidate.sock_addr)
-                continue
-
-            self.logger.debug('Got investment-reject from %s', message.candidate.sock_addr)
-            investment.status = InvestmentStatus.REJECTED
+            else:
+                self.logger.warning('Dropping reject from %s (unknown object_type)', sock_addr)
 
     def send_campaign_update(self, campaign, investment=None):
         mortgage = self.data_manager.get_mortgage(campaign.mortgage_id, campaign.mortgage_user_id)
@@ -652,7 +620,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got signature-request from %s', message.candidate.sock_addr)
 
-            if contract.contract_type == ContractType.INVESTMENT:
+            if contract.type == ContractType.INVESTMENT:
                 # Find & set previous_hash
                 investment = contract.get_object()
                 campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
@@ -716,7 +684,7 @@ class MarketCommunity(Community):
                     self.logger.warning('Dropping contract %s (attempt to double spend)', b64encode(contract.id))
                     continue
 
-                if contract.contract_type == ContractType.INVESTMENT:
+                if contract.type == ContractType.INVESTMENT:
                     # Find all contracts that depend on this mortgage
                     contracts = self.data_manager.find_contracts(Contract.previous_hash == prev_contract.id)
                     contracts = list(contracts) if contracts.count() > 0 else []
@@ -728,7 +696,7 @@ class MarketCommunity(Community):
                     mortgage = prev_contract.get_object()
                     maximum_value = mortgage.amount - mortgage.bank_amount
                     current_value = sum([c.get_object().amount for c in contracts
-                                         if c.contract_type == ContractType.INVESTMENT])
+                                         if c.type == ContractType.INVESTMENT])
 
                     if current_value > maximum_value:
                         self.logger.warning('Dropping contract %s (attempt to overspend)', b64encode(contract.id))
@@ -981,7 +949,7 @@ class MarketCommunity(Community):
         contract.from_id = from_id
         contract.to_id = to_id
         contract.document = document
-        contract.contract_type = contract_type
+        contract.type = contract_type
         contract.time = int(time.time())
         contract.sign(self.my_member)
 

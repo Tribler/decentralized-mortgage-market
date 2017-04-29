@@ -1,4 +1,4 @@
-from storm.properties import Int, Float, Bool, RawStr
+from storm.properties import Int, Float, RawStr
 from market.models.investment import Investment, InvestmentStatus
 from storm.references import ReferenceSet
 from base64 import urlsafe_b64encode
@@ -17,7 +17,6 @@ class Campaign(object):
     mortgage_user_id = RawStr()
     amount = Float()
     end_time = Int()
-    completed = Bool()
     investments = ReferenceSet((id, user_id), (Investment.campaign_id, Investment.campaign_user_id))
 
     def __init__(self, identifier, user_id, mortgage_id, mortgage_user_id, amount, end_time, completed):
@@ -27,23 +26,18 @@ class Campaign(object):
         self.mortgage_user_id = mortgage_user_id
         self.amount = amount
         self.end_time = end_time
-        self.completed = completed
 
-    def calc_investment(self):
-        investment = sum([investment.amount for investment in self.investments
-                          if investment.status == InvestmentStatus.ACCEPTED])
-        if investment >= self.amount:
-            self.completed = True
-        return investment
+    @property
+    def investment(self):
+        return sum([investment.amount for investment in self.investments
+                    if investment.status == InvestmentStatus.ACCEPTED])
+
+    @property
+    def completed(self):
+        return self.investment >= self.amount
 
     def to_dict(self, api_response=False):
-        investment_dict = {}
-
-        if api_response:
-            # Calculate investment first, since it could affect completed
-            investment_dict['investment'] = self.calc_investment()
-
-        investment_dict.update({
+        investment_dict = {
             "id": self.id,
             "user_id": urlsafe_b64encode(self.user_id) if api_response else self.user_id,
             "mortgage_id": self.mortgage_id,
@@ -51,7 +45,11 @@ class Campaign(object):
             "amount": self.amount,
             "end_time": self.end_time,
             "completed": self.completed
-        })
+        }
+
+        if api_response:
+            investment_dict['investment'] = self.investment
+
         return investment_dict
 
     @staticmethod

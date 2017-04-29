@@ -125,9 +125,11 @@ class SpecificLoanRequestEndpoint(resource.Resource):
                                 parameters['default_rate'],
                                 parameters['duration'],
                                 parameters['risk'],
-                                MortgageStatus.PENDING)
+                                MortgageStatus.PENDING,
+                                loan_request.id,
+                                loan_request.user_id)
             user.mortgages.add(mortgage)
-            self.community.send_mortgage_offer(loan_request, mortgage)
+            self.community.offer_mortgage(loan_request, mortgage)
         else:
             loan_request.status = LoanRequestStatus.REJECTED
             self.community.send_loan_reject(loan_request)

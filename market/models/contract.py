@@ -1,6 +1,6 @@
 import hashlib
 
-from enum import Enum as PyEnum
+from enum import IntEnum
 from base64 import urlsafe_b64encode
 from storm.properties import Int, RawStr, Bool
 
@@ -9,7 +9,7 @@ from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 
 
-class ContractType(PyEnum):
+class ContractType(IntEnum):
     MORTGAGE = 0
     INVESTMENT = 1
     TRANSACTION = 2
@@ -28,7 +28,7 @@ class Contract(object):
     to_id = RawStr()
     to_signature = RawStr()
     document = RawStr()
-    contract_type = Enum(ContractType)
+    type = Enum(ContractType)
     untransferred = Bool()
     time = Int()
 
@@ -70,9 +70,9 @@ class Contract(object):
             return member.verify(str(self), self.to_signature)
 
     def get_object(self):
-        if self.contract_type == ContractType.MORTGAGE:
+        if self.type == ContractType.MORTGAGE:
             return Mortgage.from_bin(self.document)
-        elif self.contract_type == ContractType.INVESTMENT:
+        elif self.type == ContractType.INVESTMENT:
             return Investment.from_bin(self.document)
 
     def to_dict(self, api_response=False):
@@ -83,7 +83,7 @@ class Contract(object):
             'to_id': urlsafe_b64encode(self.to_id) if api_response else self.to_id,
             'to_signature': urlsafe_b64encode(self.to_signature) if api_response else self.to_signature,
             'document': urlsafe_b64encode(self.document) if api_response else self.document,
-            'contract_type': self.contract_type.name if api_response else self.contract_type.value,
+            'type': self.type.name if api_response else self.type.value,
             'time': self.time
         }
 
@@ -95,7 +95,7 @@ class Contract(object):
     @staticmethod
     def from_dict(contract_dict):
         try:
-            contract_type = ContractType(contract_dict['contract_type'])
+            contract_type = ContractType(contract_dict['type'])
         except ValueError:
             return None
 
@@ -106,6 +106,6 @@ class Contract(object):
         contract.to_id = contract_dict['to_id']
         contract.to_signature = contract_dict['to_signature']
         contract.document = contract_dict['document']
-        contract.contract_type = contract_type
+        contract.type = contract_type
         contract.time = contract_dict['time']
         return contract

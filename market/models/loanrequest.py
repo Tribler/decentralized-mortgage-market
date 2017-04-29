@@ -41,7 +41,6 @@ class LoanRequest(object):
         self.amount_wanted = amount_wanted
         self.status = status
 
-
     def to_dict(self, api_response=False):
         return {
             "id": self.id,

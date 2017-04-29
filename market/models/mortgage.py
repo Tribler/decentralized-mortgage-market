@@ -45,10 +45,13 @@ class Mortgage(Storm):
     duration = Int()
     risk = Unicode()
     status = Enum(MortgageStatus)
+    loan_request_id = Int()
+    loan_request_user_id = RawStr()
     contract_id = RawStr()
 
-    def __init__(self, identifier, user_id, bank_id, house, amount, bank_amount, mortgage_type, interest_rate, max_invest_rate,
-                 default_rate, duration, risk, status, contract_id=''):
+    def __init__(self, identifier, user_id, bank_id, house, amount, bank_amount, mortgage_type,
+                 interest_rate, max_invest_rate, default_rate, duration, risk, status,
+                 loan_request_id, loan_request_user_id, contract_id=''):
         self.id = identifier
         self.user_id = user_id
         self.bank_id = bank_id
@@ -62,6 +65,8 @@ class Mortgage(Storm):
         self.duration = duration
         self.risk = risk
         self.status = status
+        self.loan_request_id = loan_request_id
+        self.loan_request_user_id = loan_request_user_id
         self.contract_id = contract_id
 
     def to_dict(self, api_response=False):
@@ -79,6 +84,9 @@ class Mortgage(Storm):
             'duration': self.duration,
             'risk': self.risk,
             'status': self.status.name if api_response else self.status.value,
+            "loan_request_id": self.loan_request_id,
+            "loan_request_user_id": urlsafe_b64encode(self.loan_request_user_id)
+                                    if api_response else self.loan_request_user_id,
             'contract_id': urlsafe_b64encode(self.contract_id) if api_response else self.contract_id
         }
 
@@ -109,6 +117,8 @@ class Mortgage(Storm):
                         mortgage_dict['duration'],
                         mortgage_dict['risk'],
                         status,
+                        mortgage_dict['loan_request_id'],
+                        mortgage_dict['loan_request_user_id'],
                         mortgage_dict['contract_id'])
 
     def to_bin(self):

@@ -21,35 +21,22 @@ message LoanRejectMessage {
     required bytes loan_request_user_id = 2;
 }
 
-message MortgageOfferMessage {
-    required uint32 loan_request_id = 1;
-    required bytes loan_request_user_id = 2;
-    required Mortgage mortgage = 3;
+message OfferMessage {
+    optional Mortgage mortgage = 1;
+    optional Investment investment = 2;
+    optional Profile profile = 3;
 }
 
-message MortgageAcceptMessage {
-    required uint32 mortgage_id = 1;
-    required bytes mortgage_user_id = 2;
+message AcceptMessage {
+	required uint32 object_type = 1;
+    required uint32 object_id = 2;
+    required bytes object_user_id = 3;
 }
 
-message MortgageRejectMessage {
-    required uint32 mortgage_id = 1;
-    required bytes mortgage_user_id = 2;
-}
-
-message InvestmentOfferMessage {
-    required Investment investment = 1;
-    required Profile investor_profile = 2;
-}
-
-message InvestmentAcceptMessage {
-    required uint32 investment_id = 1;
-    required bytes investment_user_id = 2;
-}
-
-message InvestmentRejectMessage {
-    required uint32 investment_id = 1;
-    required bytes investment_user_id = 2;
+message RejectMessage {
+	required uint32 object_type = 1;
+    required uint32 object_id = 2;
+    required bytes object_user_id = 3;
 }
 
 message CampaignUpdateMessage {
@@ -149,7 +136,9 @@ message Mortgage {
     required string risk = 12;
     required uint32 status = 13;
     optional Campaign campaign = 14;
-    optional bytes contract_id = 15;
+    required uint32 loan_request_id = 15;
+    required bytes loan_request_user_id = 16;
+    optional bytes contract_id = 17;
 }
 
 message Campaign {
@@ -176,7 +165,7 @@ message Contract {
     required bytes to_id = 4;
     required bytes to_signature = 5;
     required bytes document = 6;
-    required uint32 contract_type = 7;
+    required uint32 type = 7;
     required uint32 time = 8;
 }
 
