@@ -21,6 +21,7 @@ from market.dispersy.distribution import DirectDistribution, FullSyncDistributio
 from market.dispersy.message import Message
 from market.dispersy.resolution import PublicResolution
 from market.dispersy.requestcache import RandomNumberCache
+from market.models import ObjectType
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import Mortgage, MortgageStatus
 from market.models.user import User, Role
@@ -29,7 +30,7 @@ from market.models.investment import InvestmentStatus, Investment
 from market.models.profile import Profile
 from market.models.block import Block
 from market.models.block_index import BlockIndex
-from market.models.contract import Contract, ContractType
+from market.models.contract import Contract
 from market.restapi.rest_manager import RESTManager
 from market.util.uint256 import bytes_to_uint256
 from market.util.math import median
@@ -368,7 +369,7 @@ class MarketCommunity(Community):
             user.loan_requests.add(loan_request)
 
     def reject_loan_request(self, loan_request):
-        return self.send_message_to_ids(u'reject', (loan_request.user_id,), {'object_type': ContractType.LOANREQUEST,
+        return self.send_message_to_ids(u'reject', (loan_request.user_id,), {'object_type': ObjectType.LOANREQUEST,
                                                                              'object_id': loan_request.id,
                                                                              'object_user_id': loan_request.user_id})
 
@@ -376,12 +377,12 @@ class MarketCommunity(Community):
         return self.send_message_to_ids(u'offer', (mortgage.user_id,), {'mortgage': mortgage.to_dict()})
 
     def accept_mortgage(self, mortgage):
-        return self.send_message_to_ids(u'accept', (mortgage.bank_id,), {'object_type': ContractType.MORTGAGE,
+        return self.send_message_to_ids(u'accept', (mortgage.bank_id,), {'object_type': ObjectType.MORTGAGE,
                                                                          'object_id': mortgage.id,
                                                                          'object_user_id': mortgage.user_id})
 
     def reject_mortgage(self, mortgage):
-        return self.send_message_to_ids(u'reject', (mortgage.bank_id,), {'object_type': ContractType.MORTGAGE,
+        return self.send_message_to_ids(u'reject', (mortgage.bank_id,), {'object_type': ObjectType.MORTGAGE,
                                                                          'object_id': mortgage.id,
                                                                          'object_user_id': mortgage.user_id})
 
@@ -397,12 +398,12 @@ class MarketCommunity(Community):
 
     def accept_investment(self, investment):
         return self.send_message_to_ids(u'accept', (investment.user_id,),
-                                        {'object_type': ContractType.INVESTMENT,
+                                        {'object_type': ObjectType.INVESTMENT,
                                          'object_id': investment.id,
                                          'object_user_id': investment.user_id})
 
     def reject_investment(self, investment):
-        return self.send_message_to_ids(u'reject', (investment.user_id,), {'object_type': ContractType.INVESTMENT,
+        return self.send_message_to_ids(u'reject', (investment.user_id,), {'object_type': ObjectType.INVESTMENT,
                                                                            'object_id': investment.id,
                                                                            'object_user_id': investment.user_id})
 
@@ -455,7 +456,7 @@ class MarketCommunity(Community):
             dictionary = message.payload.dictionary
             sock_addr = message.candidate.sock_addr
 
-            if dictionary['object_type'] == ContractType.MORTGAGE:
+            if dictionary['object_type'] == ObjectType.MORTGAGE:
                 mortgage = self.data_manager.get_mortgage(dictionary['object_id'], dictionary['object_user_id'])
                 if mortgage is None:
                     self.logger.warning('Dropping mortgage accept from %s (unknown mortgage)', sock_addr)
@@ -463,7 +464,7 @@ class MarketCommunity(Community):
 
                 self.logger.debug('Got mortgage accept from %s', sock_addr)
                 mortgage.status = MortgageStatus.ACCEPTED
-                self.send_contract(mortgage.to_bin(), ContractType.MORTGAGE, self.my_user_id, mortgage.user_id)
+                self.send_contract(mortgage.to_bin(), ObjectType.MORTGAGE, self.my_user_id, mortgage.user_id)
 
                 # Create campaign
                 end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
@@ -472,7 +473,7 @@ class MarketCommunity(Community):
                                     mortgage.id, mortgage.user_id, finance_goal, end_time, False)
                 self.data_manager.you.campaigns.add(campaign)
 
-            elif dictionary['object_type'] == ContractType.INVESTMENT:
+            elif dictionary['object_type'] == ObjectType.INVESTMENT:
                 investment = self.data_manager.get_investment(dictionary['object_id'], dictionary['object_user_id'])
                 if investment is None:
                     self.logger.warning('Dropping investment accept from %s (unknown investment)', sock_addr)
@@ -480,7 +481,7 @@ class MarketCommunity(Community):
 
                 self.logger.debug('Got investment accept from %s', sock_addr)
                 investment.status = InvestmentStatus.ACCEPTED
-                self.send_contract(investment.to_bin(), ContractType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
+                self.send_contract(investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
 
             else:
                 self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)
@@ -490,7 +491,7 @@ class MarketCommunity(Community):
             dictionary = message.payload.dictionary
             sock_addr = message.candidate.sock_addr
 
-            if dictionary['object_type'] == ContractType.LOANREQUEST:
+            if dictionary['object_type'] == ObjectType.LOANREQUEST:
                 loanrequest = self.data_manager.get_loan_request(dictionary['object_id'], dictionary['object_user_id'])
                 if loanrequest is None:
                     self.logger.warning('Dropping loanrequest reject from %s (unknown loanrequest)', sock_addr)
@@ -499,7 +500,7 @@ class MarketCommunity(Community):
                 self.logger.debug('Got loanrequest reject from %s', sock_addr)
                 loanrequest.status = LoanRequestStatus.REJECTED
 
-            elif dictionary['object_type'] == ContractType.MORTGAGE:
+            elif dictionary['object_type'] == ObjectType.MORTGAGE:
                 mortgage = self.data_manager.get_mortgage(dictionary['object_id'], dictionary['object_user_id'])
                 if mortgage is None:
                     self.logger.warning('Dropping mortgage reject from %s (unknown mortgage)', sock_addr)
@@ -508,7 +509,7 @@ class MarketCommunity(Community):
                 self.logger.debug('Got mortgage reject from %s', sock_addr)
                 mortgage.status = MortgageStatus.REJECTED
 
-            elif dictionary['object_type'] == ContractType.INVESTMENT:
+            elif dictionary['object_type'] == ObjectType.INVESTMENT:
                 investment = self.data_manager.get_investment(dictionary['object_id'], dictionary['object_user_id'])
                 if investment is None:
                     self.logger.warning('Dropping investment reject from %s (unknown investment)', sock_addr)
@@ -594,7 +595,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got signature-request from %s', message.candidate.sock_addr)
 
-            if contract.type == ContractType.INVESTMENT:
+            if contract.type == ObjectType.INVESTMENT:
                 # Find & set previous_hash
                 investment = contract.get_object()
                 campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
@@ -658,7 +659,7 @@ class MarketCommunity(Community):
                     self.logger.warning('Dropping contract %s (attempt to double spend)', b64encode(contract.id))
                     continue
 
-                if contract.type == ContractType.INVESTMENT:
+                if contract.type == ObjectType.INVESTMENT:
                     # Find all contracts that depend on this mortgage
                     contracts = self.data_manager.find_contracts(Contract.previous_hash == prev_contract.id)
                     contracts = list(contracts) if contracts.count() > 0 else []
@@ -670,7 +671,7 @@ class MarketCommunity(Community):
                     mortgage = prev_contract.get_object()
                     maximum_value = mortgage.amount - mortgage.bank_amount
                     current_value = sum([c.get_object().amount for c in contracts
-                                         if c.type == ContractType.INVESTMENT])
+                                         if c.type == ObjectType.INVESTMENT])
 
                     if current_value > maximum_value:
                         self.logger.warning('Dropping contract %s (attempt to overspend)', b64encode(contract.id))

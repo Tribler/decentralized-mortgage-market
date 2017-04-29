@@ -1,19 +1,12 @@
 import hashlib
 
-from enum import IntEnum
 from base64 import urlsafe_b64encode
 from storm.properties import Int, RawStr, Bool
 
 from market.database.types import Enum
+from market.models import ObjectType
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
-
-
-class ContractType(IntEnum):
-    LOANREQUEST = 0
-    MORTGAGE = 1
-    INVESTMENT = 2
-    TRANSACTION = 3
 
 
 class Contract(object):
@@ -29,7 +22,7 @@ class Contract(object):
     to_id = RawStr()
     to_signature = RawStr()
     document = RawStr()
-    type = Enum(ContractType)
+    type = Enum(ObjectType)
     untransferred = Bool()
     time = Int()
 
@@ -71,9 +64,9 @@ class Contract(object):
             return member.verify(str(self), self.to_signature)
 
     def get_object(self):
-        if self.type == ContractType.MORTGAGE:
+        if self.type == ObjectType.MORTGAGE:
             return Mortgage.from_bin(self.document)
-        elif self.type == ContractType.INVESTMENT:
+        elif self.type == ObjectType.INVESTMENT:
             return Investment.from_bin(self.document)
 
     def to_dict(self, api_response=False):
@@ -96,7 +89,7 @@ class Contract(object):
     @staticmethod
     def from_dict(contract_dict):
         try:
-            contract_type = ContractType(contract_dict['type'])
+            contract_type = ObjectType(contract_dict['type'])
         except ValueError:
             return None
 
