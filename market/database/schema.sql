@@ -96,7 +96,6 @@ CREATE TABLE IF NOT EXISTS contract(
   to_signature   TEXT,
   document       TEXT NOT NULL,
   type           INTEGER NOT NULL,
-  untransferred  INTEGER NOT NULL DEFAULT 0,
   time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

@@ -32,14 +32,15 @@ from market.models.block import Block
 from market.models.block_index import BlockIndex
 from market.models.contract import Contract
 from market.restapi.rest_manager import RESTManager
+from market.util.misc import median
 from market.util.uint256 import bytes_to_uint256
-from market.util.math import median
+
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
 
 BLOCK_CREATION_INTERNAL = 1
-BLOCK_TARGET_SPACING = 10 * 60
+BLOCK_TARGET_SPACING = 60  # 10 * 60
 BLOCK_TARGET_TIMESPAN = 20 * 60  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
 BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -444,7 +445,7 @@ class MarketCommunity(Community):
 
                 self.logger.debug('Got mortgage accept from %s', sock_addr)
                 mortgage.status = MortgageStatus.ACCEPTED
-                self.send_contract(mortgage.to_bin(), ObjectType.MORTGAGE, self.my_user_id, mortgage.user_id)
+                self.begin_contract(mortgage.to_bin(), ObjectType.MORTGAGE, self.my_user_id, mortgage.user_id)
 
                 # Create campaign
                 end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
@@ -459,9 +460,15 @@ class MarketCommunity(Community):
                     self.logger.warning('Dropping investment accept from %s (unknown investment)', sock_addr)
                     continue
 
+                mortgage = self.data_manager.get_mortgage_for_investment(investment)
+                if mortgage is None:
+                    self.logger.warning('Dropping investment accept from %s (unknown mortgage)', sock_addr)
+                    continue
+
                 self.logger.debug('Got investment accept from %s', sock_addr)
                 investment.status = InvestmentStatus.ACCEPTED
-                self.send_contract(investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id, investment.campaign_user_id)
+                self.begin_contract(investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id,
+                                    investment.campaign_user_id, mortgage.contract_id)
 
             else:
                 self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)
@@ -575,20 +582,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got signature-request from %s', message.candidate.sock_addr)
 
-            if contract.type == ObjectType.INVESTMENT:
-                # Find & set previous_hash
-                investment = contract.get_object()
-                campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
-                if campaign is None:
-                    self.warning('Could not find campaign')
-                    continue
-                mortgage = self.data_manager.get_mortgage(campaign.mortgage_id, campaign.mortgage_user_id)
-                if mortgage is None:
-                    self.warning('Could not find mortgage')
-                    continue
-                contract.previous_hash = mortgage.contract_id
-
-            if self.process_contract(contract, sign=True):
+            if self.finalize_contract(contract, sign=True):
                 self.send_signature_response(message.candidate, contract, message.payload.dictionary['identifier'])
                 self.incoming_contracts[contract.id] = contract
                 self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
@@ -614,7 +608,7 @@ class MarketCommunity(Community):
 
             self.logger.debug('Got signature-response from %s', message.candidate.sock_addr)
 
-            if self.process_contract(contract):
+            if self.finalize_contract(contract):
                 self.incoming_contracts[contract.id] = contract
                 self.multicast_message(u'contract', {'contract': contract.to_dict()}, role=Role.FINANCIAL_INSTITUTION)
 
@@ -626,40 +620,10 @@ class MarketCommunity(Community):
                 self.logger.debug('Dropping contract %s (duplicate)', b64encode(contract.id))
                 continue
 
-            # Check if contract is allowed
-            if contract.previous_hash:
-                prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
-                                self.data_manager.get_contract(contract.previous_hash)
-                if prev_contract is None:
-                    # Drop contract if the previous one is unknown
-                    self.logger.warning('Dropping contract %s (parent is unknown)', b64encode(contract.id))
-                    continue
-                elif not prev_contract.untransferred:
-                    # Drop contract if the previous one is already transferred (avoids double spending)
-                    self.logger.warning('Dropping contract %s (attempt to double spend)', b64encode(contract.id))
-                    continue
-
-                if contract.type == ObjectType.INVESTMENT:
-                    # Find all contracts that depend on this mortgage
-                    contracts = self.data_manager.find_contracts(Contract.previous_hash == prev_contract.id)
-                    contracts = list(contracts) if contracts.count() > 0 else []
-                    contracts += [c for c in self.incoming_contracts.values()
-                                  if c.previous_hash == prev_contract.id]
-                    contracts.append(contract)
-
-                    # Make sure the sum of all investments does not surpass the maximum allowed amount
-                    mortgage = prev_contract.get_object()
-                    maximum_value = mortgage.amount - mortgage.bank_amount
-                    current_value = sum([c.get_object().amount for c in contracts
-                                         if c.type == ObjectType.INVESTMENT])
-
-                    if current_value > maximum_value:
-                        self.logger.warning('Dropping contract %s (attempt to overspend)', b64encode(contract.id))
-                        continue
-                else:
-                    prev_contract.untransferred = False
-
-            contract.untransferred = True
+            # Preliminary check to see if contract is allowed. A final check will be performed in check_block.
+            if not self.check_contract(contract, fail_without_parent=False):
+                self.logger.warning('Dropping contract %s (check failed)', b64encode(contract.id))
+                continue
 
             self.logger.debug('Got contract %s', b64encode(contract.id))
 
@@ -713,10 +677,9 @@ class MarketCommunity(Community):
                 self.logger.debug('Postpone block %s', b64encode(block.id))
                 continue
 
-            if not self.process_block(block):
-                continue
-            self.logger.debug('Added received block with %s contract(s)', len(block.contracts))
-            self.process_blocks_after(block)
+            if self.process_block(block):
+                self.logger.debug('Added received block with %s contract(s)', len(block.contracts))
+                self.process_blocks_after(block)
 
     def process_blocks_after(self, block):
         # Process any orphan blocks that depend on the current block
@@ -753,6 +716,11 @@ class MarketCommunity(Community):
                 from_height = block_index.height
                 break
             cur_block = self.data_manager.get_block(cur_block.previous_hash)
+
+        # Make sure that we are not dealing with a chain of orphan blocks
+        if cur_block is None and block_ids[-1] != BLOCK_GENESIS_HASH:
+            self.logger.error('Block processing failed (chain of orphan blocks)')
+            return False
 
         # For now, the longest chain wins
         if len(block_ids) + from_height > latest_index.height:
@@ -793,6 +761,10 @@ class MarketCommunity(Community):
         for contract in block.contracts:
             if block.time < contract.time:
                 self.logger.debug('Block failed check (block created before contract)')
+                return False
+
+            if not self.check_contract(contract):
+                self.logger.warning('Block check failed (contract check failed)')
                 return False
 
         if len(block.contracts) != len(set([contract.id for contract in block.contracts])):
@@ -897,7 +869,46 @@ class MarketCommunity(Community):
                             payload=({'block': block.to_dict()},))
         return len(message.packet)
 
-    def send_contract(self, document, contract_type, from_id, to_id):
+    def check_contract(self, contract, fail_without_parent=True):
+        if not contract.verify():
+            self.logger.debug('Contract failed check (invalid signature)')
+            return False
+
+        if contract.previous_hash:
+            prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
+                            self.data_manager.get_contract(contract.previous_hash) if contract.previous_hash else None
+
+            if prev_contract is None:
+                if fail_without_parent:
+                    self.logger.error('Contract failed check (parent is unknown)')
+                    return False
+                else:
+                    return True
+
+            elif contract.type == ObjectType.TRANSACTION and self.has_sibling(contract):
+                self.logger.debug('Contract failed check (attempt to double spend)')
+                return False
+
+            elif contract.type == ObjectType.INVESTMENT:
+                # Find all contracts that depend on this mortgage
+                contracts = self.data_manager.find_contracts(Contract.previous_hash == prev_contract.id)
+                contracts = list(contracts) if contracts.count() > 0 else []
+                contracts += [c for c in self.incoming_contracts.values()
+                              if c.previous_hash == prev_contract.id]
+                contracts.append(contract)
+
+                # Make sure the sum of all investments does not surpass the maximum allowed amount
+                mortgage = prev_contract.get_object()
+                maximum_value = mortgage.amount - mortgage.bank_amount
+                current_value = sum([c.get_object().amount for c in contracts
+                                     if c.type == ObjectType.INVESTMENT])
+
+                if current_value > maximum_value:
+                    self.logger.debug('Contract failed check (attempt to overspend)')
+                    return False
+        return True
+
+    def begin_contract(self, document, contract_type, from_id, to_id, previous_hash=''):
         assert to_id == self.my_user_id or from_id == self.my_user_id
 
         contract = Contract()
@@ -905,12 +916,13 @@ class MarketCommunity(Community):
         contract.to_id = to_id
         contract.document = document
         contract.type = contract_type
+        contract.previous_hash = previous_hash
         contract.time = int(time.time())
         contract.sign(self.my_member)
 
         return self.send_signature_request(contract)
 
-    def process_contract(self, contract, sign=False):
+    def finalize_contract(self, contract, sign=False):
         # Link to mortgage/investment
         obj = contract.get_object()
         if isinstance(obj, Mortgage):
@@ -952,3 +964,14 @@ class MarketCommunity(Community):
         self.data_manager.add_contract(contract)
 
         return True
+
+    def has_sibling(self, contract):
+        for c in self.incoming_contracts.itervalues():
+            if c.id != contract.id and c.previous_hash == contract.previous_hash:
+                return True
+
+        if self.data_manager.find_contracts(Contract.previous_hash == contract.previous_hash,
+                                            Contract.id != contract.id).count() > 0:
+            return True
+
+        return False

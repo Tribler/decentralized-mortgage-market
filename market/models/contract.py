@@ -1,12 +1,14 @@
 import hashlib
 
 from base64 import urlsafe_b64encode
-from storm.properties import Int, RawStr, Bool
+from storm.properties import Int, RawStr
 
 from market.database.types import Enum
+from market.dispersy.crypto import LibNaCLPK
 from market.models import ObjectType
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
+from market.util.misc import verify_libnaclpk
 
 
 class Contract(object):
@@ -23,7 +25,6 @@ class Contract(object):
     to_signature = RawStr()
     document = RawStr()
     type = Enum(ObjectType)
-    untransferred = Bool()
     time = Int()
 
     def __init__(self):
@@ -33,7 +34,6 @@ class Contract(object):
         self.to_id = ''
         self.to_signature = ''
         self.document = ''
-        self.untransferred = True
         self.time = 0
 
     def __storm_pre_flush__(self):
@@ -48,6 +48,7 @@ class Contract(object):
         return hashlib.sha256(str(self)).digest()
 
     def sign(self, member):
+        assert isinstance(member._ec, LibNaCLPK), 'Only supporting libnacl crypto for now'
         assert member.public_key in (self.from_id, self.to_id)
 
         if member.public_key == self.from_id:
@@ -55,13 +56,18 @@ class Contract(object):
         elif member.public_key == self.to_id:
             self.to_signature = member.sign(str(self))
 
-    def verify(self, member):
-        assert member.public_key in (self.from_id, self.to_id)
+    def verify(self, member=None):
+        assert member is None or member.public_key in (self.from_id, self.to_id)
+
+        data = str(self)
+        if member is None:
+            return verify_libnaclpk(self.from_id, data, self.from_signature) and \
+                   verify_libnaclpk(self.to_id, data, self.to_signature)
 
         if member.public_key == self.from_id:
-            return member.verify(str(self), self.from_signature)
+            return member.verify(data, self.from_signature)
         elif member.public_key == self.to_id:
-            return member.verify(str(self), self.to_signature)
+            return member.verify(data, self.to_signature)
 
     def get_object(self):
         if self.type == ObjectType.MORTGAGE:

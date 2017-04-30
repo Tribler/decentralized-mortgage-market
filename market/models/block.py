@@ -9,6 +9,7 @@ from storm.store import Store
 from market.dispersy.crypto import LibNaCLPK
 from market.models.contract import Contract
 from market.models.block_contract import BlockContract
+from market.util.misc import verify_libnaclpk
 from market.util.uint256 import bytes_to_uint256, uint256_to_bytes
 
 
@@ -55,12 +56,7 @@ class Block(object):
         self.creator_signature = member.sign(str(self))
 
     def verify(self):
-        try:
-            data = str(self)
-            key = LibNaCLPK(self.creator[10:])
-            return key.verify(self.creator_signature, data) == data
-        except ValueError:
-            return False
+        return verify_libnaclpk(self.creator, str(self), self.creator_signature)
 
     @property
     def id(self):
