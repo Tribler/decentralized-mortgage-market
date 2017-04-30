@@ -10,16 +10,15 @@ class MarketConversion(BinaryConversion):
         super(MarketConversion, self).__init__(community, "\x02")
 
         msg_types = {u'user': (chr(1), pb.UserMessage),
-                     u'loan-request': (chr(2), pb.LoanRequestMessage),
-                     u'offer': (chr(3), pb.OfferMessage),
-                     u'accept': (chr(4), pb.AcceptMessage),
-                     u'reject': (chr(5), pb.RejectMessage),
-                     u'campaign-update': (chr(6), pb.CampaignUpdateMessage),
-                     u'signature-request': (chr(7), pb.SignatureRequestMessage),
-                     u'signature-response': (chr(8), pb.SignatureResponseMessage),
-                     u'contract': (chr(9), pb.ContractMessage),
-                     u'block-request': (chr(10), pb.BlockRequestMessage),
-                     u'block': (chr(11), pb.BlockMessage)}
+                     u'offer': (chr(2), pb.OfferMessage),
+                     u'accept': (chr(3), pb.AcceptMessage),
+                     u'reject': (chr(4), pb.RejectMessage),
+                     u'campaign-update': (chr(5), pb.CampaignUpdateMessage),
+                     u'signature-request': (chr(6), pb.SignatureRequestMessage),
+                     u'signature-response': (chr(7), pb.SignatureResponseMessage),
+                     u'contract': (chr(8), pb.ContractMessage),
+                     u'block-request': (chr(9), pb.BlockRequestMessage),
+                     u'block': (chr(10), pb.BlockMessage)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,

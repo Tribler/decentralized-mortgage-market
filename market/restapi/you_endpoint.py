@@ -286,7 +286,7 @@ class YouLoanRequestsEndpoint(resource.Resource):
 
         you.loan_requests.add(loan_request)
 
-        self.community.send_loan_request(loan_request)
+        self.community.offer_loan_request(loan_request)
 
         # TODO(Martijn): Invoke TFTP here to send the documents to the banks
 

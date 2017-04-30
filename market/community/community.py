@@ -140,15 +140,6 @@ class MarketCommunity(Community):
                     ProtobufPayload(),
                     self._generic_timeline_check,
                     self.on_user),
-            # Mortgage-specific agreement messages
-            Message(self, u"loan-request",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ProtobufPayload(),
-                    self._generic_timeline_check,
-                    self.on_loan_request),
             # Agreement messages
             Message(self, u"offer",
                     MemberAuthentication(),
@@ -341,32 +332,9 @@ class MarketCommunity(Community):
             user = self._process_user(message.candidate, message.payload.dictionary['user'])
             self.logger.debug('Got user from %s (role=%s)', message.candidate.sock_addr, user.role)
 
-    def send_loan_request(self, loan_request):
-        msg_dict = {'loan_request': loan_request.to_dict(),
-                    'borrowers_profile': self.data_manager.you.profile.to_dict()}
-
-        return self.send_message_to_ids(u'loan-request', (loan_request.bank_id,), msg_dict)
-
-    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.BORROWER)
-    def on_loan_request(self, messages):
-        for message in messages:
-            self.logger.debug('Got loan-request from %s', message.candidate.sock_addr)
-
-            loan_request_dict = message.payload.dictionary['loan_request']
-            loan_request = LoanRequest.from_dict(loan_request_dict)
-
-            if loan_request is None:
-                self.logger.warning('Dropping invalid loan-request from %s', message.candidate.sock_addr)
-                continue
-
-            borrowers_profile_dict = message.payload.dictionary['borrowers_profile']
-            borrowers_profile = Profile.from_dict(borrowers_profile_dict)
-
-            # We're deliberately not using loan_request.user_id
-            user = self.add_or_update_user(message.candidate, role=Role.BORROWER)
-            self.add_or_update_profile(message.candidate, borrowers_profile)
-
-            user.loan_requests.add(loan_request)
+    def offer_loan_request(self, loan_request):
+        return self.send_message_to_ids(u'offer', (loan_request.bank_id,), {'loan_request': loan_request.to_dict(),
+                                                                            'profile': self.my_user.profile.to_dict()})
 
     def reject_loan_request(self, loan_request):
         return self.send_message_to_ids(u'reject', (loan_request.user_id,), {'object_type': ObjectType.LOANREQUEST,
@@ -412,7 +380,19 @@ class MarketCommunity(Community):
             dictionary = message.payload.dictionary
             sock_addr = message.candidate.sock_addr
 
-            if set(('mortgage',)) <= set(dictionary):
+            if set(('loan_request', 'profile')) <= set(dictionary):
+                loan_request = LoanRequest.from_dict(dictionary['loan_request'])
+                if loan_request is None:
+                    self.logger.warning('Dropping invalid loanrequest offer from %s', sock_addr)
+                    continue
+
+                self.logger.debug('Got loanrequest offer from %s', sock_addr)
+                profile = Profile.from_dict(dictionary['profile'])
+                user = self.add_or_update_user(message.candidate, role=Role.BORROWER)
+                self.add_or_update_profile(message.candidate, profile)
+                user.loan_requests.add(loan_request)
+
+            elif set(('mortgage',)) <= set(dictionary):
                 mortgage = Mortgage.from_dict(dictionary['mortgage'])
                 if mortgage is None:
                     self.logger.warning('Dropping invalid mortgage offer from %s', sock_addr)

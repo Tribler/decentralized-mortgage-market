@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='market.proto',
   package='market',
   syntax='proto2',
-  serialized_pb=_b('\n\x0cmarket.proto\x12\x06market\")\n\x0bUserMessage\x12\x1a\n\x04user\x18\x01 \x02(\x0b\x32\x0c.market.User\"t\n\x12LoanRequestMessage\x12)\n\x0cloan_request\x18\x01 \x02(\x0b\x32\x13.market.LoanRequest\x12\x33\n\x11\x62orrowers_profile\x18\x02 \x02(\x0b\x32\x18.market.BorrowersProfile\"|\n\x0cOfferMessage\x12\"\n\x08mortgage\x18\x01 \x01(\x0b\x32\x10.market.Mortgage\x12&\n\ninvestment\x18\x02 \x01(\x0b\x32\x12.market.Investment\x12 \n\x07profile\x18\x03 \x01(\x0b\x32\x0f.market.Profile\"O\n\rAcceptMessage\x12\x13\n\x0bobject_type\x18\x01 \x02(\r\x12\x11\n\tobject_id\x18\x02 \x02(\r\x12\x16\n\x0eobject_user_id\x18\x03 \x02(\x0c\"O\n\rRejectMessage\x12\x13\n\x0bobject_type\x18\x01 \x02(\r\x12\x11\n\tobject_id\x18\x02 \x02(\r\x12\x16\n\x0eobject_user_id\x18\x03 \x02(\x0c\"\x87\x01\n\x15\x43\x61mpaignUpdateMessage\x12\"\n\x08\x63\x61mpaign\x18\x01 \x02(\x0b\x32\x10.market.Campaign\x12\"\n\x08mortgage\x18\x02 \x02(\x0b\x32\x10.market.Mortgage\x12&\n\ninvestment\x18\x03 \x01(\x0b\x32\x12.market.Investment\"Q\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\"\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x10.market.Contract\"R\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\"\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x10.market.Contract\"5\n\x0f\x43ontractMessage\x12\"\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x10.market.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\",\n\x0c\x42lockMessage\x12\x1c\n\x05\x62lock\x18\x01 \x02(\x0b\x32\r.market.Block\"\xac\x01\n\x0bLoanRequest\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x1c\n\x05house\x18\x03 \x02(\x0b\x32\r.market.House\x12\x15\n\rmortgage_type\x18\x04 \x02(\r\x12\x0f\n\x07\x62\x61nk_id\x18\x05 \x02(\x0c\x12\x13\n\x0b\x64\x65scription\x18\x06 \x02(\t\x12\x15\n\ramount_wanted\x18\x07 \x02(\x01\x12\x0e\n\x06status\x18\x08 \x02(\r\"\x92\x01\n\x05House\x12\x13\n\x0bpostal_code\x18\x01 \x02(\t\x12\x14\n\x0chouse_number\x18\x02 \x02(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x02(\t\x12\r\n\x05price\x18\x04 \x02(\x01\x12\x0b\n\x03url\x18\x05 \x02(\t\x12\x1b\n\x13seller_phone_number\x18\x06 \x02(\t\x12\x14\n\x0cseller_email\x18\x07 \x02(\t\"c\n\x07Profile\x12\x12\n\nfirst_name\x18\x01 \x02(\t\x12\x11\n\tlast_name\x18\x02 \x02(\t\x12\r\n\x05\x65mail\x18\x03 \x02(\t\x12\x0c\n\x04iban\x18\x04 \x02(\t\x12\x14\n\x0cphone_number\x18\x05 \x02(\t\"\xd7\x01\n\x10\x42orrowersProfile\x12\x12\n\nfirst_name\x18\x01 \x02(\t\x12\x11\n\tlast_name\x18\x02 \x02(\t\x12\r\n\x05\x65mail\x18\x03 \x02(\t\x12\x0c\n\x04iban\x18\x04 \x02(\t\x12\x14\n\x0cphone_number\x18\x05 \x02(\t\x12\x1b\n\x13\x63urrent_postal_code\x18\x06 \x02(\t\x12\x1c\n\x14\x63urrent_house_number\x18\x07 \x02(\t\x12\x17\n\x0f\x63urrent_address\x18\x08 \x02(\t\x12\x15\n\rdocument_list\x18\t \x03(\t\"\xb6\x01\n\nInvestment\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x02(\x01\x12\x10\n\x08\x64uration\x18\x04 \x02(\r\x12\x15\n\rinterest_rate\x18\x05 \x02(\x01\x12\x13\n\x0b\x63\x61mpaign_id\x18\x06 \x02(\r\x12\x18\n\x10\x63\x61mpaign_user_id\x18\x07 \x02(\x0c\x12\x0e\n\x06status\x18\x08 \x02(\r\x12\x13\n\x0b\x63ontract_id\x18\t \x01(\x0c\"\xf8\x02\n\x08Mortgage\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x0f\n\x07\x62\x61nk_id\x18\x03 \x02(\x0c\x12\x1c\n\x05house\x18\x04 \x02(\x0b\x32\r.market.House\x12\x0e\n\x06\x61mount\x18\x05 \x02(\x01\x12\x13\n\x0b\x62\x61nk_amount\x18\x06 \x02(\x01\x12\x15\n\rmortgage_type\x18\x07 \x02(\r\x12\x15\n\rinterest_rate\x18\x08 \x02(\x01\x12\x17\n\x0fmax_invest_rate\x18\t \x02(\x01\x12\x14\n\x0c\x64\x65\x66\x61ult_rate\x18\n \x02(\x01\x12\x10\n\x08\x64uration\x18\x0b \x02(\r\x12\x0c\n\x04risk\x18\x0c \x02(\t\x12\x0e\n\x06status\x18\r \x02(\r\x12\"\n\x08\x63\x61mpaign\x18\x0e \x01(\x0b\x32\x10.market.Campaign\x12\x17\n\x0floan_request_id\x18\x0f \x02(\r\x12\x1c\n\x14loan_request_user_id\x18\x10 \x02(\x0c\x12\x13\n\x0b\x63ontract_id\x18\x11 \x01(\x0c\"\xb4\x01\n\x08\x43\x61mpaign\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x13\n\x0bmortgage_id\x18\x03 \x02(\r\x12\x18\n\x10mortgage_user_id\x18\x04 \x02(\x0c\x12\x0e\n\x06\x61mount\x18\x05 \x02(\x01\x12\x10\n\x08\x65nd_time\x18\x06 \x02(\r\x12\x11\n\tcompleted\x18\x07 \x02(\x08\x12\'\n\x0binvestments\x18\x08 \x03(\x0b\x32\x12.market.Investment\"B\n\x04User\x12\n\n\x02id\x18\x01 \x02(\x0c\x12\x0c\n\x04role\x18\x02 \x02(\r\x12 \n\x07profile\x18\x03 \x01(\x0b\x32\x0f.market.Profile\"\x9d\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x0f\n\x07\x66rom_id\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\r\n\x05to_id\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb2\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12#\n\tcontracts\x18\x07 \x03(\x0b\x32\x10.market.Contract')
+  serialized_pb=_b('\n\x0cmarket.proto\x12\x06market\")\n\x0bUserMessage\x12\x1a\n\x04user\x18\x01 \x02(\x0b\x32\x0c.market.User\"\xa7\x01\n\x0cOfferMessage\x12)\n\x0cloan_request\x18\x01 \x01(\x0b\x32\x13.market.LoanRequest\x12\"\n\x08mortgage\x18\x02 \x01(\x0b\x32\x10.market.Mortgage\x12&\n\ninvestment\x18\x03 \x01(\x0b\x32\x12.market.Investment\x12 \n\x07profile\x18\x04 \x01(\x0b\x32\x0f.market.Profile\"O\n\rAcceptMessage\x12\x13\n\x0bobject_type\x18\x01 \x02(\r\x12\x11\n\tobject_id\x18\x02 \x02(\r\x12\x16\n\x0eobject_user_id\x18\x03 \x02(\x0c\"O\n\rRejectMessage\x12\x13\n\x0bobject_type\x18\x01 \x02(\r\x12\x11\n\tobject_id\x18\x02 \x02(\r\x12\x16\n\x0eobject_user_id\x18\x03 \x02(\x0c\"\x87\x01\n\x15\x43\x61mpaignUpdateMessage\x12\"\n\x08\x63\x61mpaign\x18\x01 \x02(\x0b\x32\x10.market.Campaign\x12\"\n\x08mortgage\x18\x02 \x02(\x0b\x32\x10.market.Mortgage\x12&\n\ninvestment\x18\x03 \x01(\x0b\x32\x12.market.Investment\"Q\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\"\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x10.market.Contract\"R\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\"\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x10.market.Contract\"5\n\x0f\x43ontractMessage\x12\"\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x10.market.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\",\n\x0c\x42lockMessage\x12\x1c\n\x05\x62lock\x18\x01 \x02(\x0b\x32\r.market.Block\"\xac\x01\n\x0bLoanRequest\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x1c\n\x05house\x18\x03 \x02(\x0b\x32\r.market.House\x12\x15\n\rmortgage_type\x18\x04 \x02(\r\x12\x0f\n\x07\x62\x61nk_id\x18\x05 \x02(\x0c\x12\x13\n\x0b\x64\x65scription\x18\x06 \x02(\t\x12\x15\n\ramount_wanted\x18\x07 \x02(\x01\x12\x0e\n\x06status\x18\x08 \x02(\r\"\x92\x01\n\x05House\x12\x13\n\x0bpostal_code\x18\x01 \x02(\t\x12\x14\n\x0chouse_number\x18\x02 \x02(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x02(\t\x12\r\n\x05price\x18\x04 \x02(\x01\x12\x0b\n\x03url\x18\x05 \x02(\t\x12\x1b\n\x13seller_phone_number\x18\x06 \x02(\t\x12\x14\n\x0cseller_email\x18\x07 \x02(\t\"\xce\x01\n\x07Profile\x12\x12\n\nfirst_name\x18\x01 \x02(\t\x12\x11\n\tlast_name\x18\x02 \x02(\t\x12\r\n\x05\x65mail\x18\x03 \x02(\t\x12\x0c\n\x04iban\x18\x04 \x02(\t\x12\x14\n\x0cphone_number\x18\x05 \x02(\t\x12\x1b\n\x13\x63urrent_postal_code\x18\x06 \x01(\t\x12\x1c\n\x14\x63urrent_house_number\x18\x07 \x01(\t\x12\x17\n\x0f\x63urrent_address\x18\x08 \x01(\t\x12\x15\n\rdocument_list\x18\t \x01(\t\"\xb6\x01\n\nInvestment\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x02(\x01\x12\x10\n\x08\x64uration\x18\x04 \x02(\r\x12\x15\n\rinterest_rate\x18\x05 \x02(\x01\x12\x13\n\x0b\x63\x61mpaign_id\x18\x06 \x02(\r\x12\x18\n\x10\x63\x61mpaign_user_id\x18\x07 \x02(\x0c\x12\x0e\n\x06status\x18\x08 \x02(\r\x12\x13\n\x0b\x63ontract_id\x18\t \x01(\x0c\"\xf8\x02\n\x08Mortgage\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x0f\n\x07\x62\x61nk_id\x18\x03 \x02(\x0c\x12\x1c\n\x05house\x18\x04 \x02(\x0b\x32\r.market.House\x12\x0e\n\x06\x61mount\x18\x05 \x02(\x01\x12\x13\n\x0b\x62\x61nk_amount\x18\x06 \x02(\x01\x12\x15\n\rmortgage_type\x18\x07 \x02(\r\x12\x15\n\rinterest_rate\x18\x08 \x02(\x01\x12\x17\n\x0fmax_invest_rate\x18\t \x02(\x01\x12\x14\n\x0c\x64\x65\x66\x61ult_rate\x18\n \x02(\x01\x12\x10\n\x08\x64uration\x18\x0b \x02(\r\x12\x0c\n\x04risk\x18\x0c \x02(\t\x12\x0e\n\x06status\x18\r \x02(\r\x12\"\n\x08\x63\x61mpaign\x18\x0e \x01(\x0b\x32\x10.market.Campaign\x12\x17\n\x0floan_request_id\x18\x0f \x02(\r\x12\x1c\n\x14loan_request_user_id\x18\x10 \x02(\x0c\x12\x13\n\x0b\x63ontract_id\x18\x11 \x01(\x0c\"\xb4\x01\n\x08\x43\x61mpaign\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0f\n\x07user_id\x18\x02 \x02(\x0c\x12\x13\n\x0bmortgage_id\x18\x03 \x02(\r\x12\x18\n\x10mortgage_user_id\x18\x04 \x02(\x0c\x12\x0e\n\x06\x61mount\x18\x05 \x02(\x01\x12\x10\n\x08\x65nd_time\x18\x06 \x02(\r\x12\x11\n\tcompleted\x18\x07 \x02(\x08\x12\'\n\x0binvestments\x18\x08 \x03(\x0b\x32\x12.market.Investment\"B\n\x04User\x12\n\n\x02id\x18\x01 \x02(\x0c\x12\x0c\n\x04role\x18\x02 \x02(\r\x12 \n\x07profile\x18\x03 \x01(\x0b\x32\x0f.market.Profile\"\x9d\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x0f\n\x07\x66rom_id\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\r\n\x05to_id\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb2\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12#\n\tcontracts\x18\x07 \x03(\x0b\x32\x10.market.Contract')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -57,44 +57,6 @@ _USERMESSAGE = _descriptor.Descriptor(
 )
 
 
-_LOANREQUESTMESSAGE = _descriptor.Descriptor(
-  name='LoanRequestMessage',
-  full_name='market.LoanRequestMessage',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='loan_request', full_name='market.LoanRequestMessage.loan_request', index=0,
-      number=1, type=11, cpp_type=10, label=2,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='borrowers_profile', full_name='market.LoanRequestMessage.borrowers_profile', index=1,
-      number=2, type=11, cpp_type=10, label=2,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=67,
-  serialized_end=183,
-)
-
-
 _OFFERMESSAGE = _descriptor.Descriptor(
   name='OfferMessage',
   full_name='market.OfferMessage',
@@ -103,22 +65,29 @@ _OFFERMESSAGE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='mortgage', full_name='market.OfferMessage.mortgage', index=0,
+      name='loan_request', full_name='market.OfferMessage.loan_request', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='investment', full_name='market.OfferMessage.investment', index=1,
+      name='mortgage', full_name='market.OfferMessage.mortgage', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='profile', full_name='market.OfferMessage.profile', index=2,
+      name='investment', full_name='market.OfferMessage.investment', index=2,
       number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='profile', full_name='market.OfferMessage.profile', index=3,
+      number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -135,8 +104,8 @@ _OFFERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=185,
-  serialized_end=309,
+  serialized_start=68,
+  serialized_end=235,
 )
 
 
@@ -180,8 +149,8 @@ _ACCEPTMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=311,
-  serialized_end=390,
+  serialized_start=237,
+  serialized_end=316,
 )
 
 
@@ -225,8 +194,8 @@ _REJECTMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=392,
-  serialized_end=471,
+  serialized_start=318,
+  serialized_end=397,
 )
 
 
@@ -270,8 +239,8 @@ _CAMPAIGNUPDATEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=474,
-  serialized_end=609,
+  serialized_start=400,
+  serialized_end=535,
 )
 
 
@@ -308,8 +277,8 @@ _SIGNATUREREQUESTMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=611,
-  serialized_end=692,
+  serialized_start=537,
+  serialized_end=618,
 )
 
 
@@ -346,8 +315,8 @@ _SIGNATURERESPONSEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=694,
-  serialized_end=776,
+  serialized_start=620,
+  serialized_end=702,
 )
 
 
@@ -377,8 +346,8 @@ _CONTRACTMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=778,
-  serialized_end=831,
+  serialized_start=704,
+  serialized_end=757,
 )
 
 
@@ -408,8 +377,8 @@ _BLOCKREQUESTMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=833,
-  serialized_end=872,
+  serialized_start=759,
+  serialized_end=798,
 )
 
 
@@ -439,8 +408,8 @@ _BLOCKMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=874,
-  serialized_end=918,
+  serialized_start=800,
+  serialized_end=844,
 )
 
 
@@ -519,8 +488,8 @@ _LOANREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=921,
-  serialized_end=1093,
+  serialized_start=847,
+  serialized_end=1019,
 )
 
 
@@ -592,8 +561,8 @@ _HOUSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1096,
-  serialized_end=1242,
+  serialized_start=1022,
+  serialized_end=1168,
 )
 
 
@@ -639,90 +608,31 @@ _PROFILE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1244,
-  serialized_end=1343,
-)
-
-
-_BORROWERSPROFILE = _descriptor.Descriptor(
-  name='BorrowersProfile',
-  full_name='market.BorrowersProfile',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
     _descriptor.FieldDescriptor(
-      name='first_name', full_name='market.BorrowersProfile.first_name', index=0,
-      number=1, type=9, cpp_type=9, label=2,
+      name='current_postal_code', full_name='market.Profile.current_postal_code', index=5,
+      number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='last_name', full_name='market.BorrowersProfile.last_name', index=1,
-      number=2, type=9, cpp_type=9, label=2,
+      name='current_house_number', full_name='market.Profile.current_house_number', index=6,
+      number=7, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='email', full_name='market.BorrowersProfile.email', index=2,
-      number=3, type=9, cpp_type=9, label=2,
+      name='current_address', full_name='market.Profile.current_address', index=7,
+      number=8, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='iban', full_name='market.BorrowersProfile.iban', index=3,
-      number=4, type=9, cpp_type=9, label=2,
+      name='document_list', full_name='market.Profile.document_list', index=8,
+      number=9, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='phone_number', full_name='market.BorrowersProfile.phone_number', index=4,
-      number=5, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='current_postal_code', full_name='market.BorrowersProfile.current_postal_code', index=5,
-      number=6, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='current_house_number', full_name='market.BorrowersProfile.current_house_number', index=6,
-      number=7, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='current_address', full_name='market.BorrowersProfile.current_address', index=7,
-      number=8, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='document_list', full_name='market.BorrowersProfile.document_list', index=8,
-      number=9, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -738,8 +648,8 @@ _BORROWERSPROFILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1346,
-  serialized_end=1561,
+  serialized_start=1171,
+  serialized_end=1377,
 )
 
 
@@ -825,8 +735,8 @@ _INVESTMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1564,
-  serialized_end=1746,
+  serialized_start=1380,
+  serialized_end=1562,
 )
 
 
@@ -968,8 +878,8 @@ _MORTGAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1749,
-  serialized_end=2125,
+  serialized_start=1565,
+  serialized_end=1941,
 )
 
 
@@ -1048,8 +958,8 @@ _CAMPAIGN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2128,
-  serialized_end=2308,
+  serialized_start=1944,
+  serialized_end=2124,
 )
 
 
@@ -1093,8 +1003,8 @@ _USER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2310,
-  serialized_end=2376,
+  serialized_start=2126,
+  serialized_end=2192,
 )
 
 
@@ -1173,8 +1083,8 @@ _CONTRACT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2379,
-  serialized_end=2536,
+  serialized_start=2195,
+  serialized_end=2352,
 )
 
 
@@ -1246,13 +1156,12 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2539,
-  serialized_end=2717,
+  serialized_start=2355,
+  serialized_end=2533,
 )
 
 _USERMESSAGE.fields_by_name['user'].message_type = _USER
-_LOANREQUESTMESSAGE.fields_by_name['loan_request'].message_type = _LOANREQUEST
-_LOANREQUESTMESSAGE.fields_by_name['borrowers_profile'].message_type = _BORROWERSPROFILE
+_OFFERMESSAGE.fields_by_name['loan_request'].message_type = _LOANREQUEST
 _OFFERMESSAGE.fields_by_name['mortgage'].message_type = _MORTGAGE
 _OFFERMESSAGE.fields_by_name['investment'].message_type = _INVESTMENT
 _OFFERMESSAGE.fields_by_name['profile'].message_type = _PROFILE
@@ -1270,7 +1179,6 @@ _CAMPAIGN.fields_by_name['investments'].message_type = _INVESTMENT
 _USER.fields_by_name['profile'].message_type = _PROFILE
 _BLOCK.fields_by_name['contracts'].message_type = _CONTRACT
 DESCRIPTOR.message_types_by_name['UserMessage'] = _USERMESSAGE
-DESCRIPTOR.message_types_by_name['LoanRequestMessage'] = _LOANREQUESTMESSAGE
 DESCRIPTOR.message_types_by_name['OfferMessage'] = _OFFERMESSAGE
 DESCRIPTOR.message_types_by_name['AcceptMessage'] = _ACCEPTMESSAGE
 DESCRIPTOR.message_types_by_name['RejectMessage'] = _REJECTMESSAGE
@@ -1283,7 +1191,6 @@ DESCRIPTOR.message_types_by_name['BlockMessage'] = _BLOCKMESSAGE
 DESCRIPTOR.message_types_by_name['LoanRequest'] = _LOANREQUEST
 DESCRIPTOR.message_types_by_name['House'] = _HOUSE
 DESCRIPTOR.message_types_by_name['Profile'] = _PROFILE
-DESCRIPTOR.message_types_by_name['BorrowersProfile'] = _BORROWERSPROFILE
 DESCRIPTOR.message_types_by_name['Investment'] = _INVESTMENT
 DESCRIPTOR.message_types_by_name['Mortgage'] = _MORTGAGE
 DESCRIPTOR.message_types_by_name['Campaign'] = _CAMPAIGN
@@ -1297,13 +1204,6 @@ UserMessage = _reflection.GeneratedProtocolMessageType('UserMessage', (_message.
   # @@protoc_insertion_point(class_scope:market.UserMessage)
   ))
 _sym_db.RegisterMessage(UserMessage)
-
-LoanRequestMessage = _reflection.GeneratedProtocolMessageType('LoanRequestMessage', (_message.Message,), dict(
-  DESCRIPTOR = _LOANREQUESTMESSAGE,
-  __module__ = 'market_pb2'
-  # @@protoc_insertion_point(class_scope:market.LoanRequestMessage)
-  ))
-_sym_db.RegisterMessage(LoanRequestMessage)
 
 OfferMessage = _reflection.GeneratedProtocolMessageType('OfferMessage', (_message.Message,), dict(
   DESCRIPTOR = _OFFERMESSAGE,
@@ -1388,13 +1288,6 @@ Profile = _reflection.GeneratedProtocolMessageType('Profile', (_message.Message,
   # @@protoc_insertion_point(class_scope:market.Profile)
   ))
 _sym_db.RegisterMessage(Profile)
-
-BorrowersProfile = _reflection.GeneratedProtocolMessageType('BorrowersProfile', (_message.Message,), dict(
-  DESCRIPTOR = _BORROWERSPROFILE,
-  __module__ = 'market_pb2'
-  # @@protoc_insertion_point(class_scope:market.BorrowersProfile)
-  ))
-_sym_db.RegisterMessage(BorrowersProfile)
 
 Investment = _reflection.GeneratedProtocolMessageType('Investment', (_message.Message,), dict(
   DESCRIPTOR = _INVESTMENT,
