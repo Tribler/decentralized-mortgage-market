@@ -776,8 +776,8 @@ class MarketCommunity(Community):
             return False
 
         past_blocks = self.get_past_blocks(block, 11)
-        if past_blocks and block.time > median([b.time for b in past_blocks]):
-            self.logger.debug('Block failed check (block time larger than median time of past 11 blocks)')
+        if past_blocks and block.time < median([b.time for b in past_blocks]):
+            self.logger.debug('Block failed check (block time smaller than median time of past 11 blocks)')
             return False
 
         return True
