@@ -419,7 +419,7 @@ class MarketCommunity(Community):
                 if campaign is None:
                     self.logger.warning('Dropping investment offer from %s (unknown campaign)', sock_addr)
                     continue
-                elif campaign.investment + investment.amount > campaign.amount:
+                elif campaign.amount_invested + investment.amount > campaign.amount:
                     self.logger.warning('Auto-rejecting investment offer from %s (amount too large)', sock_addr)
                     self.reject_investment(investment)
                     continue
@@ -451,13 +451,18 @@ class MarketCommunity(Community):
                 end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
                 finance_goal = mortgage.amount - mortgage.bank_amount
                 campaign = Campaign(self.data_manager.you.campaigns.count(), self.my_user_id,
-                                    mortgage.id, mortgage.user_id, finance_goal, end_time, False)
+                                    mortgage.id, mortgage.user_id, finance_goal, 0, end_time)
                 self.data_manager.you.campaigns.add(campaign)
 
             elif dictionary['object_type'] == ObjectType.INVESTMENT:
                 investment = self.data_manager.get_investment(dictionary['object_id'], dictionary['object_user_id'])
                 if investment is None:
                     self.logger.warning('Dropping investment accept from %s (unknown investment)', sock_addr)
+                    continue
+
+                campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+                if campaign is None:
+                    self.logger.warning('Dropping investment accept from %s (unknown campaign)', sock_addr)
                     continue
 
                 mortgage = self.data_manager.get_mortgage_for_investment(investment)
@@ -467,6 +472,7 @@ class MarketCommunity(Community):
 
                 self.logger.debug('Got investment accept from %s', sock_addr)
                 investment.status = InvestmentStatus.ACCEPTED
+                campaign.amount_invested += investment.amount
                 self.begin_contract(investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id,
                                     investment.campaign_user_id, mortgage.contract_id)
 
@@ -508,12 +514,10 @@ class MarketCommunity(Community):
             else:
                 self.logger.warning('Dropping reject from %s (unknown object_type)', sock_addr)
 
-    def send_campaign_update(self, campaign, investment=None):
+    def send_campaign_update(self, campaign):
         mortgage = self.data_manager.get_mortgage(campaign.mortgage_id, campaign.mortgage_user_id)
         msg_dict = {'campaign': campaign.to_dict(),
                     'mortgage': mortgage.to_dict()}
-        if investment is not None:
-            msg_dict['investment'] = investment.to_dict()
 
         meta = self.get_meta_message(u'campaign-update')
         message = meta.impl(authentication=(self._my_member,),
@@ -528,9 +532,6 @@ class MarketCommunity(Community):
 
             mortgage_dict = message.payload.dictionary['mortgage']
             mortgage = Mortgage.from_dict(mortgage_dict)
-
-            investment = Investment.from_dict(message.payload.dictionary['investment']) \
-                         if 'investment' in message.payload.dictionary else None
 
             if campaign is None or mortgage is None:
                 self.logger.warning('Dropping invalid campaign-update from %s', message.candidate.sock_addr)
@@ -558,9 +559,6 @@ class MarketCommunity(Community):
                 bank.campaigns.add(campaign)
             else:
                 campaign = existing_campaign
-
-            if investment and self.data_manager.get_investment(investment.id, investment.user_id) is None:
-                campaign.investments.add(investment)
 
     def send_signature_request(self, contract):
         cache = self.request_cache.add(SignatureRequestCache(self))
@@ -955,7 +953,7 @@ class MarketCommunity(Community):
             # Send campaign update
             if self.my_role == Role.FINANCIAL_INSTITUTION:
                 campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
-                self.send_campaign_update(campaign, investment)
+                self.send_campaign_update(campaign)
 
         if sign:
             contract.sign(self.my_member)

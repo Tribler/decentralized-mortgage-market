@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS campaign(
   mortgage_id      INTEGER,
   mortgage_user_id TEXT,
   amount           FLOAT,
+  amount_invested  FLOAT,
   end_time         INTEGER,
   PRIMARY KEY (id, user_id)
 );

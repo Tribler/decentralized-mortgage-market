@@ -30,7 +30,7 @@ export class InvestorCampaignsComponent implements OnInit {
 
     loadCampaigns() {
         this.marketService.getCampaigns()
-            .map(campaigns => campaigns.filter((campaign: any) => !campaign.completed))
+            .map(campaigns => campaigns.filter((campaign: any) => campaign.amount_invested < campaign.amount))
             .subscribe(campaigns => this.campaigns = campaigns);
     }
 
