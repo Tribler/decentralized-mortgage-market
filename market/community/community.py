@@ -654,17 +654,18 @@ class MarketCommunity(Community):
             if not block:
                 self.logger.warning('Dropping invalid block from %s', message.candidate.sock_addr)
                 continue
-            elif not self.check_block(block):
-                self.logger.warning('Dropping illegal block from %s', message.candidate.sock_addr)
-                continue
 
-            self.logger.debug('Got block %s', b64encode(block.id))
-
-            # If we're trying to download this block, stop it
+            # If we're trying to download this block, stop it. This needs to happen before any additional checks.
             # TODO: fix this
             for cache in self.request_cache._identifiers.values():
                 if isinstance(cache, BlockRequestCache) and cache.block_id == block.id:
                     self.request_cache.pop(cache.prefix, cache.number)
+
+            if not self.check_block(block):
+                self.logger.warning('Dropping illegal block from %s', message.candidate.sock_addr)
+                continue
+
+            self.logger.debug('Got block %s', b64encode(block.id))
 
             # Are we dealing with an orphan block?
             if block.previous_hash != BLOCK_GENESIS_HASH and not self.data_manager.get_block(block.previous_hash):
@@ -763,6 +764,7 @@ class MarketCommunity(Community):
 
             if not self.check_contract(contract):
                 self.logger.warning('Block check failed (contract check failed)')
+                self.incoming_contracts.pop(contract.id, None)
                 return False
 
         if len(block.contracts) != len(set([contract.id for contract in block.contracts])):
