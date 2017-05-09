@@ -9,6 +9,7 @@ from market.models.loanrequest import LoanRequest
 from market.models.campaign import Campaign
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
+from market.models.transfer import Transfer
 from market.models.profile import Profile
 from market.database.types import Enum
 from market.defs import VERIFIED_BANKS
@@ -34,7 +35,8 @@ class User(Storm):
     loan_requests = ReferenceSet(id, LoanRequest.user_id)
     campaigns = ReferenceSet(id, Campaign.user_id)
     mortgages = ReferenceSet(id, Mortgage.user_id)
-    investments = ReferenceSet(id, Investment.user_id)
+    investments = ReferenceSet(id, Investment.owner_id)
+    transfers = ReferenceSet(id, Transfer.user_id)
 
     def __init__(self, public_key, private_key=None, role=None):
         self.id = public_key

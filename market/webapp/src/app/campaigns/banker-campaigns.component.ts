@@ -40,12 +40,12 @@ export class BankerCampaignsComponent implements OnInit {
     }
 
     acceptInvestmentOffer(investment) {
-        this.marketService.acceptInvestment(investment)
+        this.marketService.acceptInvestmentOffer(investment)
              .subscribe(() => this.loadMyCampaigns());
     }
 
     rejectInvestmentOffer(investment) {
-        this.marketService.rejectInvestment(investment)
+        this.marketService.rejectInvestmentOffer(investment)
             .subscribe(() => this.loadMyCampaigns());
     }
 }

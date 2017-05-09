@@ -19,7 +19,10 @@
         </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-row="row" ngx-datatable-cell-template>
-                <i class="glyphicon glyphicon-plus accept clickable" (click)="request['campaign_id']=row.id; request['campaign_user_id']=row.user_id; staticModal.show();"></i>
+                <button type="button" class="btn btn-success btn-xs"
+                        (click)="investment_offer['campaign_id']=row.id; investment_offer['campaign_user_id']=row.user_id; investmentOfferModal.show();">
+                    <span class="glyphicon glyphicon-shopping-cart"></span> buy
+                </button>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>
@@ -37,17 +40,49 @@
                 <status [label]="value"></status>
             </template>
         </ngx-datatable-column>
+        <ngx-datatable-column prop="id" name="Actions">
+            <template let-row="row" ngx-datatable-cell-template>
+                <button *ngIf="canMakeTransferOffer(row)" type="button" class="btn btn-success btn-xs"
+                        (click)="transfer_offer['investment_id']=row.id; transfer_offer['investment_user_id']=row.user_id; transferOfferModal.show();">
+                    <span class="glyphicon glyphicon-shopping-cart"></span> buy
+                </button>
+            </template>
+        </ngx-datatable-column>
     </ngx-datatable>
 </div>
 
+<div class='well'>
+    <legend>My investments</legend>
+    <ngx-datatable class='material' [rows]='my_investments' [headerHeight]="50" [footerHeight]="0"
+                   [scrollbarV]="false" [scrollbarH]="true">
+        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
+        <ngx-datatable-column prop="campaign_id" name="Campaign"></ngx-datatable-column>
+        <ngx-datatable-column prop="status" name="Status">
+            <template let-value="value" ngx-datatable-cell-template>
+                <status [label]="value"></status>
+            </template>
+        </ngx-datatable-column>
+        <ngx-datatable-column prop="id" name="Actions">
+            <template let-row="row" ngx-datatable-cell-template>
+                <button *ngIf="row.status == 'ACCEPTED'" type="button" class="btn btn-danger btn-xs" (click)="sellMyInvestment(row)">
+                    <span class="glyphicon glyphicon-shopping-cart"></span> sell
+                </button>
+                <button *ngIf="row.best_offer" type="button" class="btn btn-info btn-xs" (click)="acceptTransferOffer(row)">
+                    <span class="glyphicon glyphicon-ok"></span> accept offer ({{row.best_offer.amount}})
+                </button>
+            </template>
+        </ngx-datatable-column>
+    </ngx-datatable>
+</div>
 
-<div class="modal fade" bsModal #staticModal="bs-modal" [config]="{backdrop: 'static'}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
+<div class="modal fade" bsModal #transferOfferModal="bs-modal" [config]="{backdrop: 'static'}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title pull-left">Create an investment offer</h4>
-                <button type="button" class="close pull-right" aria-label="Close" (click)="staticModal.hide()">
+                <h4 class="modal-title pull-left">Create an tranfer offer</h4>
+                <button type="button" class="close pull-right" aria-label="Close" (click)="transferOfferModal.hide()">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -58,7 +93,52 @@
                         <div class="inputGroupContainer">
                             <div class="input-group">
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
-                                <input [(ngModel)]="request.amount" name="amount" placeholder="Amount" class="form-control" type="number"
+                                <input [(ngModel)]="transfer_offer.amount" name="amount" placeholder="Amount" class="form-control" type="number"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="ccontrol-label">IBAN</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-piggy-bank"></i></span>
+                                <input [(ngModel)]="transfer_offer.iban" name="iban" placeholder="IBAN" class="form-control" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" (click)="transferOfferModal.hide()">Cancel</button>
+                <button type="button" class="btn btn-warning" (click)="offerTransfer(transferOfferModal)">
+                    Offer transfer <span class="glyphicon glyphicon-send"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" bsModal #investmentOfferModal="bs-modal" [config]="{backdrop: 'static'}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title pull-left">Create an investment offer</h4>
+                <button type="button" class="close pull-right" aria-label="Close" (click)="investmentOfferModal.hide()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label class="control-label">Amount</label>
+                        <div class="inputGroupContainer">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-euro"></i></span>
+                                <input [(ngModel)]="investment_offer.amount" name="amount" placeholder="Amount" class="form-control" type="number"
                                     required>
                             </div>
                         </div>
@@ -69,15 +149,15 @@
                         <div class="inputGroupContainer">
                             <div class="input-group">
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-piggy-bank"></i></span>
-                                <input [(ngModel)]="request.interest_rate" name="interest_rate" placeholder="Interest rate" class="form-control" type="number" required>
+                                <input [(ngModel)]="investment_offer.interest_rate" name="interest_rate" placeholder="Interest rate" class="form-control" type="number" required>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" (click)="staticModal.hide()">Cancel</button>
-                <button type="button" class="btn btn-warning" (click)="offerInvestment(staticModal)">
+                <button type="button" class="btn btn-default" (click)="investmentOfferModal.hide()">Cancel</button>
+                <button type="button" class="btn btn-warning" (click)="offerInvestment(investmentOfferModal)">
                     Offer investment <span class="glyphicon glyphicon-send"></span>
                 </button>
             </div>

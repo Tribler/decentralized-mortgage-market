@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS campaign(
 CREATE TABLE IF NOT EXISTS investment(
   id               INTEGER,
   user_id          TEXT,
+  owner_id         TEXT,
   amount           FLOAT,
   duration         INTEGER,
   interest_rate    FLOAT,
@@ -85,6 +86,18 @@ CREATE TABLE IF NOT EXISTS investment(
   campaign_user_id TEXT,
   status           INTEGER,
   contract_id      TEXT,
+  PRIMARY KEY (id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS transfer(
+  id                 INTEGER,
+  user_id            TEXT,
+  iban               TEXT,
+  amount             FLOAT,
+  investment_id      INTEGER,
+  investment_user_id TEXT,
+  status             INTEGER,
+  contract_id        TEXT,
   PRIMARY KEY (id, user_id)
 );
 

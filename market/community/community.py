@@ -27,6 +27,7 @@ from market.models.mortgage import Mortgage, MortgageStatus
 from market.models.user import User, Role
 from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus, Investment
+from market.models.transfer import Transfer, TransferStatus
 from market.models.profile import Profile
 from market.models.block import Block
 from market.models.block_index import BlockIndex
@@ -35,12 +36,11 @@ from market.restapi.rest_manager import RESTManager
 from market.util.misc import median
 from market.util.uint256 import bytes_to_uint256
 
-
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
 
 BLOCK_CREATION_INTERNAL = 1
-BLOCK_TARGET_SPACING = 60  # 10 * 60
+BLOCK_TARGET_SPACING = 30  # 10 * 60
 BLOCK_TARGET_TIMESPAN = 20 * 60  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
 BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -86,11 +86,12 @@ class MarketCommunity(Community):
         self.rest_manager = None
         self.market_api = None
 
-    def initialize(self, role, rest_api_port):
+    def initialize(self, role=Role.UNKNOWN, rest_api_port=0, database_fn=''):
         super(MarketCommunity, self).initialize()
 
-        market_db = os.path.join(self.dispersy.working_directory, 'market.db')
-        self.data_manager = MarketDataManager(market_db)
+        if database_fn:
+            database_fn = os.path.join(self.dispersy.working_directory, database_fn)
+        self.data_manager = MarketDataManager(database_fn)
         self.data_manager.initialize(self.my_user_id, Role(role))
 
         self.rest_manager = RESTManager(self, rest_api_port)
@@ -376,6 +377,33 @@ class MarketCommunity(Community):
                                                                            'object_id': investment.id,
                                                                            'object_user_id': investment.user_id})
 
+    def offer_transfer(self, transfer):
+        investment = self.data_manager.get_investment(transfer.investment_id, transfer.investment_user_id)
+        if investment is None:
+            self.logger.error('Cannot send transfer-offer (unknown investment)')
+            return False
+
+        # TODO: who is the current owner?
+        return self.send_message_to_ids(u'offer', (investment.user_id,),
+                                        {'transfer': transfer.to_dict(),
+                                         'investment': investment.to_dict()})
+
+    def accept_transfer(self, transfer):
+        investment = self.data_manager.get_investment(transfer.investment_id, transfer.investment_user_id)
+        if investment is None:
+            self.logger.error('Cannot send transfer-offer (unknown investment)')
+            return False
+
+        return self.send_message_to_ids(u'accept', (transfer.user_id,),
+                                        {'object_type': ObjectType.TRANSFER,
+                                         'object_id': transfer.id,
+                                         'object_user_id': transfer.user_id})
+
+    def reject_transfer(self, transfer):
+        return self.send_message_to_ids(u'reject', (transfer.user_id,), {'object_type': ObjectType.TRANSFER,
+                                                                         'object_id': transfer.id,
+                                                                         'object_user_id': transfer.user_id})
+
     def on_offer(self, message):
         for message in message:
             dictionary = message.payload.dictionary
@@ -429,6 +457,22 @@ class MarketCommunity(Community):
                 self.add_or_update_profile(message.candidate, profile)
                 campaign.investments.add(investment)
 
+            elif set(('transfer', 'investment')) <= set(dictionary):
+                transfer = Transfer.from_dict(dictionary['transfer'])
+                investment = Investment.from_dict(dictionary['investment'])
+                if transfer is None or investment is None:
+                    self.logger.warning('Dropping invalid transfer offer from %s', sock_addr)
+                    continue
+
+                investment = self.data_manager.get_investment(investment.id, investment.user_id)
+                if investment is None:
+                    self.logger.warning('Dropping transfer offer from %s (unknown investment)', sock_addr)
+                    continue
+
+                self.logger.debug('Got transfer offer from %s', sock_addr)
+
+                investment.transfers.add(transfer)
+
             else:
                 self.logger.warning('Dropping offer from %s (unexpected payload)', message.candidate.sock_addr)
 
@@ -476,6 +520,22 @@ class MarketCommunity(Community):
                 self.begin_contract(investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id,
                                     investment.campaign_user_id, mortgage.contract_id)
 
+            elif dictionary['object_type'] == ObjectType.TRANSFER:
+                transfer = self.data_manager.get_transfer(dictionary['object_id'], dictionary['object_user_id'])
+                if transfer is None:
+                    self.logger.warning('Dropping transfer accept from %s (unknown transfer)', sock_addr)
+                    continue
+
+                investment = self.data_manager.get_investment(transfer.investment_id, transfer.investment_user_id)
+                if investment is None:
+                    self.logger.warning('Dropping transfer accept from %s (unknown investment)', sock_addr)
+                    continue
+
+                self.logger.debug('Got transfer accept from %s', sock_addr)
+                transfer.status = TransferStatus.ACCEPTED
+                self.begin_contract(transfer.to_bin(), ObjectType.TRANSFER, self.my_user_id,
+                                    transfer.investment_user_id, investment.contract_id)
+
             else:
                 self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)
 
@@ -511,13 +571,24 @@ class MarketCommunity(Community):
                 self.logger.debug('Got investment reject from %s', sock_addr)
                 investment.status = InvestmentStatus.REJECTED
 
+            elif dictionary['object_type'] == ObjectType.TRANSFER:
+                transfer = self.data_manager.get_transfer(dictionary['object_id'], dictionary['object_user_id'])
+                if transfer is None:
+                    self.logger.warning('Dropping transfer accept from %s (unknown transfer)', sock_addr)
+                    continue
+
+                self.logger.debug('Got transfer reject from %s', sock_addr)
+                transfer.status = TransferStatus.REJECTED
+
             else:
                 self.logger.warning('Dropping reject from %s (unknown object_type)', sock_addr)
 
-    def send_campaign_update(self, campaign):
+    def send_campaign_update(self, campaign, investment=None):
         mortgage = self.data_manager.get_mortgage(campaign.mortgage_id, campaign.mortgage_user_id)
         msg_dict = {'campaign': campaign.to_dict(),
                     'mortgage': mortgage.to_dict()}
+        if investment is not None:
+            msg_dict['investment'] = investment.to_dict()
 
         meta = self.get_meta_message(u'campaign-update')
         message = meta.impl(authentication=(self._my_member,),
@@ -527,38 +598,79 @@ class MarketCommunity(Community):
 
     def on_campaign_update(self, messages):
         for message in messages:
-            campaign_dict = message.payload.dictionary['campaign']
-            campaign = Campaign.from_dict(campaign_dict)
+            dictionary = message.payload.dictionary
 
-            mortgage_dict = message.payload.dictionary['mortgage']
-            mortgage = Mortgage.from_dict(mortgage_dict)
+            if set(('campaign', 'mortgage')) == set(dictionary):
+                # Campaign update. Informs us about how much money the bank still needs.
+                campaign = Campaign.from_dict(dictionary['campaign'])
+                mortgage = Mortgage.from_dict(dictionary['mortgage'])
 
-            if campaign is None or mortgage is None:
-                self.logger.warning('Dropping invalid campaign-update from %s', message.candidate.sock_addr)
-                continue
+                if campaign is None or mortgage is None:
+                    self.logger.warning('Dropping invalid campaign-update from %s', message.candidate.sock_addr)
+                    continue
 
-            # TODO: check for user in check method?
-            bank = self.data_manager.get_user(campaign.user_id)
-            if bank is None:
-                self.logger.warning('Dropping campaign-update (unknown user_id)')
-                continue
+                bank = self.data_manager.get_user(campaign.user_id)
+                if bank is None:
+                    self.logger.warning('Dropping campaign-update (unknown user_id)')
+                    continue
 
-            self.logger.debug('Got campaign-update')
+                self.logger.debug('Got campaign-update')
 
-            user = self.data_manager.get_user(mortgage.user_id)
-            if user is None:
-                user = User(mortgage.user_id, role=Role.BORROWER)
-                self.data_manager.add_user(user)
-            # TODO: check if this message is signed by the mortgage owner
+                user = self.data_manager.get_user(mortgage.user_id)
+                if user is None:
+                    user = User(mortgage.user_id, role=Role.BORROWER)
+                    self.data_manager.add_user(user)
 
-            if self.data_manager.get_mortgage(mortgage.id, mortgage.user_id) is None:
-                user.mortgages.add(mortgage)
+                # TODO: check if this message is signed by the mortgage owner
 
-            existing_campaign = self.data_manager.get_campaign(campaign.id, campaign.user_id)
-            if existing_campaign is None:
-                bank.campaigns.add(campaign)
-            else:
-                campaign = existing_campaign
+                if self.data_manager.get_mortgage(mortgage.id, mortgage.user_id) is None:
+                    user.mortgages.add(mortgage)
+
+                existing_campaign = self.data_manager.get_campaign(campaign.id, campaign.user_id)
+                if existing_campaign is None:
+                    bank.campaigns.add(campaign)
+                else:
+                    existing_campaign.amount_invested = max(existing_campaign.amount_invested, campaign.amount_invested)
+
+            elif set(('campaign', 'mortgage', 'investment')) == set(dictionary):
+                # Someone is offering an investment that they own for resale
+                campaign = Campaign.from_dict(dictionary['campaign'])
+                mortgage = Mortgage.from_dict(dictionary['mortgage'])
+                investment = Investment.from_dict(dictionary['investment'])
+
+                if campaign is None or mortgage is None or investment is None:
+                    self.logger.warning('Dropping invalid campaign-update from %s', message.candidate.sock_addr)
+                    continue
+
+                bank = self.data_manager.get_user(campaign.user_id)
+                if bank is None:
+                    self.logger.warning('Dropping campaign-update (unknown user_id)')
+                    continue
+
+                self.logger.debug('Got campaign-update (for investment)')
+
+                user = self.data_manager.get_user(mortgage.user_id)
+                if user is None:
+                    user = User(mortgage.user_id, role=Role.BORROWER)
+                    self.data_manager.add_user(user)
+
+                # TODO: check if this message is signed by the investment owner
+
+                if self.data_manager.get_mortgage(mortgage.id, mortgage.user_id) is None:
+                    user.mortgages.add(mortgage)
+
+                existing_campaign = self.data_manager.get_campaign(campaign.id, campaign.user_id)
+                if existing_campaign is None:
+                    bank.campaigns.add(campaign)
+                else:
+                    campaign = existing_campaign
+
+                existing_investment = self.data_manager.get_investment(investment.id, investment.user_id)
+                if existing_investment is None:
+                    campaign.investments.add(investment)
+                else:
+                    # Update the existing investment with the new status. Should be either ACCEPTED or FORSALE
+                    existing_investment.status = investment.status
 
     def send_signature_request(self, contract):
         cache = self.request_cache.add(SignatureRequestCache(self))
@@ -807,7 +919,7 @@ class MarketCommunity(Community):
                 # Get the previous contract from memory or the database
                 prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
                                 self.data_manager.get_contract(contract.previous_hash)
-                on_blockchain = self.data_manager.contract_on_blockchain(prev_contract.id)
+                on_blockchain = self.data_manager.contract_on_blockchain(prev_contract.id) if prev_contract else False
                 # We need to wait until the previous contract is received and on the blockchain
                 if prev_contract is None or not on_blockchain:
                     dependencies[contract.previous_hash].append(contract)
@@ -885,7 +997,7 @@ class MarketCommunity(Community):
                 else:
                     return True
 
-            elif contract.type == ObjectType.TRANSACTION and self.has_sibling(contract):
+            elif contract.type == ObjectType.TRANSFER and self.has_sibling(contract):
                 self.logger.debug('Contract failed check (attempt to double spend)')
                 return False
 
@@ -956,6 +1068,28 @@ class MarketCommunity(Community):
             if self.my_role == Role.FINANCIAL_INSTITUTION:
                 campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
                 self.send_campaign_update(campaign)
+
+        elif isinstance(obj, Transfer):
+            # Check if information from the database matches the contract
+            # TODO: check previous hash
+            transfer = self.data_manager.get_transfer(obj.id, obj.user_id)
+            if transfer.to_bin() != contract.document:
+                self.logger.warning('Could not process contract (contract does not match transfer)')
+                return False
+
+            # Link to transfer
+            transfer.contract_id = contract.id
+
+            # Send campaign update
+            # TODO
+            investment = self.data_manager.get_investment(transfer.investment_id, transfer.investment_user_id)
+            campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+            investment.status = InvestmentStatus.ACCEPTED
+            if transfer.user_id != self.my_user_id:
+                self.send_campaign_update(campaign, investment)
+                self.data_manager.you.investments.remove(investment)
+            else:
+                self.data_manager.you.investments.add(investment)
 
         if sign:
             contract.sign(self.my_member)

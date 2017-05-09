@@ -10,6 +10,7 @@ from market.restapi.users_endpoint import UsersEndpoint
 from market.restapi.you_endpoint import YouEndpoint
 from market.restapi.loanrequests_endpoint import LoanRequestsEndpoint
 from market.restapi.mortgages_endpoint import MortgagesEndpoint
+from market.restapi.investments_endpoint import InvestmentsEndpoint
 from market.restapi.blocks_endpoint import BlocksEndpoint
 from market.models.user import Role
 
@@ -21,6 +22,7 @@ class APIEndpoint(resource.Resource):
 
         child_handler_dict = {"users": UsersEndpoint,
                               "campaigns": CampaignsEndpoint,
+                              "investments": InvestmentsEndpoint,
                               "blocks": BlocksEndpoint,
                               "you": YouEndpoint}
         for path, child_cls in child_handler_dict.iteritems():

@@ -10,6 +10,7 @@ from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import MortgageStatus, MortgageType
 from market.models.user import Role
 from market.models.profile import Profile
+from market.models.transfer import Transfer, TransferStatus
 from market.restapi import split_composite_key
 
 
@@ -24,6 +25,7 @@ class YouEndpoint(resource.Resource):
 
         self.putChild("profile", YouProfileEndpoint(community))
         self.putChild("investments", YouInvestmentsEndpoint(community))
+        self.putChild("transfers", YouTransfersEndpoint(community))
         self.putChild("mortgages", YouMortgagesEndpoint(community))
         self.putChild("loanrequests", YouLoanRequestsEndpoint(community))
         self.putChild("campaigns", YouCampaignsEndpoint(community))
@@ -154,6 +156,10 @@ class YouInvestmentsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.community = community
 
+
+    def getChild(self, path, request):
+        return YouSpecificInvestmentEndpoint(self.community, path)
+
     def render_GET(self, request):
         """
         .. http:get:: /you/investments
@@ -186,7 +192,16 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this user is not an investor"})
 
-        return json.dumps({"investments": [investment.to_dict(api_response=True) for investment in you.investments]})
+        investment_dicts = []
+        for investment in you.investments:
+            investment_dict = investment.to_dict(api_response=True)
+            # Add the highest transfer offer (if any)
+            pending_transfers = sorted([(transfer.amount, transfer) for transfer in investment.transfers if transfer.status == TransferStatus.PENDING])
+            if pending_transfers:
+                investment_dict["best_offer"] = pending_transfers[0][1].to_dict(api_response=True)
+            investment_dicts.append(investment_dict)
+
+        return json.dumps({"investments": investment_dicts})
 
     def render_PUT(self, request):
         you = self.community.data_manager.you
@@ -216,12 +231,124 @@ class YouInvestmentsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "mortgage not found"})
 
-        investment = Investment(you.investments.count(), you.id, amount, 0,
+        counter = self.community.data_manager.store.find(Investment, Investment.user_id == you.id).count()
+        investment = Investment(counter, you.id, amount, 0,
                                 interest_rate, campaign.id, campaign.user_id, InvestmentStatus.PENDING)
         you.investments.add(investment)
         campaign.investments.add(investment)
 
         self.community.offer_investment(investment)
+
+        return json.dumps({"success": True})
+
+
+class YouSpecificInvestmentEndpoint(resource.Resource):
+    """
+    This class handles requests regarding a specific investment.
+    """
+
+    def __init__(self, community, investment_composite_key):
+        resource.Resource.__init__(self)
+        self.community = community
+        self.investment_composite_key = investment_composite_key
+
+    def render_PATCH(self, request):
+        """
+        Sell an investment
+        """
+        keys = split_composite_key(self.investment_composite_key)
+        investment = self.community.data_manager.get_investment(*keys) if keys is not None else None
+        if not investment:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "investment not found"})
+
+        campaign = self.community.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
+        if not campaign:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "no related campaign found"})
+
+        parameters = json.loads(request.content.read())
+        status = parameters.get('status')
+        if not status:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "missing status parameter"})
+
+        if status != 'FORSALE':
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "invalid status value"})
+
+        investment.status = InvestmentStatus.FORSALE
+        self.community.send_campaign_update(campaign, investment)
+
+        return json.dumps({"success": True})
+
+
+class YouTransfersEndpoint(resource.Resource):
+    """
+    This class handles requests regarding the transfers of you.
+    """
+
+    def __init__(self, community):
+        resource.Resource.__init__(self)
+        self.community = community
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /you/transfers
+
+        A GET request to this endpoint returns a list of transfers that you have made.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/you/transfers
+
+            **Example response**:
+
+            TODO
+
+        """
+        you = self.community.data_manager.you
+        if not you.role == Role.INVESTOR:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "this user is not an investor"})
+
+        return json.dumps({"transfers": [transfer.to_dict(api_response=True) for transfer in you.transfers]})
+
+    def render_PUT(self, request):
+        you = self.community.data_manager.you
+
+        if not you.role == Role.INVESTOR:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "only investors can create new transfers"})
+
+        if you.profile is None:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "please create a profile prior to creating an transfers offer"})
+
+        parameters = json.loads(request.content.read())
+        required_fields = ['iban', 'amount', 'investment_id', 'investment_user_id']
+        for field in required_fields:
+            if field not in parameters:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "missing %s parameter" % field})
+
+        iban = parameters['iban']
+        amount = parameters['amount']
+        investment_id = parameters['investment_id']
+        investment_user_id = urlsafe_b64decode(str(parameters['investment_user_id']))
+
+        investment = self.community.data_manager.get_investment(investment_id, investment_user_id)
+        if investment is None:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "investment not found"})
+
+        transfer = Transfer(you.transfers.count(), you.id, iban, amount, investment_id, investment_user_id)
+
+        you.transfers.add(transfer)
+
+        self.community.offer_transfer(transfer)
 
         return json.dumps({"success": True})
 

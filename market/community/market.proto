@@ -12,6 +12,7 @@ message OfferMessage {
     optional Mortgage mortgage = 2;
     optional Investment investment = 3;
     optional Profile profile = 4;
+    optional Transfer transfer = 5;
 }
 
 message AcceptMessage {
@@ -126,11 +127,15 @@ message Investment {
     optional bytes contract_id = 9;
 }
 
-message Transaction {
-    required string iban = 1;
-    required double amount = 2;
-    required uint32 investment_id = 3;
-    required bytes investment_user_id = 4;
+message Transfer {
+    required uint32 id = 1;
+    required bytes user_id = 2;
+    required string iban = 3;
+    required double amount = 4;
+    required uint32 investment_id = 5;
+    required bytes investment_user_id = 6;
+    required uint32 status = 7;
+    optional bytes contract_id = 8;
 }
 
 message Campaign {

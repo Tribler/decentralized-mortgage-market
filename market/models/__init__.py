@@ -8,4 +8,4 @@ class ObjectType(IntEnum):
     LOANREQUEST = 0
     MORTGAGE = 1
     INVESTMENT = 2
-    TRANSACTION = 3
+    TRANSFER = 3

@@ -2,10 +2,12 @@ from enum import Enum as PyEnum
 
 from base64 import urlsafe_b64encode
 from storm.properties import Int, Float, RawStr
+from storm.references import ReferenceSet
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
 from market.community.market_pb2 import Investment as InvestmentPB
 from market.database.types import Enum
+from market.models.transfer import Transfer
 
 
 class InvestmentStatus(PyEnum):
@@ -13,6 +15,7 @@ class InvestmentStatus(PyEnum):
     PENDING = 1
     ACCEPTED = 2
     REJECTED = 3
+    FORSALE = 4
 
 
 class Investment(object):
@@ -24,6 +27,7 @@ class Investment(object):
     __storm_primary__ = 'id', 'user_id'
     id = Int()
     user_id = RawStr()
+    owner_id = RawStr()
     amount = Float()
     duration = Int()
     interest_rate = Float()
@@ -31,6 +35,7 @@ class Investment(object):
     campaign_user_id = RawStr()
     status = Enum(InvestmentStatus)
     contract_id = RawStr()
+    transfers = ReferenceSet((id, user_id), (Transfer.investment_id, Transfer.investment_user_id))
 
     def __init__(self, identifier, user_id, amount, duration, interest_rate, campaign_id, campaign_user_id, status, contract_id=''):
         self.id = identifier

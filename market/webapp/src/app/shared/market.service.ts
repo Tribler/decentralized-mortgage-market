@@ -109,15 +109,48 @@ export class MarketService {
         return this._http.put(this._api_base + '/you/investments', investment)
             .map(res => res.json().success);
     }
-    acceptInvestment(investment): Observable<String> {
+    sellMyInvestment(investment): Observable<String> {
+        return this._http.patch(this._api_base + `/you/investments/${investment.id} ${investment.user_id}`,
+                                JSON.stringify({status: 'FORSALE'}))
+            .map(res => res.json());
+    }
+
+    offerTransfer(transfer): Observable<String> {
+        return this._http.put(this._api_base + `/investments/${transfer.investment_id} ${transfer.investment_user_id}/transfers`, transfer)
+            .map(res => res.json());
+    }
+    acceptTransfer(transfer): Observable<String> {
+        return this._http.patch(this._api_base + `/investments/${transfer.investment_id} ${transfer.investment_user_id}/transfers/${transfer.id} ${transfer.user_id}`, JSON.stringify({status: 'ACCEPT'}))
+            .map(res => res.json());
+    }
+    declineTransfer(transfer): Observable<String> {
+        return this._http.patch(this._api_base + `/investments/${transfer.investment_id} ${transfer.investment_user_id}/transfers/${transfer.id} ${transfer.user_id}`, JSON.stringify({status: 'DECLINE'}))
+            .map(res => res.json());
+    }
+
+
+    getInvestments(): Observable<Object[]> {
+        return this._http.get(this._api_base + '/investments')
+            .map(res => res.json().investments);
+    }
+    acceptInvestmentOffer(investment): Observable<String> {
         return this._http.patch(this._api_base + `/campaigns/${investment.campaign_id} ${investment.campaign_user_id}/investments/${investment.id} ${investment.user_id}`,
                                 JSON.stringify({status: 'ACCEPT'}))
             .map(res => res.json());
     }
-    rejectInvestment(investment): Observable<String> {
+    rejectInvestmentOffer(investment): Observable<String> {
         return this._http.patch(this._api_base + `/campaigns/${investment.campaign_id} ${investment.campaign_user_id}/investments/${investment.id} ${investment.user_id}`,
                                 JSON.stringify({status: 'REJECT'}))
             .map(res => res.json());
+    }
+
+    getMyTransfers(): Observable<Object[]> {
+        return this._http.get(this._api_base + '/you/transfers')
+            .map(res => res.json().transfers);
+    }
+    addMyTransfers(transfer): Observable<Object[]> {
+        return this._http.put(this._api_base + '/you/transfers', transfer)
+            .map(res => res.json().success);
     }
 
     getBlock(block_id): Observable<Object[]> {

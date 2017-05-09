@@ -84,7 +84,7 @@ def main(argv):
         observer.start()
 
         manager.start_dispersy()
-        manager.start_market(role, args.api)
+        manager.start_market(role=role, rest_api_port=args.api, database_fn='market.db')
 
         signal.signal(signal.SIGINT, lambda signum, stack: stop())
 

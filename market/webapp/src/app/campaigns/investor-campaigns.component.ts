@@ -8,24 +8,25 @@ import { MarketService } from '../shared/market.service';
     templateUrl: './investor-campaigns.component.html'
 })
 export class InvestorCampaignsComponent implements OnInit {
+    my_investments = [];
     investments = [];
     campaigns = [];
 
     alert;
-    request = {};
+    investment_offer = {};
+    transfer_offer = {};
 
     constructor(public marketService: MarketService) { }
 
     ngOnInit() {
         Observable.timer(0, 5000).subscribe(t => {
-            this.loadMyInvestments();
-            this.loadCampaigns();
+            this.update();
         });
     }
 
-    loadMyInvestments() {
-        this.marketService.getMyInvestments()
-            .subscribe(investments => this.investments = investments);
+    update() {
+        this.loadCampaigns();
+        this.loadInvestments();
     }
 
     loadCampaigns() {
@@ -34,13 +35,58 @@ export class InvestorCampaignsComponent implements OnInit {
             .subscribe(campaigns => this.campaigns = campaigns);
     }
 
+    loadInvestments() {
+        this.marketService.getMyInvestments()
+            .subscribe(my_investments => {
+                this.my_investments = my_investments
+                this.marketService.getInvestments()
+                    .map(investments => investments.filter((investment: any) => investment.status == 'FORSALE'))
+                    .map(investments => investments.filter((investment: any) => {
+                        // Filter out my investments
+                        var mine = false;
+                        this.my_investments.forEach(function(v, i) {
+                            if (v.id == investment.id && v.user_id == investment.user_id)
+                               mine = true;
+                        });
+                        return !mine;         
+                    }))
+                    .subscribe(investments => this.investments = investments);
+            });
+    }
+
     offerInvestment(modal) {
-        this.marketService.addMyInvestment(this.request)
-            .subscribe(() => {
-                           this.loadMyInvestments();
-                           this.loadCampaigns();
-                       },
-                       err => this.alert = {type: 'danger', msg: 'Error from backend: ' + err.json().error});
+        this.marketService.addMyInvestment(this.investment_offer)
+            .subscribe(() => this.update(), err => this.setErrorMessage(err.json().error));
         modal.hide();
+    }
+
+    sellMyInvestment(investment) {
+        this.marketService.sellMyInvestment(investment)
+            .subscribe(() => this.update(), err => this.setErrorMessage(err.json().error));
+    }
+
+    offerTransfer(modal) {
+        this.marketService.offerTransfer(this.transfer_offer)
+            .subscribe(() => this.update(), err => this.setErrorMessage(err.json().error));
+        modal.hide();
+    }
+
+    acceptTransferOffer(investment) {
+        this.marketService.acceptTransfer(investment.best_offer)
+            .subscribe(() => this.update(), err => this.setErrorMessage(err.json().error));
+    }
+
+    setErrorMessage(message) {
+        this.alert = {type: 'danger', msg: 'Error from backend: ' + message}
+    }
+
+    canMakeTransferOffer(investment) {
+        var offer_made = false;
+        investment.transfers.forEach(function(transfer, index) {
+            if (transfer.status == 'PENDING') {
+                offer_made = true;
+            }
+        });
+        return investment.status == 'FORSALE' && !offer_made;
     }
 }

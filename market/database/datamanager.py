@@ -7,6 +7,7 @@ from market.models.user import User
 from market.models.loanrequest import LoanRequest
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
+from market.models.transfer import Transfer
 from market.models.campaign import Campaign
 from market.models.contract import Contract
 from market.models.block import Block
@@ -106,6 +107,19 @@ class MarketDataManager:
         :return: an Investment object or None if no investment could be found
         """
         return self.store.get(Investment, (investment_id, user_id))
+
+    def get_investments(self):
+        """
+        Get all investments in the market.
+        :return: a list with Investment objects
+        """
+        return self.store.find(Investment)
+
+    def add_transfer(self, transfer):
+        self.store.add(transfer)
+
+    def get_transfer(self, transfer_id, user_id):
+        return self.store.get(Transfer, (transfer_id, user_id))
 
     def get_campaign(self, campaign_id, user_id):
         """

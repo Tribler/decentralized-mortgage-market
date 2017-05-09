@@ -5,7 +5,7 @@ import { Component, OnInit, Input } from '@angular/core';
     template: `
         <span
             class="label label-default"
-            [ngClass]="{'label-success': label == 'ACCEPTED', 'label-danger': label == 'REJECTED'}">
+            [ngClass]="{'label-success': label == 'ACCEPTED', 'label-danger': label == 'REJECTED', 'label-warning': label == 'FORSALE'}">
             {{ label }}
         </span>
     `

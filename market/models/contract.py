@@ -8,6 +8,7 @@ from market.dispersy.crypto import LibNaCLPK
 from market.models import ObjectType
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
+from market.models.transfer import Transfer
 from market.util.misc import verify_libnaclpk
 
 
@@ -74,6 +75,8 @@ class Contract(object):
             return Mortgage.from_bin(self.document)
         elif self.type == ObjectType.INVESTMENT:
             return Investment.from_bin(self.document)
+        elif self.type == ObjectType.TRANSFER:
+            return Transfer.from_bin(self.document)
 
     def to_dict(self, api_response=False):
         contract_dict = {
