@@ -133,7 +133,7 @@ class MarketCommunity(Community):
         meta_messages = super(MarketCommunity, self).initiate_meta_messages()
 
         return meta_messages + [
-            # Message for gossiping user information
+            # Message for exchanging user information
             Message(self, u"user",
                     MemberAuthentication(),
                     PublicResolution(),

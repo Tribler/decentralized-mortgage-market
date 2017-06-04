@@ -4,9 +4,10 @@ import argparse
 import signal
 import logging.config
 
+from base64 import urlsafe_b64encode
+
 from twisted.python import log
 from twisted.internet import reactor
-from base64 import urlsafe_b64encode
 
 from market.dispersy.crypto import LibNaCLSK
 from market.dispersy.dispersy import Dispersy
@@ -61,7 +62,7 @@ class DispersyManager(object):
 def main(argv):
     logging.config.fileConfig(os.path.join(os.path.dirname(BASE_DIR), 'logger.conf'))
 
-    type_unicode = lambda s : unicode(s, sys.getfilesystemencoding())
+    type_unicode = lambda s: unicode(s, sys.getfilesystemencoding())
 
     parser = argparse.ArgumentParser(add_help=False, description=('Run the MarketCommunity'))
     parser.add_argument('--dispersy', help='Dispersy port', type=int, default=DEFAULT_DISPERSY_PORT)
