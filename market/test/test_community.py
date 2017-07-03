@@ -20,6 +20,9 @@ from market.dispersy.candidate import Candidate
 from market.dispersy.util import blocking_call_on_reactor_thread
 from market.models.investment import Investment, InvestmentStatus
 from market.models.campaign import Campaign
+from market.models.transfer import TransferStatus, Transfer
+from market.models import ObjectType
+from twisted.internet.task import deferLater
 
 logging.basicConfig(stream=sys.stderr)
 logging.getLogger("MarketLogger").setLevel(logging.DEBUG)
@@ -60,6 +63,8 @@ class TestMarketCommunity(unittest.TestCase):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_mortgage_agreement_successful(self):
+        self.disable_blockchain()
+
         # Create loan request for which to send an offer
         loan_request = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id)
 
@@ -79,10 +84,6 @@ class TestMarketCommunity(unittest.TestCase):
         # Wait until offer is processed
         yield self.get_next_message(self.node1, u'offer')
         self.assertEqual(self.node1.data_manager.get_mortgage(mortgage.id, mortgage.user_id).to_dict(), mortgage.to_dict())
-
-        # Disable blockchain logic
-        self.node2.begin_contract = lambda *args, **kwargs: None
-        self.node1.begin_contract = lambda *args, **kwargs: None
 
         # Make sure we have the mortgage from the database of node1
         mortgage = self.node1.data_manager.get_mortgage(mortgage.id, mortgage.user_id)
@@ -150,6 +151,9 @@ class TestMarketCommunity(unittest.TestCase):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_investment_agreement_successful(self):
+        self.disable_blockchain()
+
+        # Add some dummy data
         loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
         loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
 
@@ -157,26 +161,31 @@ class TestMarketCommunity(unittest.TestCase):
         mortgage2 = self.create_mortgage(self.node2, loan_request2, status=MortgageStatus.ACCEPTED)
 
         campaign1 = self.create_campaign(self.node1, mortgage1)
-        campaign2 = self.create_campaign(self.node2, mortgage2)
+        self.create_campaign(self.node2, mortgage2)
 
+        # Create and send an investment offer
         investment1 = self.create_investment(self.node1, self.node1.my_user_id, campaign1)
         self.node1.offer_investment(investment1)
 
+        # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
         investment2 = self.node2.data_manager.get_investment(investment1.id, investment1.user_id)
         self.assertEqual(investment2.status, InvestmentStatus.PENDING)
         self.assertEqual(investment2.to_dict(), investment1.to_dict())
 
+        # Accept offer
         # TODO: move this to accept_investment
         investment2.status = InvestmentStatus.ACCEPTED
         self.node2.accept_investment(investment2)
 
+        # Check offer status
         yield self.get_next_message(self.node1, u'accept')
         self.assertEqual(investment1.status, InvestmentStatus.ACCEPTED)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_investment_agreement_reject(self):
+        # Add some dummy data
         loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
         loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
 
@@ -184,26 +193,60 @@ class TestMarketCommunity(unittest.TestCase):
         mortgage2 = self.create_mortgage(self.node2, loan_request2, status=MortgageStatus.ACCEPTED)
 
         campaign1 = self.create_campaign(self.node1, mortgage1)
-        campaign2 = self.create_campaign(self.node2, mortgage2)
+        self.create_campaign(self.node2, mortgage2)
 
+        # Create and send an investment offer
         investment1 = self.create_investment(self.node1, self.node1.my_user_id, campaign1)
         self.node1.offer_investment(investment1)
 
+        # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
         investment2 = self.node2.data_manager.get_investment(investment1.id, investment1.user_id)
         self.assertEqual(investment2.status, InvestmentStatus.PENDING)
         self.assertEqual(investment2.to_dict(), investment1.to_dict())
 
+        # Reject offer
         # TODO: move this to accept_investment
         investment2.status = InvestmentStatus.REJECTED
         self.node2.reject_investment(investment2)
 
+        # Check offer status
         yield self.get_next_message(self.node1, u'reject')
         self.assertEqual(investment1.status, InvestmentStatus.REJECTED)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_investment_agreement_auto_reject(self):
+        # Add some dummy data
+        loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
+        loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
+
+        mortgage1 = self.create_mortgage(self.node1, loan_request1, status=MortgageStatus.ACCEPTED)
+        mortgage2 = self.create_mortgage(self.node2, loan_request2, status=MortgageStatus.ACCEPTED)
+
+        campaign1 = self.create_campaign(self.node1, mortgage1)
+        self.create_campaign(self.node2, mortgage2)
+
+        # Create and send an investment offer
+        investment1 = self.create_investment(self.node1, self.node1.my_user_id, campaign1)
+        # Intentionally try to create an investment higher then allowed
+        investment1.amount = 1000000
+        self.node1.offer_investment(investment1)
+
+        # Make sure we received the offer
+        yield self.get_next_message(self.node2, u'offer')
+        self.assertEqual(self.node2.data_manager.get_investment(investment1.id, investment1.user_id), None)
+
+        # Check offer status (should be auto-rejected)
+        yield self.get_next_message(self.node1, u'reject')
+        self.assertEqual(investment1.status, InvestmentStatus.REJECTED)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_transfer_agreement_successful(self):
+        self.disable_blockchain()
+
+        # Add some dummy data
         loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
         loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
 
@@ -213,16 +256,100 @@ class TestMarketCommunity(unittest.TestCase):
         campaign1 = self.create_campaign(self.node1, mortgage1)
         campaign2 = self.create_campaign(self.node2, mortgage2)
 
-        investment1 = self.create_investment(self.node1, self.node1.my_user_id, campaign1)
-        # Intentionally try to create an investment higher then allowed
-        investment1.amount = 1000000
-        self.node1.offer_investment(investment1)
+        investment1 = self.create_investment(self.node1, self.node2.my_user_id, campaign1, status=InvestmentStatus.FORSALE)
+        self.create_investment(self.node2, self.node2.my_user_id, campaign2, status=InvestmentStatus.FORSALE)
 
+        # Create and send an transfer offer
+        transfer1 = self.create_transfer(self.node1, self.node1.my_user_id, investment1, status=TransferStatus.PENDING)
+        self.node1.offer_transfer(transfer1)
+
+        # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
-        self.assertEqual(self.node2.data_manager.get_investment(investment1.id, investment1.user_id), None)
+        transfer2 = self.node1.data_manager.get_transfer(transfer1.id, transfer1.user_id)
+        self.assertEqual(transfer1.to_dict(), transfer2.to_dict())
 
+        # Accept offer
+        self.node2.accept_transfer(transfer2)
+
+        # Check status
+        yield self.get_next_message(self.node1, u'accept')
+        self.assertEqual(transfer1.status, TransferStatus.ACCEPTED)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_transfer_agreement_reject(self):
+        # Add some dummy data
+        loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
+        loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
+
+        mortgage1 = self.create_mortgage(self.node1, loan_request1, status=MortgageStatus.ACCEPTED)
+        mortgage2 = self.create_mortgage(self.node2, loan_request2, status=MortgageStatus.ACCEPTED)
+
+        campaign1 = self.create_campaign(self.node1, mortgage1)
+        campaign2 = self.create_campaign(self.node2, mortgage2)
+
+        investment1 = self.create_investment(self.node1, self.node2.my_user_id, campaign1, status=InvestmentStatus.FORSALE)
+        self.create_investment(self.node2, self.node2.my_user_id, campaign2, status=InvestmentStatus.FORSALE)
+
+        # Create and send an transfer offer
+        transfer1 = self.create_transfer(self.node1, self.node1.my_user_id, investment1, status=TransferStatus.PENDING)
+        self.node1.offer_transfer(transfer1)
+
+        # Make sure we received the offer
+        yield self.get_next_message(self.node2, u'offer')
+        transfer2 = self.node1.data_manager.get_transfer(transfer1.id, transfer1.user_id)
+        self.assertEqual(transfer1.to_dict(), transfer2.to_dict())
+
+        # Reject offer
+        self.node2.reject_transfer(transfer2)
+
+        # Check status
         yield self.get_next_message(self.node1, u'reject')
-        self.assertEqual(investment1.status, InvestmentStatus.REJECTED)
+        self.assertEqual(transfer1.status, TransferStatus.REJECTED)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_contract_accept(self):
+        # Insert a 3rd party bank into the network. This bank should also receive the contract.
+        node3 = self.create_community(role=Role.FINANCIAL_INSTITUTION)
+        yield self.get_next_message(node3, u'user')
+        yield self.get_next_message(node3, u'user')
+        yield self.get_next_message(node3, u'user')
+        # This node should be try to create blocks
+        node3.create_block = lambda: None
+
+        # Add some dummy data
+        loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
+        loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
+
+        mortgage1 = self.create_mortgage(self.node1, loan_request1, status=MortgageStatus.ACCEPTED)
+        mortgage2 = self.create_mortgage(self.node2, loan_request2, status=MortgageStatus.ACCEPTED)
+
+        self.create_campaign(self.node1, mortgage1)
+        self.create_campaign(self.node2, mortgage2)
+
+        for community in self.communities:
+            def get_next_difficulty(c, b):
+                # First block should be create immediately
+                return 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff if not b else 0
+
+            community.get_next_difficulty = lambda b, c = community: get_next_difficulty(c, b)
+
+        self.node2.begin_contract(mortgage1.to_bin(),
+                                  ObjectType.MORTGAGE,
+                                  self.node2.my_user_id,
+                                  self.node1.my_user_id,
+                                  previous_hash='')
+
+        yield self.get_next_message(node3, u'contract')
+
+        first_block2 = self.node2.data_manager.get_block_indexes().first().block_id
+        first_block3 = node3.data_manager.get_block_indexes().first().block_id
+
+        # Check if a block is created
+        self.assertTrue(first_block2)
+        # Check if both bank agree on the block
+        self.assertEqual(first_block2, first_block3)
 
     def create_loan_request(self, community, user_id, bank_id, status=LoanRequestStatus.PENDING):
         user = community.data_manager.get_user(user_id)
@@ -289,6 +416,19 @@ class TestMarketCommunity(unittest.TestCase):
         user.investments.add(investment)
         return investment
 
+    def create_transfer(self, community, user_id, investment, status=TransferStatus.PENDING):
+        user = community.data_manager.get_user(user_id)
+
+        transfer = Transfer(user.transfers.count(),
+                            user.id,
+                            u'IBAN1234567890',
+                            10000,
+                            investment.id,
+                            investment.user_id,
+                            status)
+        user.transfers.add(transfer)
+        return transfer
+
     def create_community(self, role=Role.UNKNOWN):
         temp_dir = unicode(mkdtemp(suffix="_dispersy_test_session"))
 
@@ -314,6 +454,11 @@ class TestMarketCommunity(unittest.TestCase):
         self.communities.append(community)
 
         return community
+
+    def disable_blockchain(self):
+        # Disable blockchain logic
+        for community in self.communities:
+            community.begin_contract = lambda *args, **kwargs: None
 
     def attach_hooks(self, community):
         # Attach message hooks

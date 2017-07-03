@@ -99,8 +99,7 @@ class MarketCommunity(Community):
 
         self.register_task('commit', LoopingCall(self.data_manager.commit)).start(COMMIT_INTERVAL)
         self.register_task('cleanup', LoopingCall(self.cleanup)).start(CLEANUP_INTERVAL)
-        if self.my_user.role == Role.FINANCIAL_INSTITUTION:
-            self.register_task('create_block', LoopingCall(self.create_block)).start(BLOCK_CREATION_INTERNAL)
+        self.register_task('create_block', LoopingCall(self.create_block)).start(BLOCK_CREATION_INTERNAL)
 
         self.logger.info('MarketCommunity initialized')
 
@@ -899,6 +898,10 @@ class MarketCommunity(Community):
         return bytes_to_uint256(proof) < block.target_difficulty
 
     def create_block(self):
+        # Only financial institution are allowed to create blocks
+        if self.my_user.role != Role.FINANCIAL_INSTITUTION:
+            return
+
         latest_index = self.data_manager.get_block_indexes(limit=1)[0]
         prev_block = self.data_manager.get_block(latest_index.block_id) if latest_index is not None else None
 
