@@ -25,6 +25,7 @@ import { InvestorCampaignsComponent } from './campaigns/investor-campaigns.compo
 
 import { BlockComponent } from './blocks/block.component';
 import { BlocksComponent } from './blocks/blocks.component';
+import { ContractComponent } from './blocks/contract.component';
 
 const routes: Routes = [
     { path: '', redirectTo: 'profile', pathMatch: 'full' },
@@ -48,6 +49,7 @@ const routes: Routes = [
         StatusComponentComponent,
         BlocksComponent,
         BlockComponent,
+        ContractComponent,
         GroupByPipe,
     ],
     imports: [

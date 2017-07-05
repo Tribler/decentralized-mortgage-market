@@ -1,0 +1,45 @@
+<div class="col-xs-12 text">
+    <h4>{{ title }}</h4>
+    <div class="row">
+        <div class="col-xs-3 text">Current contract</div>
+        <div class="col-xs-9 text">{{ contract.id }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Previous contract</div>
+        <div class="col-xs-9 text">{{ contract.previous_hash || 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' }}</div>
+    </div>
+    <div *ngIf="!decoded" class="row">
+        <div class="col-xs-3 text">Document (encoded)</div>
+        <div class="col-xs-8 text">{{ contract.document }}</div>
+        <div class="col-xs-1"><button type="button" class="btn btn-default btn-xs" (click)="decoded = true">decode</button></div>
+    </div>
+    <div *ngIf="decoded" class="row">
+        <div class="col-xs-3 text">Document (decoded)</div>
+        <div class="col-xs-8 text"><pre>{{ contract.decoded | json }}</pre></div>
+        <div class="col-xs-1"><button type="button" class="btn btn-default btn-xs" (click)="decoded = false">encode</button></div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">To public key</div>
+        <div class="col-xs-9 text">{{ contract.to_id }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">To signature</div>
+        <div class="col-xs-9 text">{{ contract.to_signature }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">From public key</div>
+        <div class="col-xs-9 text">{{ contract.from_id }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">From signature</div>
+        <div class="col-xs-9 text">{{ contract.from_signature }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Contract type</div>
+        <div class="col-xs-9 text">{{ contract.type }}</div>
+    </div>
+    <div class="row">
+        <div class="col-xs-3 text">Time</div>
+        <div class="col-xs-9 text">{{ contract.time * 1000 | date:'dd-MM-yyyy HH:mm:ss Z' }}</div>
+    </div>
+</div>

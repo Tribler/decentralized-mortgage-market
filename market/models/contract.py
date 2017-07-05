@@ -92,6 +92,8 @@ class Contract(object):
 
         if api_response:
             contract_dict['id'] = urlsafe_b64encode(self.id)
+            contract_dict['decoded'] = self.get_object().to_dict(api_response=True)
+            contract_dict['decoded'].pop('contract_id')
 
         return contract_dict
 
