@@ -4,7 +4,7 @@ from base64 import urlsafe_b64encode
 from storm.properties import Int, Float, RawStr, Unicode
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
-from market.community.market_pb2 import Transfer as TransferPB
+from market.community.market.conversion_pb2 import Transfer as TransferPB
 from market.database.types import Enum
 
 

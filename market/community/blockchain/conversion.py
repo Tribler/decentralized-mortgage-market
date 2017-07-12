@@ -1,24 +1,19 @@
-import market_pb2 as pb
+from market.community.blockchain import conversion_pb2
 
 from market.dispersy.conversion import BinaryConversion
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
 
-class MarketConversion(BinaryConversion):
+class BlockchainConversion(BinaryConversion):
 
     def __init__(self, community):
-        super(MarketConversion, self).__init__(community, "\x02")
+        super(BlockchainConversion, self).__init__(community, "\x02")
 
-        msg_types = {u'user': (chr(1), pb.UserMessage),
-                     u'offer': (chr(2), pb.OfferMessage),
-                     u'accept': (chr(3), pb.AcceptMessage),
-                     u'reject': (chr(4), pb.RejectMessage),
-                     u'campaign-update': (chr(5), pb.CampaignUpdateMessage),
-                     u'signature-request': (chr(6), pb.SignatureRequestMessage),
-                     u'signature-response': (chr(7), pb.SignatureResponseMessage),
-                     u'contract': (chr(8), pb.ContractMessage),
-                     u'block-request': (chr(9), pb.BlockRequestMessage),
-                     u'block': (chr(10), pb.BlockMessage)}
+        msg_types = {u'signature-request': (chr(1), conversion_pb2.SignatureRequestMessage),
+                     u'signature-response': (chr(2), conversion_pb2.SignatureResponseMessage),
+                     u'contract': (chr(3), conversion_pb2.ContractMessage),
+                     u'block-request': (chr(4), conversion_pb2.BlockRequestMessage),
+                     u'block': (chr(5), conversion_pb2.BlockMessage)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,

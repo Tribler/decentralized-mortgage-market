@@ -9,10 +9,10 @@ from base64 import urlsafe_b64encode
 from twisted.python import log
 from twisted.internet import reactor
 
+from market.community.market.community import MarketCommunity
 from market.dispersy.crypto import LibNaCLSK
 from market.dispersy.dispersy import Dispersy
 from market.dispersy.endpoint import StandaloneEndpoint
-from market.community.community import MarketCommunity
 from market.defs import DEFAULT_REST_API_PORT, DEFAULT_DISPERSY_PORT, BASE_DIR
 from market.models.user import Role
 

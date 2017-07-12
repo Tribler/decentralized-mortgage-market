@@ -17,9 +17,9 @@ from market.database.store import MarketStore
 from market.defs import BASE_DIR
 
 
-class MarketDataManager:
+class BlockchainDataManager(object):
     """
-    This class stores and manages all the data for the decentralized mortgage market.
+    This class stores and manages all the blocks in the blockchain.
     """
 
     def __init__(self, market_db):
@@ -31,6 +31,70 @@ class MarketDataManager:
         for cmd in schema.split(';'):
             self.store.execute(cmd)
 
+    def initialize(self):
+        # Ensure we have a BlockIndex with height 0
+        if self.get_block_indexes(limit=1).count() == 0:
+            from market.community.blockchain.community import BLOCK_GENESIS_HASH
+            self.add_block_index(BlockIndex(BLOCK_GENESIS_HASH, 0))
+
+    def add_contract(self, contract):
+        self.store.add(contract)
+
+    def get_contract(self, contract_id):
+        return self.store.get(Contract, contract_id)
+
+    def find_contracts(self, *args):
+        return self.store.find(Contract, *args)
+
+    def contract_on_blockchain(self, contract_id):
+        # Find blocks that contain this contract
+        block_ids = []
+        block_contracts = self.store.find(BlockContract, BlockContract.contract_id == contract_id)
+        if block_contracts:
+            for block_contract in block_contracts:
+                block_ids.append(block_contract.block_id)
+
+        # Find out if any of the blocks are on the best chain
+        for block_id in block_ids:
+            if self.get_block_index(block_id):
+                return True
+        return False
+
+    def add_block(self, block):
+        self.store.add(block)
+
+    def get_block(self, block_id):
+        return self.store.get(Block, block_id)
+
+    def get_blocks(self):
+        return self.store.find(Block)
+
+    def add_block_index(self, block_index):
+        self.store.add(block_index)
+
+    def get_block_index(self, block_id):
+        return self.store.get(BlockIndex, block_id)
+
+    def get_block_indexes(self, limit=500):
+        return self.store.find(BlockIndex).order_by(Desc(BlockIndex.height)).config(limit=500)
+
+    def remove_block_indexes(self, from_height):
+        self.store.find(BlockIndex, BlockIndex.height >= from_height).remove()
+
+    def flush(self):
+        self.store.flush()
+
+    def commit(self):
+        self.store.commit()
+
+
+class MarketDataManager(BlockchainDataManager):
+    """
+    This class stores and manages all the data for the decentralized mortgage market.
+    """
+
+    def __init__(self, market_db):
+        super(MarketDataManager, self).__init__(market_db)
         self.you = None
 
     def initialize(self, user_id, role):
@@ -44,10 +108,7 @@ class MarketDataManager:
             user.role = role
         self.you = user
 
-        # Ensure we have a BlockIndex with height 0
-        if self.get_block_indexes(limit=1).count() == 0:
-            from market.community.community import BLOCK_GENESIS_HASH
-            self.add_block_index(BlockIndex(BLOCK_GENESIS_HASH, 0))
+        super(MarketDataManager, self).initialize()
 
     def add_user(self, user):
         self.store.add(user)
@@ -140,57 +201,3 @@ class MarketDataManager:
         :return: a list with Campaign objects
         """
         return self.store.find(Campaign)
-
-    def add_contract(self, contract):
-        self.store.add(contract)
-
-    def get_contract(self, contract_id):
-        return self.store.get(Contract, contract_id)
-
-    def find_contracts(self, *args):
-        return self.store.find(Contract, *args)
-
-    def contract_on_blockchain(self, contract_id):
-        # Find blocks that contain this contract
-        block_ids = []
-        block_contracts = self.store.find(BlockContract, BlockContract.contract_id == contract_id)
-        if block_contracts:
-            for block_contract in block_contracts:
-                block_ids.append(block_contract.block_id)
-
-        # Find out if any of the blocks are on the best chain
-        for block_id in block_ids:
-            if self.get_block_index(block_id):
-                return True
-        return False
-
-    def add_block(self, block):
-        self.store.add(block)
-
-    def get_block(self, block_id):
-        return self.store.get(Block, block_id)
-
-    def get_blocks(self):
-        """
-        Get all blocks in the market.
-        :return: a list with Block objects
-        """
-        return self.store.find(Block)
-
-    def add_block_index(self, block_index):
-        self.store.add(block_index)
-
-    def get_block_index(self, block_id):
-        return self.store.get(BlockIndex, block_id)
-
-    def get_block_indexes(self, limit=500):
-        return self.store.find(BlockIndex).order_by(Desc(BlockIndex.height)).config(limit=500)
-
-    def remove_block_indexes(self, from_height):
-        self.store.find(BlockIndex, BlockIndex.height >= from_height).remove()
-
-    def flush(self):
-        self.store.flush()
-
-    def commit(self):
-        self.store.commit()

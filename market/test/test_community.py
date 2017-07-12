@@ -8,7 +8,7 @@ from tempfile import mkdtemp
 from nose.twistedtools import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 
-from market.community.community import MarketCommunity
+from market.community.market.community import MarketCommunity
 from market.models.user import Role
 from market.models.profile import Profile
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
@@ -22,7 +22,6 @@ from market.models.investment import Investment, InvestmentStatus
 from market.models.campaign import Campaign
 from market.models.transfer import TransferStatus, Transfer
 from market.models import ObjectType
-from twisted.internet.task import deferLater
 
 logging.basicConfig(stream=sys.stderr)
 logging.getLogger("MarketLogger").setLevel(logging.DEBUG)
@@ -335,7 +334,8 @@ class TestMarketCommunity(unittest.TestCase):
 
             community.get_next_difficulty = lambda b, c = community: get_next_difficulty(c, b)
 
-        self.node2.begin_contract(mortgage1.to_bin(),
+        self.node2.begin_contract(Candidate(self.node1._dispersy.lan_address, False),
+                                  mortgage1.to_bin(),
                                   ObjectType.MORTGAGE,
                                   self.node2.my_user_id,
                                   self.node1.my_user_id,

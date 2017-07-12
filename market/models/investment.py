@@ -5,7 +5,7 @@ from storm.properties import Int, Float, RawStr
 from storm.references import ReferenceSet
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
-from market.community.market_pb2 import Investment as InvestmentPB
+from market.community.market.conversion_pb2 import Investment as InvestmentPB
 from market.database.types import Enum
 from market.models.transfer import Transfer
 

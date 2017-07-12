@@ -6,7 +6,7 @@ from storm.properties import Int, Float, Unicode, RawStr
 from storm.references import Reference
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
 
-from market.community.market_pb2 import Mortgage as MortgagePB
+from market.community.market.conversion_pb2 import Mortgage as MortgagePB
 from market.database.types import Enum
 from market.models.house import House
 
