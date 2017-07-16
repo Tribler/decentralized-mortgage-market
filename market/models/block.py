@@ -10,7 +10,7 @@ from market.dispersy.crypto import LibNaCLPK
 from market.models.contract import Contract
 from market.models.block_contract import BlockContract
 from market.util.misc import verify_libnaclpk
-from market.util.uint256 import bytes_to_uint256, uint256_to_bytes
+from market.util.uint256 import compact_to_uint256, uint256_to_compact, uint256_to_full
 
 
 class Block(object):
@@ -64,13 +64,11 @@ class Block(object):
 
     @property
     def target_difficulty(self):
-        return bytes_to_uint256(self._target_difficulty)
+        return compact_to_uint256(self._target_difficulty)
 
     @target_difficulty.setter
     def target_difficulty(self, value):
-        # TODO: save _target_difficulty in Bitcoin compact format
-        # https://bitcoin.stackexchange.com/questions/2924/how-to-calculate-new-bits-value
-        self._target_difficulty = uint256_to_bytes(value)
+        self._target_difficulty = uint256_to_compact(value)
 
     @property
     def merkle_tree(self):
@@ -87,7 +85,7 @@ class Block(object):
             'merkle_root_hash': urlsafe_b64encode(self.merkle_root_hash) if api_response else self.merkle_root_hash,
             'creator': urlsafe_b64encode(self.creator) if api_response else self.creator,
             'creator_signature': urlsafe_b64encode(self.creator_signature) if api_response else self.creator_signature,
-            'target_difficulty': self._target_difficulty.encode('hex') if api_response else self._target_difficulty,
+            'target_difficulty': uint256_to_full(self.target_difficulty).encode('hex') if api_response else self._target_difficulty,
             'time': self.time,
             'contracts': [contract.to_dict(api_response=api_response) for contract in self.contracts]
         }

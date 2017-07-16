@@ -23,12 +23,12 @@ from market.models.block import Block
 from market.models.block_index import BlockIndex
 from market.models.contract import Contract
 from market.util.misc import median
-from market.util.uint256 import bytes_to_uint256
+from market.util.uint256 import full_to_uint256, compact_to_uint256, uint256_to_compact
 
 COMMIT_INTERVAL = 60
 
 BLOCK_CREATION_INTERNAL = 1
-BLOCK_TARGET_SPACING = 30  # 10 * 60
+BLOCK_TARGET_SPACING = 300  # 10 * 60
 BLOCK_TARGET_TIMESPAN = 20 * 60  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
 BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -394,7 +394,7 @@ class BlockchainCommunity(Community):
 
     def check_proof(self, block):
         proof = hashlib.sha256(str(block)).digest()
-        return bytes_to_uint256(proof) < block.target_difficulty
+        return full_to_uint256(proof) < block.target_difficulty
 
     def create_block(self):
         latest_index = self.data_manager.get_block_indexes(limit=1)[0]
@@ -459,7 +459,8 @@ class BlockchainCommunity(Community):
         else:
             target_difficulty = BLOCK_DIFFICULTY_INIT
 
-        return min(target_difficulty, BLOCK_DIFFICULTY_MIN)
+        target_difficulty = min(target_difficulty, BLOCK_DIFFICULTY_MIN)
+        return compact_to_uint256(uint256_to_compact(target_difficulty))
 
     def get_past_blocks(self, block, num_past):
         result = []

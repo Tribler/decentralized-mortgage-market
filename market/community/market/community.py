@@ -368,7 +368,8 @@ class MarketCommunity(BlockchainCommunity):
 
                 self.logger.debug('Got mortgage accept from %s', sock_addr)
                 mortgage.status = MortgageStatus.ACCEPTED
-                self.begin_contract(mortgage.to_bin(), ObjectType.MORTGAGE, self.my_user_id, mortgage.user_id)
+                self.begin_contract(message.candidate, mortgage.to_bin(), ObjectType.MORTGAGE,
+                                    self.my_user_id, mortgage.user_id)
 
                 # Create campaign
                 end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
@@ -396,7 +397,7 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Got investment accept from %s', sock_addr)
                 investment.status = InvestmentStatus.ACCEPTED
                 campaign.amount_invested += investment.amount
-                self.begin_contract(investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id,
+                self.begin_contract(message.candidate, investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id,
                                     investment.campaign_user_id, mortgage.contract_id)
 
             elif dictionary['object_type'] == ObjectType.TRANSFER:
@@ -412,7 +413,7 @@ class MarketCommunity(BlockchainCommunity):
 
                 self.logger.debug('Got transfer accept from %s', sock_addr)
                 transfer.status = TransferStatus.ACCEPTED
-                self.begin_contract(transfer.to_bin(), ObjectType.TRANSFER, self.my_user_id,
+                self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER, self.my_user_id,
                                     transfer.investment_user_id, investment.contract_id)
 
             else:
