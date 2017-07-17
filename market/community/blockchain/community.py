@@ -43,7 +43,6 @@ class SignatureRequestCache(RandomNumberCache):
 
     def __init__(self, community):
         super(SignatureRequestCache, self).__init__(community.request_cache, u'signature-request')
-        self.community = community
 
     def on_timeout(self):
         pass
@@ -59,6 +58,33 @@ class BlockRequestCache(RandomNumberCache):
     def on_timeout(self):
         # Retry to download block
         self.community.send_block_request(self.block_id)
+
+
+class OwnerRequestCache(RandomNumberCache):
+
+    def __init__(self, community, contract_id, callback, max_responses, min_responses):
+        super(OwnerRequestCache, self).__init__(community.request_cache, u'owner-request')
+        self.logger = community.logger
+        self.contract_id = contract_id
+        self.callback = callback
+        self.max_responses = max_responses
+        self.min_responses = min_responses
+        self.responses = {}
+
+    def add_response(self, sender_pub_key, owner_pub_key):
+        self.responses[sender_pub_key] = owner_pub_key
+        # If we already have all responses there is not need to wait for the timeout
+        if len(self.responses) == self.max_responses and len(set(self.responses.values())) == 1:
+            self.callback(owner_pub_key)
+            return True
+
+    def on_timeout(self):
+        if len(self.responses) < self.min_responses:
+            self.logger.warning('Not enough responses to owner-request')
+        elif len(set(self.responses.values())) != 1:
+            self.logger.warning('Got different owner messages!')
+        else:
+            self.callback(next(self.responses.itervalues()))
 
 
 class BlockchainCommunity(Community):
@@ -155,7 +181,23 @@ class BlockchainCommunity(Community):
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_block)
+                    self.on_block),
+            Message(self, u"owner-request",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_owner_request),
+            Message(self, u"owner",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProtobufPayload(),
+                    self._generic_timeline_check,
+                    self.on_owner)
         ]
 
     def initiate_conversions(self):
@@ -168,6 +210,9 @@ class BlockchainCommunity(Community):
     def member_to_id(self, member):
         return hashlib.sha1(member.public_key).digest()
 
+    def get_verifiers(self):
+        return list(self.dispersy_yield_verified_candidates())
+
     def send_message(self, msg_type, candidates, payload_dict):
         self.logger.debug('Sending %s message to %d candidate(s)', msg_type, len(candidates))
         meta = self.get_meta_message(msg_type)
@@ -178,7 +223,7 @@ class BlockchainCommunity(Community):
         return self.dispersy.store_update_forward([message], False, False, True)
 
     def multicast_message(self, msg_type, payload_dict, exclude=None):
-        candidates = list(self.dispersy.dispersy_yield_verified_candidates())
+        candidates = self.get_verifiers()
 
         if exclude in candidates:
             candidates.remove(exclude)
@@ -492,16 +537,13 @@ class BlockchainCommunity(Community):
             self.logger.debug('Contract failed check (invalid signature)')
             return False
 
-        if contract.previous_hash:
+        if contract.previous_hash and fail_without_parent:
             prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
-                            self.data_manager.get_contract(contract.previous_hash) if contract.previous_hash else None
+                            self.data_manager.get_contract(contract.previous_hash)
 
             if prev_contract is None:
-                if fail_without_parent:
-                    self.logger.error('Contract failed check (parent is unknown)')
-                    return False
-                else:
-                    return True
+                self.logger.error('Contract failed check (parent is unknown)')
+                return False
 
         return True
 
@@ -540,3 +582,53 @@ class BlockchainCommunity(Community):
             return True
 
         return False
+
+    def send_owner_request(self, contract_id, callback, max_requests=5, min_responses=2):
+        # Send a message to a limited number of verifiers
+        verifiers = self.get_verifiers()[:max_requests]
+        if len(verifiers) < min_responses:
+            self.logger.warning('Not enough verifiers to send owner-request')
+            return
+
+        # Use a request cache to keep track of the responses. We require a minimum number of (equal) responses
+        cache = self.request_cache.add(OwnerRequestCache(self, contract_id, callback, len(verifiers), min_responses))
+        return self.send_message(u'owner-request', tuple(verifiers), {'identifier': cache.number,
+                                                                      'contract_id': contract_id})
+
+    def on_owner_request(self, messages):
+        for message in messages:
+            owner_public_key = ''
+
+            contract = self.data_manager.get_contract(message.payload.dictionary['contract_id'])
+            while contract:
+                contracts = self.data_manager.find_contracts(Contract.previous_hash == contract.id)
+                contracts = [contract for contract in list(contracts) if self.data_manager.contract_on_blockchain(contract.id)]
+                if len(contracts) == 1:
+                    # Keep traversing the contract chain
+                    contract = contracts[0]
+                    continue
+
+                elif len(contracts) == 0:
+                    # Owner found
+                    owner_public_key = contract.to_public_key
+                break
+
+            self.send_message(u'owner', (message.candidate,), {'identifier': message.payload.dictionary['identifier'],
+                                                               'owner': owner_public_key})
+
+    def on_owner(self, messages):
+        for message in messages:
+            cache = self.request_cache.get(u'owner-request', message.payload.dictionary['identifier'])
+            if not cache:
+                self.logger.warning("Dropping unexpected owner from %s", message.candidate.sock_addr)
+                continue
+
+            self.logger.debug('Got owner from %s', message.candidate.sock_addr)
+
+            owner_pub_key = message.payload.dictionary['owner']
+            print "OWNER =", owner_pub_key.encode('hex')
+            print "CONTRACT =", cache.contract_id.encode('hex')
+
+            if cache.add_response(message.candidate.get_member().public_key, owner_pub_key):
+                # If all responses are received remove the cache
+                self.request_cache.pop(u'owner-request', message.payload.dictionary['identifier'])

@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import hashlib
 
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
@@ -141,15 +142,10 @@ class MarketCommunity(BlockchainCommunity):
             candidates.append(candidate)
         return self.send_message(msg_type, tuple(candidates), payload_dict)
 
-    def multicast_message(self, msg_type, payload_dict, exclude=None):
-        # Only multicast blockchain contracts to financial institutions
-        candidates = [self.id_to_candidate[user.id] for user in self.data_manager.get_users()
-                      if user.id in self.id_to_candidate and user.role == Role.FINANCIAL_INSTITUTION]
-
-        if exclude in candidates:
-            candidates.remove(exclude)
-
-        return self.send_message(msg_type, tuple(candidates), payload_dict)
+    def get_verifiers(self):
+        # Only financial institutions are verifiers on the blockchain
+        return [self.id_to_candidate[user.id] for user in self.data_manager.get_users()
+                if user.id in self.id_to_candidate and user.role == Role.FINANCIAL_INSTITUTION]
 
     @property
     def my_role(self):
@@ -258,10 +254,20 @@ class MarketCommunity(BlockchainCommunity):
             self.logger.error('Cannot send transfer-offer (unknown investment)')
             return False
 
-        # TODO: who is the current owner?
-        return self.send_message_to_ids(u'offer', (investment.user_id,),
-                                        {'transfer': transfer.to_dict(),
-                                         'investment': investment.to_dict()})
+        # First, we verify the owner of the investment
+        self.send_owner_request(investment.contract_id,
+                                lambda public_key, t=transfer, i=investment:
+                                       self.on_owner_verified(public_key, t, i))
+        self.logger.debug('Verifying contract ownership')
+
+    def on_owner_verified(self, owner_public_key, transfer, investment):
+        if owner_public_key:
+            self.logger.debug('Contract ownership verification successful!')
+            return self.send_message_to_ids(u'offer', (hashlib.sha1(owner_public_key).digest(),),
+                                            {'transfer': transfer.to_dict(),
+                                             'investment': investment.to_dict()})
+        else:
+            self.logger.warning('Contract ownership verification failed!')
 
     def accept_transfer(self, transfer):
         investment = self.data_manager.get_investment(transfer.investment_id, transfer.investment_user_id)

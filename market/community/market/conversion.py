@@ -8,11 +8,11 @@ class MarketConversion(BlockchainConversion):
     def __init__(self, community):
         super(MarketConversion, self).__init__(community)
 
-        msg_types = {u'user': (chr(6), conversion_pb2.UserMessage),
-                     u'offer': (chr(7), conversion_pb2.OfferMessage),
-                     u'accept': (chr(8), conversion_pb2.AcceptMessage),
-                     u'reject': (chr(9), conversion_pb2.RejectMessage),
-                     u'campaign-update': (chr(10), conversion_pb2.CampaignUpdateMessage)}
+        msg_types = {u'user': (chr(100), conversion_pb2.UserMessage),
+                     u'offer': (chr(101), conversion_pb2.OfferMessage),
+                     u'accept': (chr(102), conversion_pb2.AcceptMessage),
+                     u'reject': (chr(103), conversion_pb2.RejectMessage),
+                     u'campaign-update': (chr(104), conversion_pb2.CampaignUpdateMessage)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,

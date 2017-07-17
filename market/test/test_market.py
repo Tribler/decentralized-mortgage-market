@@ -1,12 +1,7 @@
 import sys
-import logging
 import unittest
 
-from tempfile import mkdtemp
-
-# This will ensure nose starts the reactor. Do not remove
-from nose.twistedtools import reactor
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import inlineCallbacks
 
 from market.community.market.community import MarketCommunity
 from market.models.user import Role
@@ -14,28 +9,19 @@ from market.models.profile import Profile
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.house import House
 from market.models.mortgage import MortgageType, MortgageStatus, Mortgage
-from market.dispersy.dispersy import Dispersy
-from market.dispersy.endpoint import StandaloneEndpoint
-from market.dispersy.candidate import Candidate
 from market.dispersy.util import blocking_call_on_reactor_thread
 from market.models.investment import Investment, InvestmentStatus
 from market.models.campaign import Campaign
 from market.models.transfer import TransferStatus, Transfer
-from market.models import ObjectType
-
-logging.basicConfig(stream=sys.stderr)
-logging.getLogger("MarketLogger").setLevel(logging.DEBUG)
+from market.test.testcommunity import TestCommunity
 
 
-class TestMarketCommunity(unittest.TestCase):
+class TestMarketCommunity(TestCommunity):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         super(TestMarketCommunity, self).setUp()
-
-        self.communities = []
-        self.message_callbacks = {}
 
         # Create communities
         self.node1 = self.create_community(role=Role.BORROWER)
@@ -48,12 +34,6 @@ class TestMarketCommunity(unittest.TestCase):
         yield self.get_next_message(self.node1, u'user')
         yield self.get_next_message(self.node2, u'user')
 
-    def tearDown(self):
-        super(TestMarketCommunity, self).tearDown()
-
-        for community in self.communities:
-            community.dispersy.stop()
-
     @blocking_call_on_reactor_thread
     def test_user_introduction(self):
         self.assertEqual(self.node1.data_manager.get_user(self.node2.my_user_id).to_dict(), self.node2.my_user.to_dict())
@@ -62,8 +42,6 @@ class TestMarketCommunity(unittest.TestCase):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_mortgage_agreement_successful(self):
-        self.disable_blockchain()
-
         # Create loan request for which to send an offer
         loan_request = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id)
 
@@ -150,8 +128,6 @@ class TestMarketCommunity(unittest.TestCase):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_investment_agreement_successful(self):
-        self.disable_blockchain()
-
         # Add some dummy data
         loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
         loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
@@ -243,8 +219,6 @@ class TestMarketCommunity(unittest.TestCase):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_transfer_agreement_successful(self):
-        self.disable_blockchain()
-
         # Add some dummy data
         loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
         loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
@@ -260,7 +234,8 @@ class TestMarketCommunity(unittest.TestCase):
 
         # Create and send an transfer offer
         transfer1 = self.create_transfer(self.node1, self.node1.my_user_id, investment1, status=TransferStatus.PENDING)
-        self.node1.offer_transfer(transfer1)
+        # Bypass owner verification for now (owner contract must be on the blockchain first)
+        self.node1.on_owner_verified(self.node2.my_member.public_key, transfer1, investment1)
 
         # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
@@ -292,7 +267,8 @@ class TestMarketCommunity(unittest.TestCase):
 
         # Create and send an transfer offer
         transfer1 = self.create_transfer(self.node1, self.node1.my_user_id, investment1, status=TransferStatus.PENDING)
-        self.node1.offer_transfer(transfer1)
+        # Bypass owner verification for now (owner contract must be on the blockchain first)
+        self.node1.on_owner_verified(self.node2.my_member.public_key, transfer1, investment1)
 
         # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
@@ -305,51 +281,6 @@ class TestMarketCommunity(unittest.TestCase):
         # Check status
         yield self.get_next_message(self.node1, u'reject')
         self.assertEqual(transfer1.status, TransferStatus.REJECTED)
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def test_contract_accept(self):
-        # Insert a 3rd party bank into the network. This bank should also receive the contract.
-        node3 = self.create_community(role=Role.FINANCIAL_INSTITUTION)
-        yield self.get_next_message(node3, u'user')
-        yield self.get_next_message(node3, u'user')
-        yield self.get_next_message(node3, u'user')
-        # This node should be try to create blocks
-        node3.create_block = lambda: None
-
-        # Add some dummy data
-        loan_request1 = self.create_loan_request(self.node1, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
-        loan_request2 = self.create_loan_request(self.node2, self.node1.my_user_id, self.node2.my_user_id, status=LoanRequestStatus.ACCEPTED)
-
-        mortgage1 = self.create_mortgage(self.node1, loan_request1, status=MortgageStatus.ACCEPTED)
-        mortgage2 = self.create_mortgage(self.node2, loan_request2, status=MortgageStatus.ACCEPTED)
-
-        self.create_campaign(self.node1, mortgage1)
-        self.create_campaign(self.node2, mortgage2)
-
-        for community in self.communities:
-            def get_next_difficulty(c, b):
-                # First block should be create immediately
-                return 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff if not b else 0
-
-            community.get_next_difficulty = lambda b, c = community: get_next_difficulty(c, b)
-
-        self.node2.begin_contract(Candidate(self.node1._dispersy.lan_address, False),
-                                  mortgage1.to_bin(),
-                                  ObjectType.MORTGAGE,
-                                  self.node2.my_member.public_key,
-                                  self.node1.my_member.public_key,
-                                  previous_hash='')
-
-        yield self.get_next_message(node3, u'contract')
-
-        first_block2 = self.node2.data_manager.get_block_indexes().first().block_id
-        first_block3 = node3.data_manager.get_block_indexes().first().block_id
-
-        # Check if a block is created
-        self.assertTrue(first_block2)
-        # Check if both bank agree on the block
-        self.assertEqual(first_block2, first_block3)
 
     def create_loan_request(self, community, user_id, bank_id, status=LoanRequestStatus.PENDING):
         user = community.data_manager.get_user(user_id)
@@ -430,63 +361,12 @@ class TestMarketCommunity(unittest.TestCase):
         return transfer
 
     def create_community(self, role=Role.UNKNOWN):
-        temp_dir = unicode(mkdtemp(suffix="_dispersy_test_session"))
-
-        dispersy = Dispersy(StandaloneEndpoint(0), temp_dir, database_filename=u':memory:')
-        dispersy.start(autoload_discovery=False)
-
-        my_member = dispersy.get_new_member(u'curve25519')
-
-        if self.communities:
-            head_community = self.communities[0]
-            master_member = dispersy.get_member(mid=head_community._master_member.mid)
-            community = MarketCommunity.init_community(dispersy, master_member, my_member)
-            community.candidates.clear()
-            community.add_discovered_candidate(Candidate(head_community.dispersy.lan_address, False))
-        else:
-            community = MarketCommunity.create_community(dispersy, my_member)
-            community.candidates.clear()
-
+        community = super(TestMarketCommunity, self).create_community(MarketCommunity)
         community.data_manager.you.role = role
         community.my_user.profile = Profile(u'Firstname', u'Lastname', u'name@example.com', u'NL28RABO123456789', u'0123456789')
-
-        self.attach_hooks(community)
-        self.communities.append(community)
-
+        # Disable blockchain
+        community.begin_contract = lambda *args, **kwargs: None
         return community
-
-    def disable_blockchain(self):
-        # Disable blockchain logic
-        for community in self.communities:
-            community.begin_contract = lambda *args, **kwargs: None
-
-    def attach_hooks(self, community):
-        # Attach message hooks
-        def hook(messages, callback):
-            callback(messages)
-
-            for message in messages:
-                if message.name in self.message_callbacks.get(community, {}):
-                    deferreds = self.message_callbacks[community].pop(message.name)
-                    for deferred in deferreds:
-                        deferred.callback(message)
-
-        for meta_message in community.get_meta_messages():
-            meta_message._handle_callback = lambda msgs, cb = meta_message.handle_callback: hook(msgs, cb)
-
-    def get_next_message(self, community, message_name):
-        def timeout(d):
-            deferreds = self.message_callbacks.get(community, {}).get(message_name, [])
-            if d in deferreds:
-                deferreds.remove(d)
-                raise Exception('get_next_message timeout')
-
-        deferred = Deferred()
-        reactor.callLater(10, timeout, deferred)
-        self.message_callbacks[community] = self.message_callbacks.get(community, {})
-        self.message_callbacks[community][message_name] = self.message_callbacks.get(message_name, [])
-        self.message_callbacks[community][message_name].append(deferred)
-        return deferred
 
 
 if __name__ == "__main__":

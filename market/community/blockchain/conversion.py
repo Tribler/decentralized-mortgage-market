@@ -13,7 +13,9 @@ class BlockchainConversion(BinaryConversion):
                      u'signature-response': (chr(2), conversion_pb2.SignatureResponseMessage),
                      u'contract': (chr(3), conversion_pb2.ContractMessage),
                      u'block-request': (chr(4), conversion_pb2.BlockRequestMessage),
-                     u'block': (chr(5), conversion_pb2.BlockMessage)}
+                     u'block': (chr(5), conversion_pb2.BlockMessage),
+                     u'owner-request': (chr(6), conversion_pb2.OwnerRequestMessage),
+                     u'owner': (chr(7), conversion_pb2.OwnerMessage)}
 
         for name, (byte, proto) in msg_types.iteritems():
             self.define_meta_message(byte,
