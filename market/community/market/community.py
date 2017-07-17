@@ -160,10 +160,6 @@ class MarketCommunity(BlockchainCommunity):
         return self.data_manager.get_user(self.my_user_id)
 
     @property
-    def my_user_id(self):
-        return self.my_member.public_key
-
-    @property
     def my_user_dict(self):
         user_dict = self.my_user.to_dict()
 
@@ -177,7 +173,7 @@ class MarketCommunity(BlockchainCommunity):
         return user_dict
 
     def add_or_update_user(self, candidate, role=Role.UNKNOWN):
-        user_id = candidate.get_member().public_key
+        user_id = self.member_to_id(candidate.get_member())
         user = self.data_manager.get_user(user_id)
         if user is not None:
             user.role = role
@@ -188,7 +184,7 @@ class MarketCommunity(BlockchainCommunity):
         return user
 
     def add_or_update_profile(self, candidate, profile):
-        user_id = candidate.get_member().public_key
+        user_id = self.member_to_id(candidate.get_member())
         user = self.data_manager.get_user(user_id)
         if profile is not None:
             if user.profile is None:
@@ -305,7 +301,7 @@ class MarketCommunity(BlockchainCommunity):
                 if mortgage is None:
                     self.logger.warning('Dropping invalid mortgage offer from %s', sock_addr)
                     continue
-                elif mortgage.bank_id != message.candidate.get_member().public_key:
+                elif mortgage.bank_id != self.member_to_id(message.candidate.get_member()):
                     self.logger.warning('Dropping mortgage offer from %s (wrong sender)', sock_addr)
                     continue
 
@@ -369,7 +365,7 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Got mortgage accept from %s', sock_addr)
                 mortgage.status = MortgageStatus.ACCEPTED
                 self.begin_contract(message.candidate, mortgage.to_bin(), ObjectType.MORTGAGE,
-                                    self.my_user_id, mortgage.user_id)
+                                    self.my_member.public_key, message.candidate.get_member().public_key)
 
                 # Create campaign
                 end_time = int(time.time()) + DEFAULT_CAMPAIGN_DURATION
@@ -397,8 +393,9 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Got investment accept from %s', sock_addr)
                 investment.status = InvestmentStatus.ACCEPTED
                 campaign.amount_invested += investment.amount
-                self.begin_contract(message.candidate, investment.to_bin(), ObjectType.INVESTMENT, self.my_user_id,
-                                    investment.campaign_user_id, mortgage.contract_id)
+                self.begin_contract(message.candidate, investment.to_bin(), ObjectType.INVESTMENT,
+                                    self.my_member.public_key, message.candidate.get_member().public_key,
+                                    mortgage.contract_id)
 
             elif dictionary['object_type'] == ObjectType.TRANSFER:
                 transfer = self.data_manager.get_transfer(dictionary['object_id'], dictionary['object_user_id'])
@@ -413,8 +410,9 @@ class MarketCommunity(BlockchainCommunity):
 
                 self.logger.debug('Got transfer accept from %s', sock_addr)
                 transfer.status = TransferStatus.ACCEPTED
-                self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER, self.my_user_id,
-                                    transfer.investment_user_id, investment.contract_id)
+                self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
+                                    self.my_member.public_key, message.candidate.get_member().public_key,
+                                    investment.contract_id)
 
             else:
                 self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)

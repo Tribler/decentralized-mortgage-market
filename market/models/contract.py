@@ -20,9 +20,9 @@ class Contract(object):
     __storm_table__ = 'contract'
     _id = RawStr(name='id', primary=True)
     previous_hash = RawStr()
-    from_id = RawStr()
+    from_public_key = RawStr()
     from_signature = RawStr()
-    to_id = RawStr()
+    to_public_key = RawStr()
     to_signature = RawStr()
     document = RawStr()
     type = Enum(ObjectType)
@@ -30,9 +30,9 @@ class Contract(object):
 
     def __init__(self):
         self.previous_hash = ''
-        self.from_id = ''
+        self.from_public_key = ''
         self.from_signature = ''
-        self.to_id = ''
+        self.to_public_key = ''
         self.to_signature = ''
         self.document = ''
         self.time = 0
@@ -42,7 +42,7 @@ class Contract(object):
         self._id = self.id
 
     def __str__(self):
-        return '%s %s %d %s %s' % (self.from_id, self.to_id, self.time, self.previous_hash, self.document)
+        return '%s %s %d %s %s' % (self.from_public_key, self.to_public_key, self.time, self.previous_hash, self.document)
 
     @property
     def id(self):
@@ -50,24 +50,24 @@ class Contract(object):
 
     def sign(self, member):
         assert isinstance(member._ec, LibNaCLPK), 'Only supporting libnacl crypto for now'
-        assert member.public_key in (self.from_id, self.to_id)
+        assert member.public_key in (self.from_public_key, self.to_public_key)
 
-        if member.public_key == self.from_id:
+        if member.public_key == self.from_public_key:
             self.from_signature = member.sign(str(self))
-        elif member.public_key == self.to_id:
+        elif member.public_key == self.to_public_key:
             self.to_signature = member.sign(str(self))
 
     def verify(self, member=None):
-        assert member is None or member.public_key in (self.from_id, self.to_id)
+        assert member is None or member.public_key in (self.from_public_key, self.to_public_key)
 
         data = str(self)
         if member is None:
-            return verify_libnaclpk(self.from_id, data, self.from_signature) and \
-                   verify_libnaclpk(self.to_id, data, self.to_signature)
+            return verify_libnaclpk(self.from_public_key, data, self.from_signature) and \
+                   verify_libnaclpk(self.to_public_key, data, self.to_signature)
 
-        if member.public_key == self.from_id:
+        if member.public_key == self.from_public_key:
             return member.verify(data, self.from_signature)
-        elif member.public_key == self.to_id:
+        elif member.public_key == self.to_public_key:
             return member.verify(data, self.to_signature)
 
     def get_object(self):
@@ -81,9 +81,9 @@ class Contract(object):
     def to_dict(self, api_response=False):
         contract_dict = {
             'previous_hash': urlsafe_b64encode(self.previous_hash) if api_response else self.previous_hash,
-            'from_id': urlsafe_b64encode(self.from_id) if api_response else self.from_id,
+            'from_public_key': urlsafe_b64encode(self.from_public_key) if api_response else self.from_public_key,
             'from_signature': urlsafe_b64encode(self.from_signature) if api_response else self.from_signature,
-            'to_id': urlsafe_b64encode(self.to_id) if api_response else self.to_id,
+            'to_public_key': urlsafe_b64encode(self.to_public_key) if api_response else self.to_public_key,
             'to_signature': urlsafe_b64encode(self.to_signature) if api_response else self.to_signature,
             'document': urlsafe_b64encode(self.document) if api_response else self.document,
             'type': self.type.name if api_response else self.type.value,
@@ -106,9 +106,9 @@ class Contract(object):
 
         contract = Contract()
         contract.previous_hash = contract_dict['previous_hash']
-        contract.from_id = contract_dict['from_id']
+        contract.from_public_key = contract_dict['from_public_key']
         contract.from_signature = contract_dict['from_signature']
-        contract.to_id = contract_dict['to_id']
+        contract.to_public_key = contract_dict['to_public_key']
         contract.to_signature = contract_dict['to_signature']
         contract.document = contract_dict['document']
         contract.type = contract_type

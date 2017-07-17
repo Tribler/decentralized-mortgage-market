@@ -337,8 +337,8 @@ class TestMarketCommunity(unittest.TestCase):
         self.node2.begin_contract(Candidate(self.node1._dispersy.lan_address, False),
                                   mortgage1.to_bin(),
                                   ObjectType.MORTGAGE,
-                                  self.node2.my_user_id,
-                                  self.node1.my_user_id,
+                                  self.node2.my_member.public_key,
+                                  self.node1.my_member.public_key,
                                   previous_hash='')
 
         yield self.get_next_message(node3, u'contract')

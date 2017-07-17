@@ -28,9 +28,9 @@ message BlockMessage {
 // Objects that are included in the Dispersy messages
 message Contract {
     required bytes previous_hash = 1;
-    required bytes from_id = 2;
+    required bytes from_public_key = 2;
     required bytes from_signature = 3;
-    required bytes to_id = 4;
+    required bytes to_public_key = 4;
     required bytes to_signature = 5;
     required bytes document = 6;
     required uint32 type = 7;

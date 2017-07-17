@@ -102,15 +102,15 @@ CREATE TABLE IF NOT EXISTS transfer(
 );
 
 CREATE TABLE IF NOT EXISTS contract(
-  id             TEXT PRIMARY KEY,
-  previous_hash  TEXT,
-  from_id        TEXT NOT NULL,
-  from_signature TEXT,
-  to_id          TEXT NOT NULL,
-  to_signature   TEXT,
-  document       TEXT NOT NULL,
-  type           INTEGER NOT NULL,
-  time           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  id              TEXT PRIMARY KEY,
+  previous_hash   TEXT,
+  from_public_key TEXT NOT NULL,
+  from_signature  TEXT,
+  to_public_key   TEXT NOT NULL,
+  to_signature    TEXT,
+  document        TEXT NOT NULL,
+  type            INTEGER NOT NULL,
+  time            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS block(

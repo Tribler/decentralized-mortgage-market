@@ -161,6 +161,13 @@ class BlockchainCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), BlockchainConversion(self)]
 
+    @property
+    def my_user_id(self):
+        return self.member_to_id(self.my_member)
+
+    def member_to_id(self, member):
+        return hashlib.sha1(member.public_key).digest()
+
     def send_message(self, msg_type, candidates, payload_dict):
         self.logger.debug('Sending %s message to %d candidate(s)', msg_type, len(candidates))
         meta = self.get_meta_message(msg_type)
@@ -246,7 +253,7 @@ class BlockchainCommunity(Community):
 
     def send_block_request(self, block_id):
         self.request_cache.add(BlockRequestCache(self, block_id))
-        candidate = next(self.dispersy.dispersy_yield_verified_candidates(), None)
+        candidate = next(self.dispersy_yield_verified_candidates(), None)
         self.send_message(u'block-request', (candidate,), {'block_id': block_id})
 
     def on_block_request(self, messages):
@@ -351,7 +358,7 @@ class BlockchainCommunity(Community):
 
         if not self.check_proof(block):
             # Don't log message when we created the block
-            if block.creator != self.my_user_id:
+            if block.creator != self.my_member.public_key:
                 self.logger.debug('Block failed check (incorrect proof)')
             return False
 
@@ -498,12 +505,12 @@ class BlockchainCommunity(Community):
 
         return True
 
-    def begin_contract(self, candidate, document, contract_type, from_id, to_id, previous_hash=''):
-        assert to_id == self.my_user_id or from_id == self.my_user_id
+    def begin_contract(self, candidate, document, contract_type, from_public_key, to_public_key, previous_hash=''):
+        assert to_public_key == self.my_member.public_key or from_public_key == self.my_member.public_key
 
         contract = Contract()
-        contract.from_id = from_id
-        contract.to_id = to_id
+        contract.from_public_key = from_public_key
+        contract.to_public_key = to_public_key
         contract.document = document
         contract.type = contract_type
         contract.previous_hash = previous_hash

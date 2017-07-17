@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='conversion.proto',
   package='blockchain',
   syntax='proto2',
-  serialized_pb=_b('\n\x10\x63onversion.proto\x12\nblockchain\"U\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"V\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"9\n\x0f\x43ontractMessage\x12&\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x14.blockchain.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\"0\n\x0c\x42lockMessage\x12 \n\x05\x62lock\x18\x01 \x02(\x0b\x32\x11.blockchain.Block\"\x9d\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x0f\n\x07\x66rom_id\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\r\n\x05to_id\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb6\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12\'\n\tcontracts\x18\x07 \x03(\x0b\x32\x14.blockchain.Contract')
+  serialized_pb=_b('\n\x10\x63onversion.proto\x12\nblockchain\"U\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"V\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"9\n\x0f\x43ontractMessage\x12&\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x14.blockchain.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\"0\n\x0c\x42lockMessage\x12 \n\x05\x62lock\x18\x01 \x02(\x0b\x32\x11.blockchain.Block\"\xad\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x17\n\x0f\x66rom_public_key\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\x15\n\rto_public_key\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb6\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12\'\n\tcontracts\x18\x07 \x03(\x0b\x32\x14.blockchain.Contract')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -210,7 +210,7 @@ _CONTRACT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='from_id', full_name='blockchain.Contract.from_id', index=1,
+      name='from_public_key', full_name='blockchain.Contract.from_public_key', index=1,
       number=2, type=12, cpp_type=9, label=2,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -224,7 +224,7 @@ _CONTRACT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='to_id', full_name='blockchain.Contract.to_id', index=3,
+      name='to_public_key', full_name='blockchain.Contract.to_public_key', index=3,
       number=4, type=12, cpp_type=9, label=2,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -271,7 +271,7 @@ _CONTRACT = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=358,
-  serialized_end=515,
+  serialized_end=531,
 )
 
 
@@ -343,8 +343,8 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=518,
-  serialized_end=700,
+  serialized_start=534,
+  serialized_end=716,
 )
 
 _SIGNATUREREQUESTMESSAGE.fields_by_name['contract'].message_type = _CONTRACT
