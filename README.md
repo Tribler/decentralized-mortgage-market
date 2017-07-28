@@ -11,7 +11,9 @@ The decentralized mortgage market uses Dispersy for peer discovery (see [ReadThe
 Every agreement reached in the market, is recorded in a double-signed contract. We currently distinguish between three types of contracts:
 - **Mortgage contracts** represent the original agreement between the home buyer and the bank.
 - **Investment contracts** represent the part of the mortgage that is sold to an investor.
-- **Transaction contracts** record the transfer of ownership of an investment from one investor to another.
+- **Promise-to-buy contracts** record the promise between buyer and seller to transfer ownership of an investment in exchange for some monetary payment.
+- **Payment confirmation contracts** record the confirmation of payment, and must be linked to a promise-to-buy contract. Unlike other contracts, this contract does not record an agreement between two parties, but merely confirms an event.
+
 
 ## Agreements
 
@@ -27,7 +29,7 @@ Depending on the type of agreement peers A and B are:
 |-------------|------------|----------|
 | Mortgage | home buyer | bank |
 | Investment | bank* | investor |
-| Transaction | investor* | investor |
+| Promise-to-buy | investor* | investor |
 
 (* means the first message is broadcasted)
 
@@ -37,7 +39,7 @@ Once an agreement is made either party creates a contract, signs it by appending
 
 ## Dependencies
 
-With the exception of mortgage contracts, all contracts must have a single dependency. Investment contracts must depend on mortgage contracts, and transaction contracts must depend on investment contracts (see figure below for an example). 
+With the exception of mortgage contracts, all contracts must have a single dependency. Investment contracts must depend on mortgage contracts, promise-to-buy contracts must depend on investment contracts, and payment confirmation contracts must depend on promise-to-buy contracts (see the figure below for an example). 
 
 ![Contract chain](docs/_static/contract_chain.png)
 
@@ -54,7 +56,3 @@ While extended branches should be rare, the market is able to cope with such iss
 The market does not offer any kind of monetary incentive for creating blocks, instead banks will have to create blocks simply because they cannot risk a potential malicious bank from putting incorrect contracts on the blockchain.
 
 For sake of simplicity, the current maximum size of a block is only 1472 bytes, a limit chosen such that blocks can fit in a single UDP packet without risking IP fragmentation.
-
-## Snapshots
-
-At regular block intervals, banks will create snapshot blocks. Snapshot blocks are a special kind of block that contain a list of all current owners upto certain point in history. Snapshot blocks can be interleaved between other blocks, as to avoid the blockchain being inaccessible for storing new contracts.
