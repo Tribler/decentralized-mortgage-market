@@ -144,15 +144,6 @@ export class MarketService {
             .map(res => res.json());
     }
 
-    getMyTransfers(): Observable<Object[]> {
-        return this._http.get(this._api_base + '/you/transfers')
-            .map(res => res.json().transfers);
-    }
-    addMyTransfers(transfer): Observable<Object[]> {
-        return this._http.put(this._api_base + '/you/transfers', transfer)
-            .map(res => res.json().success);
-    }
-
     getBlock(block_id): Observable<Object[]> {
         return this._http.get(this._api_base + `/blocks/${block_id}`)
             .map(res => res.json().block);

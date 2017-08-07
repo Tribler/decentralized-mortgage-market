@@ -153,7 +153,7 @@ class InvestmentTransfersEndpoint(resource.Resource):
             return json.dumps({"error": "only investors can create transfers"})
 
         parameters = json.loads(request.content.read())
-        required_fields = ['iban', 'amount', 'investment_id', 'investment_user_id']
+        required_fields = ['amount', 'investment_id', 'investment_user_id']
         for field in required_fields:
             if field not in parameters:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -165,7 +165,7 @@ class InvestmentTransfersEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "investment not found"})
 
-        transfer = Transfer(you.transfers.count(), you.id, parameters['iban'], parameters['amount'],
+        transfer = Transfer(you.transfers.count(), you.id, u'', parameters['amount'],
                             investment.id, investment.user_id, TransferStatus.PENDING)
 
         you.transfers.add(transfer)

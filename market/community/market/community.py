@@ -263,7 +263,16 @@ class MarketCommunity(BlockchainCommunity):
     def on_owner_verified(self, owner_public_key, transfer, investment):
         if owner_public_key:
             self.logger.debug('Contract ownership verification successful!')
-            return self.send_message_to_ids(u'offer', (hashlib.sha1(owner_public_key).digest(),),
+
+            owner_id = hashlib.sha1(owner_public_key).digest()
+            owner = self.data_manager.get_user(owner_id)
+
+            if owner is None or owner.profile is None or not owner.profile.iban:
+                self.logger.warning('Cannot find IBAN of owner')
+                return
+
+            transfer.iban = owner.profile.iban
+            return self.send_message_to_ids(u'offer', (owner_id,),
                                             {'transfer': transfer.to_dict(),
                                              'investment': investment.to_dict()})
         else:

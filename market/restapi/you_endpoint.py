@@ -25,7 +25,6 @@ class YouEndpoint(resource.Resource):
 
         self.putChild("profile", YouProfileEndpoint(community))
         self.putChild("investments", YouInvestmentsEndpoint(community))
-        self.putChild("transfers", YouTransfersEndpoint(community))
         self.putChild("mortgages", YouMortgagesEndpoint(community))
         self.putChild("loanrequests", YouLoanRequestsEndpoint(community))
         self.putChild("campaigns", YouCampaignsEndpoint(community))
@@ -279,76 +278,6 @@ class YouSpecificInvestmentEndpoint(resource.Resource):
 
         investment.status = InvestmentStatus.FORSALE
         self.community.send_campaign_update(campaign, investment)
-
-        return json.dumps({"success": True})
-
-
-class YouTransfersEndpoint(resource.Resource):
-    """
-    This class handles requests regarding the transfers of you.
-    """
-
-    def __init__(self, community):
-        resource.Resource.__init__(self)
-        self.community = community
-
-    def render_GET(self, request):
-        """
-        .. http:get:: /you/transfers
-
-        A GET request to this endpoint returns a list of transfers that you have made.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/you/transfers
-
-            **Example response**:
-
-            TODO
-
-        """
-        you = self.community.data_manager.you
-        if not you.role == Role.INVESTOR:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "this user is not an investor"})
-
-        return json.dumps({"transfers": [transfer.to_dict(api_response=True) for transfer in you.transfers]})
-
-    def render_PUT(self, request):
-        you = self.community.data_manager.you
-
-        if not you.role == Role.INVESTOR:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "only investors can create new transfers"})
-
-        if you.profile is None:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "please create a profile prior to creating an transfers offer"})
-
-        parameters = json.loads(request.content.read())
-        required_fields = ['iban', 'amount', 'investment_id', 'investment_user_id']
-        for field in required_fields:
-            if field not in parameters:
-                request.setResponseCode(http.BAD_REQUEST)
-                return json.dumps({"error": "missing %s parameter" % field})
-
-        iban = parameters['iban']
-        amount = parameters['amount']
-        investment_id = parameters['investment_id']
-        investment_user_id = urlsafe_b64decode(str(parameters['investment_user_id']))
-
-        investment = self.community.data_manager.get_investment(investment_id, investment_user_id)
-        if investment is None:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "investment not found"})
-
-        transfer = Transfer(you.transfers.count(), you.id, iban, amount, investment_id, investment_user_id)
-
-        you.transfers.add(transfer)
-
-        self.community.offer_transfer(transfer)
 
         return json.dumps({"success": True})
 
