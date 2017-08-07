@@ -1,5 +1,4 @@
 from enum import Enum as PyEnum
-
 from base64 import urlsafe_b64encode
 from storm.base import Storm
 from storm.properties import Int, RawStr

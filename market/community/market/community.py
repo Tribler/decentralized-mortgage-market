@@ -562,9 +562,12 @@ class MarketCommunity(BlockchainCommunity):
 
         if contract.previous_hash:
             prev_contract = self.incoming_contracts.get(contract.previous_hash) or \
-                            self.data_manager.get_contract(contract.previous_hash) if contract.previous_hash else None
+                            self.data_manager.get_contract(contract.previous_hash)
 
-            if contract.type == ObjectType.TRANSFER and self.has_sibling(contract):
+            if prev_contract is None:
+                return True
+
+            elif contract.type == ObjectType.TRANSFER and self.has_sibling(contract):
                 self.logger.debug('Contract failed check (attempt to double spend)')
                 return False
 
