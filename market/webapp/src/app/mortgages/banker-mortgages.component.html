@@ -8,7 +8,11 @@
                 {{ marketService.getDisplayname(value) }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount_wanted" name="Amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>
@@ -35,8 +39,16 @@
                 {{ marketService.getDisplayname(value) }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="bank_amount" name="Bank amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
+        <ngx-datatable-column prop="bank_amount" name="Bank amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>

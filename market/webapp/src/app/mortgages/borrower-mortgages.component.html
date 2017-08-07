@@ -12,7 +12,11 @@
                 {{ marketService.getDisplayname(value) }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="amount_wanted" name="Amount"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount_wanted" name="Amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>
@@ -25,8 +29,16 @@
     <legend>Mortgages</legend>
     <ngx-datatable class='material' [rows]='mortgages' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="bank_amount" name="Loan amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="interest_rate" name="Interest"></ngx-datatable-column>
+        <ngx-datatable-column prop="bank_amount" name="Loan amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | percent }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="duration" name="Duration"></ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_type" name="Type"></ngx-datatable-column>
         <ngx-datatable-column prop="bank_id" name="Bank">

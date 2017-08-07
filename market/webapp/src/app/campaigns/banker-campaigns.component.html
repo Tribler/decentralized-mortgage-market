@@ -4,8 +4,16 @@
     <legend>My campaigns</legend>
     <ngx-datatable class='material' [rows]='campaigns' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="amount" name="Amount needed"></ngx-datatable-column>
-        <ngx-datatable-column prop="amount_invested" name="Amount invested"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount needed">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
+        <ngx-datatable-column prop="amount_invested" name="Amount invested">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="mortgage_id" name="Mortgage id"></ngx-datatable-column>
         <ngx-datatable-column prop="end_time" name="End time">
             <template let-value="value" ngx-datatable-cell-template>
@@ -24,8 +32,16 @@
                 {{ marketService.getDisplayname(value) }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest rate">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | percent }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
@@ -50,8 +66,16 @@
                 {{ marketService.getDisplayname(value) }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="amount" name="Amount"></ngx-datatable-column>
-        <ngx-datatable-column prop="interest_rate" name="Interest rate"></ngx-datatable-column>
+        <ngx-datatable-column prop="amount" name="Amount">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | currency:'EUR':true:'4.2-2' }}
+            </template>
+        </ngx-datatable-column>
+        <ngx-datatable-column prop="interest_rate" name="Interest rate">
+            <template let-value="value" ngx-datatable-cell-template>
+                {{ value | percent }}
+            </template>
+        </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>

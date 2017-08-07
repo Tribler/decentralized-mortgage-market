@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
+import { CurrencyPipe } from '@angular/common';
 
 import { MarketService } from '../shared/market.service';
 
