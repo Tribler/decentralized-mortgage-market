@@ -72,6 +72,9 @@ class OwnerRequestCache(RandomNumberCache):
         self.responses = {}
 
     def add_response(self, sender_pub_key, owner_pub_key):
+        if not owner_pub_key:
+            return False
+
         self.responses[sender_pub_key] = owner_pub_key
         # If we already have all responses there is not need to wait for the timeout
         if len(self.responses) == self.max_responses and len(set(self.responses.values())) == 1:
@@ -583,7 +586,7 @@ class BlockchainCommunity(Community):
 
         return False
 
-    def send_owner_request(self, contract_id, callback, max_requests=5, min_responses=2):
+    def send_owner_request(self, contract_id, callback, max_requests=5, min_responses=1):
         # Send a message to a limited number of verifiers
         verifiers = self.get_verifiers()[:max_requests]
         if len(verifiers) < min_responses:

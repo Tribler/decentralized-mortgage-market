@@ -1,5 +1,6 @@
 import os
 import time
+import base64
 import logging
 import hashlib
 
@@ -51,6 +52,7 @@ class MarketCommunity(BlockchainCommunity):
         self.register_task('cleanup', LoopingCall(self.cleanup)).start(CLEANUP_INTERVAL)
 
         self.logger.info('Market initialized')
+        self.logger.info('Using ID %s', base64.urlsafe_b64encode(self.my_user_id))
 
     def initialize_database(self, role, database_fn):
         if database_fn:
@@ -409,7 +411,7 @@ class MarketCommunity(BlockchainCommunity):
                 investment.status = InvestmentStatus.ACCEPTED
                 campaign.amount_invested += investment.amount
                 self.begin_contract(message.candidate, investment.to_bin(), ObjectType.INVESTMENT,
-                                    self.my_member.public_key, message.candidate.get_member().public_key,
+                                    message.candidate.get_member().public_key, self.my_member.public_key,
                                     mortgage.contract_id)
 
             elif dictionary['object_type'] == ObjectType.TRANSFER:
@@ -426,7 +428,7 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Got transfer accept from %s', sock_addr)
                 transfer.status = TransferStatus.ACCEPTED
                 self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
-                                    self.my_member.public_key, message.candidate.get_member().public_key,
+                                    message.candidate.get_member().public_key, self.my_member.public_key,
                                     investment.contract_id)
 
             else:
