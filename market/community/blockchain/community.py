@@ -6,6 +6,7 @@ import logging
 from base64 import b64encode
 from collections import OrderedDict, defaultdict
 from twisted.internet.task import LoopingCall
+from twisted.internet.defer import Deferred
 
 from market.community.blockchain.conversion import BlockchainConversion
 from market.community.payload import ProtobufPayload
@@ -60,34 +61,33 @@ class BlockRequestCache(RandomNumberCache):
         self.community.send_block_request(self.block_id)
 
 
-class OwnerRequestCache(RandomNumberCache):
+class TraversalRequestCache(RandomNumberCache):
 
-    def __init__(self, community, contract_id, callback, max_responses, min_responses):
-        super(OwnerRequestCache, self).__init__(community.request_cache, u'owner-request')
+    def __init__(self, community, contract_id, deferred, max_responses, min_responses):
+        super(TraversalRequestCache, self).__init__(community.request_cache, u'traversal-request')
         self.logger = community.logger
         self.contract_id = contract_id
-        self.callback = callback
+        self.deferred = deferred
         self.max_responses = max_responses
         self.min_responses = min_responses
         self.responses = {}
 
-    def add_response(self, sender_pub_key, owner_pub_key):
-        if not owner_pub_key:
+    def add_response(self, sender_pub_key, contract):
+        if not contract:
             return False
 
-        self.responses[sender_pub_key] = owner_pub_key
+        self.responses[sender_pub_key] = contract
         # If we already have all responses there is not need to wait for the timeout
-        if len(self.responses) == self.max_responses and len(set(self.responses.values())) == 1:
-            self.callback(owner_pub_key)
+        if len(self.responses) == self.max_responses and len({c.id for c in self.responses.values()}) == 1:
+            self.deferred.callback(contract)
             return True
 
     def on_timeout(self):
         if len(self.responses) < self.min_responses:
-            self.logger.warning('Not enough responses to owner-request')
+            self.logger.warning('Not enough responses to traversal-request')
         elif len(set(self.responses.values())) != 1:
-            self.logger.warning('Got different owner messages!')
-        else:
-            self.callback(next(self.responses.itervalues()))
+            self.logger.warning('Got different traversal-response messages!')
+        self.deferred.errback()
 
 
 class BlockchainCommunity(Community):
@@ -185,22 +185,22 @@ class BlockchainCommunity(Community):
                     ProtobufPayload(),
                     self._generic_timeline_check,
                     self.on_block),
-            Message(self, u"owner-request",
+            Message(self, u"traversal-request",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_owner_request),
-            Message(self, u"owner",
+                    self.on_traversal_request),
+            Message(self, u"traversal-response",
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     ProtobufPayload(),
                     self._generic_timeline_check,
-                    self.on_owner)
+                    self.on_traversal_response)
         ]
 
     def initiate_conversions(self):
@@ -575,63 +575,59 @@ class BlockchainCommunity(Community):
 
         return True
 
-    def has_sibling(self, contract):
-        for c in self.incoming_contracts.itervalues():
-            if c.id != contract.id and c.previous_hash == contract.previous_hash:
-                return True
-
-        if self.data_manager.find_contracts(Contract.previous_hash == contract.previous_hash,
-                                            Contract.id != contract.id).count() > 0:
-            return True
-
-        return False
-
-    def send_owner_request(self, contract_id, callback, max_requests=5, min_responses=1):
+    def send_traversal_request(self, contract_id, max_requests=5, min_responses=1):
         # Send a message to a limited number of verifiers
         verifiers = self.get_verifiers()[:max_requests]
         if len(verifiers) < min_responses:
-            self.logger.warning('Not enough verifiers to send owner-request')
+            self.logger.warning('Not enough verifiers to send traversal-request')
             return
 
         # Use a request cache to keep track of the responses. We require a minimum number of (equal) responses
-        cache = self.request_cache.add(OwnerRequestCache(self, contract_id, callback, len(verifiers), min_responses))
-        return self.send_message(u'owner-request', tuple(verifiers), {'identifier': cache.number,
-                                                                      'contract_id': contract_id})
+        deferred = Deferred()
+        cache = self.request_cache.add(TraversalRequestCache(self, contract_id, deferred, len(verifiers), min_responses))
+        self.send_message(u'traversal-request', tuple(verifiers), {'identifier': cache.number,
+                                                                   'contract_id': contract_id})
+        return deferred
 
-    def on_owner_request(self, messages):
+    def on_traversal_request(self, messages):
         for message in messages:
-            owner_public_key = ''
+            msg_dict = {'identifier': message.payload.dictionary['identifier']}
 
-            contract = self.data_manager.get_contract(message.payload.dictionary['contract_id'])
-            while contract:
-                contracts = self.data_manager.find_contracts(Contract.previous_hash == contract.id)
-                contracts = [contract for contract in list(contracts) if self.data_manager.contract_on_blockchain(contract.id)]
-                if len(contracts) == 1:
-                    # Keep traversing the contract chain
-                    contract = contracts[0]
-                    continue
+            contract = self.traverse_contracts(message.payload.dictionary['contract_id'])
+            if contract is not None:
+                msg_dict['contract'] = contract.to_dict()
 
-                elif len(contracts) == 0:
-                    # Owner found
-                    owner_public_key = contract.to_public_key
-                break
+            self.send_message(u'traversal-response', (message.candidate,), msg_dict)
 
-            self.send_message(u'owner', (message.candidate,), {'identifier': message.payload.dictionary['identifier'],
-                                                               'owner': owner_public_key})
-
-    def on_owner(self, messages):
+    def on_traversal_response(self, messages):
         for message in messages:
-            cache = self.request_cache.get(u'owner-request', message.payload.dictionary['identifier'])
+            cache = self.request_cache.get(u'traversal-request', message.payload.dictionary['identifier'])
             if not cache:
-                self.logger.warning("Dropping unexpected owner from %s", message.candidate.sock_addr)
+                self.logger.warning("Dropping unexpected traversal-response from %s", message.candidate.sock_addr)
                 continue
 
-            self.logger.debug('Got owner from %s', message.candidate.sock_addr)
+            self.logger.debug('Got traversal-response from %s', message.candidate.sock_addr)
 
-            owner_pub_key = message.payload.dictionary['owner']
-            print "OWNER =", owner_pub_key.encode('hex')
-            print "CONTRACT =", cache.contract_id.encode('hex')
+            contract = Contract.from_dict(message.payload.dictionary['contract'])
 
-            if cache.add_response(message.candidate.get_member().public_key, owner_pub_key):
+            if cache.add_response(message.candidate.get_member().public_key, contract):
                 # If all responses are received remove the cache
-                self.request_cache.pop(u'owner-request', message.payload.dictionary['identifier'])
+                self.request_cache.pop(u'traversal-request', message.payload.dictionary['identifier'])
+
+    def traverse_contracts(self, contract_id):
+        contract = self.data_manager.get_contract(contract_id)
+        # Traverse contract chain
+        while contract:
+            contracts = self.data_manager.find_contracts(Contract.previous_hash == contract.id)
+            contracts = [contract for contract in list(contracts) if self.data_manager.contract_on_blockchain(contract.id)]
+
+            if len(contracts) == 1:
+                # Keep traversing the contract chain
+                contract = contracts[0]
+                continue
+
+            elif len(contracts) == 0:
+                # Found end of contract chain
+                return contract
+
+            break

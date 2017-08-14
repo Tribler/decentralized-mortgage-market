@@ -4,7 +4,7 @@ import base64
 import logging
 import hashlib
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 
 from market.community.blockchain.community import BlockchainCommunity
@@ -250,19 +250,18 @@ class MarketCommunity(BlockchainCommunity):
                                                                            'object_id': investment.id,
                                                                            'object_user_id': investment.user_id})
 
+    @inlineCallbacks
     def offer_transfer(self, transfer):
         investment = self.data_manager.get_investment(transfer.investment_id, transfer.investment_user_id)
         if investment is None:
             self.logger.error('Cannot send transfer-offer (unknown investment)')
-            return False
+            return
 
-        # First, we verify the owner of the investment
-        self.send_owner_request(investment.contract_id,
-                                lambda public_key, t=transfer, i=investment:
-                                       self.on_owner_verified(public_key, t, i))
         self.logger.debug('Verifying contract ownership')
 
-    def on_owner_verified(self, owner_public_key, transfer, investment):
+        # First, we verify the owner of the investment
+        contract = yield self.send_traversal_request(investment.contract_id)
+        owner_public_key = contract.to_public_key
         if owner_public_key:
             self.logger.debug('Contract ownership verification successful!')
 
@@ -274,9 +273,9 @@ class MarketCommunity(BlockchainCommunity):
                 return
 
             transfer.iban = owner.profile.iban
-            return self.send_message_to_ids(u'offer', (owner_id,),
-                                            {'transfer': transfer.to_dict(),
-                                             'investment': investment.to_dict()})
+            self.send_message_to_ids(u'offer', (owner_id,),
+                                     {'transfer': transfer.to_dict(),
+                                      'investment': investment.to_dict()})
         else:
             self.logger.warning('Contract ownership verification failed!')
 
@@ -368,6 +367,7 @@ class MarketCommunity(BlockchainCommunity):
             else:
                 self.logger.warning('Dropping offer from %s (unexpected payload)', message.candidate.sock_addr)
 
+    @inlineCallbacks
     def on_accept(self, messages):
         for message in messages:
             dictionary = message.payload.dictionary
@@ -427,9 +427,13 @@ class MarketCommunity(BlockchainCommunity):
 
                 self.logger.debug('Got transfer accept from %s', sock_addr)
                 transfer.status = TransferStatus.ACCEPTED
+
+                prev_contract = yield self.send_traversal_request(investment.contract_id)
+                print prev_contract
+
                 self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
                                     message.candidate.get_member().public_key, self.my_member.public_key,
-                                    investment.contract_id)
+                                    prev_contract.id)
 
             else:
                 self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)
@@ -600,6 +604,17 @@ class MarketCommunity(BlockchainCommunity):
                     self.logger.debug('Contract failed check (attempt to overspend)')
                     return False
         return True
+
+    def has_sibling(self, contract):
+        for c in self.incoming_contracts.itervalues():
+            if c.id != contract.id and c.previous_hash == contract.previous_hash:
+                return True
+
+        if self.data_manager.find_contracts(Contract.previous_hash == contract.previous_hash,
+                                            Contract.id != contract.id).count() > 0:
+            return True
+
+        return False
 
     def finalize_contract(self, contract, sign=False):
         # Link to mortgage/investment

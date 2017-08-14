@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='conversion.proto',
   package='blockchain',
   syntax='proto2',
-  serialized_pb=_b('\n\x10\x63onversion.proto\x12\nblockchain\"U\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"V\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"9\n\x0f\x43ontractMessage\x12&\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x14.blockchain.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\"0\n\x0c\x42lockMessage\x12 \n\x05\x62lock\x18\x01 \x02(\x0b\x32\x11.blockchain.Block\">\n\x13OwnerRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\x13\n\x0b\x63ontract_id\x18\x02 \x02(\x0c\"1\n\x0cOwnerMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\r\n\x05owner\x18\x02 \x02(\x0c\"\xad\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x17\n\x0f\x66rom_public_key\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\x15\n\rto_public_key\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb6\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12\'\n\tcontracts\x18\x07 \x03(\x0b\x32\x14.blockchain.Contract')
+  serialized_pb=_b('\n\x10\x63onversion.proto\x12\nblockchain\"U\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"V\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"9\n\x0f\x43ontractMessage\x12&\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x14.blockchain.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\"0\n\x0c\x42lockMessage\x12 \n\x05\x62lock\x18\x01 \x02(\x0b\x32\x11.blockchain.Block\"B\n\x17TraversalRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\x13\n\x0b\x63ontract_id\x18\x02 \x02(\x0c\"V\n\x18TraversalResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x01(\x0b\x32\x14.blockchain.Contract\"\xad\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x17\n\x0f\x66rom_public_key\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\x15\n\rto_public_key\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb6\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12\'\n\tcontracts\x18\x07 \x03(\x0b\x32\x14.blockchain.Contract')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -195,22 +195,22 @@ _BLOCKMESSAGE = _descriptor.Descriptor(
 )
 
 
-_OWNERREQUESTMESSAGE = _descriptor.Descriptor(
-  name='OwnerRequestMessage',
-  full_name='blockchain.OwnerRequestMessage',
+_TRAVERSALREQUESTMESSAGE = _descriptor.Descriptor(
+  name='TraversalRequestMessage',
+  full_name='blockchain.TraversalRequestMessage',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='identifier', full_name='blockchain.OwnerRequestMessage.identifier', index=0,
+      name='identifier', full_name='blockchain.TraversalRequestMessage.identifier', index=0,
       number=1, type=13, cpp_type=3, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='contract_id', full_name='blockchain.OwnerRequestMessage.contract_id', index=1,
+      name='contract_id', full_name='blockchain.TraversalRequestMessage.contract_id', index=1,
       number=2, type=12, cpp_type=9, label=2,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -229,28 +229,28 @@ _OWNERREQUESTMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=357,
-  serialized_end=419,
+  serialized_end=423,
 )
 
 
-_OWNERMESSAGE = _descriptor.Descriptor(
-  name='OwnerMessage',
-  full_name='blockchain.OwnerMessage',
+_TRAVERSALRESPONSEMESSAGE = _descriptor.Descriptor(
+  name='TraversalResponseMessage',
+  full_name='blockchain.TraversalResponseMessage',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='identifier', full_name='blockchain.OwnerMessage.identifier', index=0,
+      name='identifier', full_name='blockchain.TraversalResponseMessage.identifier', index=0,
       number=1, type=13, cpp_type=3, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='owner', full_name='blockchain.OwnerMessage.owner', index=1,
-      number=2, type=12, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b(""),
+      name='contract', full_name='blockchain.TraversalResponseMessage.contract', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -266,8 +266,8 @@ _OWNERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=421,
-  serialized_end=470,
+  serialized_start=425,
+  serialized_end=511,
 )
 
 
@@ -346,8 +346,8 @@ _CONTRACT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=473,
-  serialized_end=646,
+  serialized_start=514,
+  serialized_end=687,
 )
 
 
@@ -419,22 +419,23 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=649,
-  serialized_end=831,
+  serialized_start=690,
+  serialized_end=872,
 )
 
 _SIGNATUREREQUESTMESSAGE.fields_by_name['contract'].message_type = _CONTRACT
 _SIGNATURERESPONSEMESSAGE.fields_by_name['contract'].message_type = _CONTRACT
 _CONTRACTMESSAGE.fields_by_name['contract'].message_type = _CONTRACT
 _BLOCKMESSAGE.fields_by_name['block'].message_type = _BLOCK
+_TRAVERSALRESPONSEMESSAGE.fields_by_name['contract'].message_type = _CONTRACT
 _BLOCK.fields_by_name['contracts'].message_type = _CONTRACT
 DESCRIPTOR.message_types_by_name['SignatureRequestMessage'] = _SIGNATUREREQUESTMESSAGE
 DESCRIPTOR.message_types_by_name['SignatureResponseMessage'] = _SIGNATURERESPONSEMESSAGE
 DESCRIPTOR.message_types_by_name['ContractMessage'] = _CONTRACTMESSAGE
 DESCRIPTOR.message_types_by_name['BlockRequestMessage'] = _BLOCKREQUESTMESSAGE
 DESCRIPTOR.message_types_by_name['BlockMessage'] = _BLOCKMESSAGE
-DESCRIPTOR.message_types_by_name['OwnerRequestMessage'] = _OWNERREQUESTMESSAGE
-DESCRIPTOR.message_types_by_name['OwnerMessage'] = _OWNERMESSAGE
+DESCRIPTOR.message_types_by_name['TraversalRequestMessage'] = _TRAVERSALREQUESTMESSAGE
+DESCRIPTOR.message_types_by_name['TraversalResponseMessage'] = _TRAVERSALRESPONSEMESSAGE
 DESCRIPTOR.message_types_by_name['Contract'] = _CONTRACT
 DESCRIPTOR.message_types_by_name['Block'] = _BLOCK
 
@@ -473,19 +474,19 @@ BlockMessage = _reflection.GeneratedProtocolMessageType('BlockMessage', (_messag
   ))
 _sym_db.RegisterMessage(BlockMessage)
 
-OwnerRequestMessage = _reflection.GeneratedProtocolMessageType('OwnerRequestMessage', (_message.Message,), dict(
-  DESCRIPTOR = _OWNERREQUESTMESSAGE,
+TraversalRequestMessage = _reflection.GeneratedProtocolMessageType('TraversalRequestMessage', (_message.Message,), dict(
+  DESCRIPTOR = _TRAVERSALREQUESTMESSAGE,
   __module__ = 'conversion_pb2'
-  # @@protoc_insertion_point(class_scope:blockchain.OwnerRequestMessage)
+  # @@protoc_insertion_point(class_scope:blockchain.TraversalRequestMessage)
   ))
-_sym_db.RegisterMessage(OwnerRequestMessage)
+_sym_db.RegisterMessage(TraversalRequestMessage)
 
-OwnerMessage = _reflection.GeneratedProtocolMessageType('OwnerMessage', (_message.Message,), dict(
-  DESCRIPTOR = _OWNERMESSAGE,
+TraversalResponseMessage = _reflection.GeneratedProtocolMessageType('TraversalResponseMessage', (_message.Message,), dict(
+  DESCRIPTOR = _TRAVERSALRESPONSEMESSAGE,
   __module__ = 'conversion_pb2'
-  # @@protoc_insertion_point(class_scope:blockchain.OwnerMessage)
+  # @@protoc_insertion_point(class_scope:blockchain.TraversalResponseMessage)
   ))
-_sym_db.RegisterMessage(OwnerMessage)
+_sym_db.RegisterMessage(TraversalResponseMessage)
 
 Contract = _reflection.GeneratedProtocolMessageType('Contract', (_message.Message,), dict(
   DESCRIPTOR = _CONTRACT,

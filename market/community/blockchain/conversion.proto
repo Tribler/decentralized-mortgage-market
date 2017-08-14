@@ -25,14 +25,14 @@ message BlockMessage {
     required Block block = 1;
 }
 
-message OwnerRequestMessage {
+message TraversalRequestMessage {
     required uint32 identifier = 1;
     required bytes contract_id = 2;
 }
 
-message OwnerMessage {
+message TraversalResponseMessage {
     required uint32 identifier = 1;
-    required bytes owner = 2;
+    optional Contract contract = 2;
 }
 
 // Objects that are included in the Dispersy messages
