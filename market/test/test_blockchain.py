@@ -1,5 +1,4 @@
 import unittest
-import mock
 
 from twisted.internet.defer import inlineCallbacks, DeferredList
 
@@ -70,7 +69,7 @@ class TestBlockchainCommunity(TestCommunity):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def test_owner_request(self):
+    def test_traversal_request(self):
         # Create dummy contract chain. We need to create the contract twice (once for each node) or storm will complain
         node1_contract1 = self.create_contract(self.node1.my_member, self.node2.my_member)
         node1_contract2 = self.create_contract(self.node2.my_member, self.node1.my_member, node1_contract1.id)
@@ -82,13 +81,8 @@ class TestBlockchainCommunity(TestCommunity):
         self.node2.data_manager.add_contract(node2_contract1)
         self.node2.data_manager.add_contract(node2_contract2)
 
-        callback = mock.Mock()
-        self.node1.send_owner_request(node1_contract1.id, callback, min_responses=1)
-
-        yield self.get_next_message(self.node2, u'owner-request')
-        yield self.get_next_message(self.node1, u'owner')
-
-        callback.assert_called_with(self.node1.my_member.public_key)
+        contract = yield self.node1.send_traversal_request(node1_contract1.id)
+        self.assertEqual(contract.to_public_key, self.node1.my_member.public_key)
 
     def create_contract(self, from_member, to_member, previous_hash=''):
         contract = Contract()

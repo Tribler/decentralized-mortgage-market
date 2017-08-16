@@ -235,7 +235,9 @@ class TestMarketCommunity(TestCommunity):
         # Create and send an transfer offer
         transfer1 = self.create_transfer(self.node1, self.node1.my_user_id, investment1, status=TransferStatus.PENDING)
         # Bypass owner verification for now (owner contract must be on the blockchain first)
-        self.node1.on_owner_verified(self.node2.my_member.public_key, transfer1, investment1)
+        self.node1.send_message_to_ids(u'offer', (self.node2.my_user_id,),
+                                       {'transfer': transfer1.to_dict(),
+                                        'investment': investment1.to_dict()})
 
         # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
@@ -268,7 +270,9 @@ class TestMarketCommunity(TestCommunity):
         # Create and send an transfer offer
         transfer1 = self.create_transfer(self.node1, self.node1.my_user_id, investment1, status=TransferStatus.PENDING)
         # Bypass owner verification for now (owner contract must be on the blockchain first)
-        self.node1.on_owner_verified(self.node2.my_member.public_key, transfer1, investment1)
+        self.node1.send_message_to_ids(u'offer', (self.node2.my_user_id,),
+                                       {'transfer': transfer1.to_dict(),
+                                        'investment': investment1.to_dict()})
 
         # Make sure we received the offer
         yield self.get_next_message(self.node2, u'offer')
