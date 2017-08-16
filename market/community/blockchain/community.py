@@ -8,18 +8,19 @@ from collections import OrderedDict, defaultdict
 from twisted.internet.task import LoopingCall
 from twisted.internet.defer import Deferred
 
+from dispersy.authentication import MemberAuthentication
+from dispersy.candidate import Candidate
+from dispersy.community import Community
+from dispersy.conversion import DefaultConversion
+from dispersy.destination import CandidateDestination
+from dispersy.distribution import DirectDistribution
+from dispersy.message import Message
+from dispersy.resolution import PublicResolution
+from dispersy.requestcache import RandomNumberCache
+
 from market.community.blockchain.conversion import BlockchainConversion
 from market.community.payload import ProtobufPayload
 from market.database.datamanager import BlockchainDataManager
-from market.dispersy.authentication import MemberAuthentication
-from market.dispersy.candidate import Candidate
-from market.dispersy.community import Community
-from market.dispersy.conversion import DefaultConversion
-from market.dispersy.destination import CandidateDestination
-from market.dispersy.distribution import DirectDistribution
-from market.dispersy.message import Message
-from market.dispersy.resolution import PublicResolution
-from market.dispersy.requestcache import RandomNumberCache
 from market.models.block import Block
 from market.models.block_index import BlockIndex
 from market.models.contract import Contract
@@ -108,7 +109,7 @@ class BlockchainCommunity(Community):
             self.register_task('create_block', LoopingCall(self.create_block)).start(BLOCK_CREATION_INTERNAL)
         self.register_task('commit', LoopingCall(self.data_manager.commit)).start(COMMIT_INTERVAL)
 
-        self.logger.info('Blockchain initialized')
+        self.logger.info('BlockchainCommunity initialized')
 
     def initialize_database(self, database_fn=''):
         if database_fn:

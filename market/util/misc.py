@@ -1,4 +1,4 @@
-from market.dispersy.crypto import LibNaCLPK
+from dispersy.crypto import LibNaCLPK
 
 def zero_pad(data, length, prepend=False):
     padding = '\x00' * (length - len(data))

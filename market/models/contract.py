@@ -3,8 +3,9 @@ import hashlib
 from base64 import urlsafe_b64encode
 from storm.properties import Int, RawStr
 
+from dispersy.crypto import LibNaCLPK
+
 from market.database.types import Enum
-from market.dispersy.crypto import LibNaCLPK
 from market.models import ObjectType
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment

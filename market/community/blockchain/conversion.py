@@ -1,8 +1,6 @@
-from market.community.blockchain import conversion_pb2
-
-from market.dispersy.conversion import BinaryConversion
+from dispersy.conversion import BinaryConversion
 from protobuf_to_dict import dict_to_protobuf, protobuf_to_dict
-
+from market.community.blockchain import conversion_pb2
 
 class BlockchainConversion(BinaryConversion):
 

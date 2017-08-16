@@ -2,9 +2,10 @@ import unittest
 
 from twisted.internet.defer import inlineCallbacks, DeferredList
 
+from dispersy.candidate import Candidate
+from dispersy.util import blocking_call_on_reactor_thread
+
 from market.community.market.community import BlockchainCommunity
-from market.dispersy.candidate import Candidate
-from market.dispersy.util import blocking_call_on_reactor_thread
 from market.models import ObjectType
 from market.models.contract import Contract
 from market.test.testcommunity import TestCommunity

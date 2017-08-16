@@ -3,13 +3,14 @@ import unittest
 
 from twisted.internet.defer import inlineCallbacks
 
+from dispersy.util import blocking_call_on_reactor_thread
+
 from market.community.market.community import MarketCommunity
 from market.models.user import Role
 from market.models.profile import Profile
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.house import House
 from market.models.mortgage import MortgageType, MortgageStatus, Mortgage
-from market.dispersy.util import blocking_call_on_reactor_thread
 from market.models.investment import Investment, InvestmentStatus
 from market.models.campaign import Campaign
 from market.models.transfer import TransferStatus, Transfer

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from market.dispersy.payload import Payload
+from dispersy.payload import Payload
 
 
 class ProtobufPayload(Payload):

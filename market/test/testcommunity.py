@@ -9,9 +9,9 @@ from nose.twistedtools import reactor
 from twisted.internet.defer import Deferred
 from twisted.python import log
 
-from market.dispersy.dispersy import Dispersy
-from market.dispersy.endpoint import StandaloneEndpoint
-from market.dispersy.candidate import Candidate
+from dispersy.dispersy import Dispersy
+from dispersy.endpoint import StandaloneEndpoint
+from dispersy.candidate import Candidate
 
 logging.basicConfig(stream=sys.stderr)
 logging.getLogger("MarketLogger").setLevel(logging.DEBUG)

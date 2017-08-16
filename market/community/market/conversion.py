@@ -1,5 +1,4 @@
 from market.community.market import conversion_pb2
-
 from market.community.blockchain.conversion import BlockchainConversion
 
 

@@ -6,7 +6,8 @@ from storm.properties import Int, RawStr
 from storm.references import ReferenceSet
 from storm.store import Store
 
-from market.dispersy.crypto import LibNaCLPK
+from dispersy.crypto import LibNaCLPK
+
 from market.models.contract import Contract
 from market.models.block_contract import BlockContract
 from market.util.misc import verify_libnaclpk

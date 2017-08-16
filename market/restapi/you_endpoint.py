@@ -138,6 +138,9 @@ class YouProfileEndpoint(resource.Resource):
         else:
             you.profile.merge(profile)
 
+        # Notify money community of change in IBAN
+        self.community.money_community.bank_managers.values()[0].iban = profile.iban
+
         # TODO: add documents to profile
         documents = []
         for document in parameters['document_list']:

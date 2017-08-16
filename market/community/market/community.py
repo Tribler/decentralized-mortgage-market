@@ -4,19 +4,22 @@ import base64
 import logging
 import hashlib
 
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
+
+from dispersy.authentication import MemberAuthentication
+from dispersy.conversion import DefaultConversion
+from dispersy.destination import CommunityDestination, CandidateDestination
+from dispersy.distribution import DirectDistribution, FullSyncDistribution
+from dispersy.message import Message
+from dispersy.resolution import PublicResolution
+
+from internetofmoney.utils.iban import IBANUtil
 
 from market.community.blockchain.community import BlockchainCommunity
 from market.community.market.conversion import MarketConversion
 from market.community.payload import ProtobufPayload
 from market.database.datamanager import MarketDataManager
-from market.dispersy.authentication import MemberAuthentication
-from market.dispersy.conversion import DefaultConversion
-from market.dispersy.destination import CommunityDestination, CandidateDestination
-from market.dispersy.distribution import DirectDistribution, FullSyncDistribution
-from market.dispersy.message import Message
-from market.dispersy.resolution import PublicResolution
 from market.models import ObjectType
 from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import Mortgage, MortgageStatus
@@ -30,6 +33,7 @@ from market.restapi.rest_manager import RESTManager
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
+PAYUP_INTERVAL = 60
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
 
 
@@ -41,17 +45,21 @@ class MarketCommunity(BlockchainCommunity):
         self.id_to_candidate = {}
         self.rest_manager = None
         self.market_api = None
+        self.payment_queue = []
+        self.money_community = None
 
-    def initialize(self, rest_api_port=0, role=Role.UNKNOWN, database_fn=''):
+    def initialize(self, rest_api_port=0, role=Role.UNKNOWN, database_fn='', money_community=None):
         super(MarketCommunity, self).initialize(verifier=role == Role.FINANCIAL_INSTITUTION,
                                                 role=role, database_fn=database_fn)
 
+        self.money_community = money_community
         self.rest_manager = RESTManager(self, rest_api_port)
         self.market_api = self.rest_manager.start()
 
         self.register_task('cleanup', LoopingCall(self.cleanup)).start(CLEANUP_INTERVAL)
+        self.register_task('payup', LoopingCall(self.payup)).start(PAYUP_INTERVAL)
 
-        self.logger.info('Market initialized')
+        self.logger.info('MarketCommunity initialized')
         self.logger.info('Using ID %s', base64.urlsafe_b64encode(self.my_user_id))
 
     def initialize_database(self, role, database_fn):
@@ -123,6 +131,40 @@ class MarketCommunity(BlockchainCommunity):
         for user_id, candidate in self.id_to_candidate.items():
             if candidate.last_walk_reply < time.time() - 300:
                 self.id_to_candidate.pop(user_id)
+
+    @inlineCallbacks
+    def payup(self):
+        print 'Payment queue length:', len(self.payment_queue)
+        for payment in self.payment_queue:
+            transfer, investment = payment
+            end_of_chain = yield self.send_traversal_request(investment.contract_id)
+            if end_of_chain.id == transfer.contract_id:
+                print 'Transfer on blockchain!!!!!!'
+                # TODO: wait for some number of confirmations
+
+                manager = self.money_community.bank_managers.values()[0]
+                source_iban = manager.get_address()
+                destination_iban = transfer.iban
+                amount = transfer.amount
+                print 'Moving money from', source_iban, 'to', destination_iban
+                candidate = yield self.money_community.has_eligable_router(IBANUtil.get_bank_id(source_iban),
+                                                                           IBANUtil.get_bank_id(destination_iban),
+                                                                           amount)
+                if not candidate:
+                    self.logger.error('No eligable money switches found for trusted transfer')
+                    return
+
+                switch_iban = self.money_community.candidate_services_map[candidate][IBANUtil.get_bank_id(source_iban)]
+                self.money_community.send_money_using_router(candidate, manager, amount, switch_iban, destination_iban) \
+                                    .addCallback(self.on_payment_success).addErrback(self.on_payment_error)
+
+                self.payment_queue.remove(payment)
+
+    def on_payment_success(self, payment_id):
+        self.logger.debug('Payment successful!')
+
+    def on_payment_error(self, failure):
+        self.logger.error('Error while making payment')
 
     def on_introduction_request(self, messages):
         super(MarketCommunity, self).on_introduction_request(messages)
@@ -429,7 +471,6 @@ class MarketCommunity(BlockchainCommunity):
                 transfer.status = TransferStatus.ACCEPTED
 
                 prev_contract = yield self.send_traversal_request(investment.contract_id)
-                print prev_contract
 
                 self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
                                     message.candidate.get_member().public_key, self.my_member.public_key,
@@ -670,6 +711,10 @@ class MarketCommunity(BlockchainCommunity):
             if transfer.user_id != self.my_user_id:
                 self.send_campaign_update(campaign, investment)
                 self.data_manager.you.investments.remove(investment)
+
+                # After this contract is added to the blockchain, we will need to pay
+                self.payment_queue.append((transfer, investment))
+                print 'Added items to payment queue!!!!!!!!!!!!!'
             else:
                 self.data_manager.you.investments.add(investment)
 

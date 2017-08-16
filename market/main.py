@@ -1,20 +1,45 @@
 import os
 import sys
-import argparse
 import signal
+import random
+import argparse
 import logging.config
 
 from base64 import urlsafe_b64encode
 
+from schwifty.iban import IBAN
 from twisted.python import log
 from twisted.internet import reactor
 
+from dispersy.crypto import LibNaCLSK
+from dispersy.dispersy import Dispersy
+from dispersy.endpoint import StandaloneEndpoint
+
+from internetofmoney.moneycommunity.community import MoneyCommunity
+from internetofmoney.database import InternetOfMoneyDB
+from internetofmoney.managers.dummy.DummyManager import DummyManager
+from internetofmoney.utils.iban import IBANUtil
+
 from market.community.market.community import MarketCommunity
-from market.dispersy.crypto import LibNaCLSK
-from market.dispersy.dispersy import Dispersy
-from market.dispersy.endpoint import StandaloneEndpoint
 from market.defs import DEFAULT_REST_API_PORT, DEFAULT_DISPERSY_PORT, BASE_DIR
 from market.models.user import Role
+
+
+class BankManager(DummyManager):
+
+    def __init__(self, *args, **kwargs):
+        self.iban = str(IBAN.generate('NL', bank_code='DUMM',
+                                      account_code=''.join([str(random.randint(0, 9)) for _ in range(10)])))
+        super(BankManager, self).__init__(*args, **kwargs)
+
+    def get_bank_name(self):
+        return ''
+
+    def get_bank_id(self):
+        return IBANUtil.get_bank_id(self.iban)
+
+    def get_address(self):
+        return self.iban
 
 
 class DispersyManager(object):
@@ -36,7 +61,6 @@ class DispersyManager(object):
         return self.dispersy.start(autoload_discovery=True)
 
     def start_market(self, *args, **kwargs):
-        self.logger.info('Starting MarketCommunity')
 
         if os.path.exists(self.keypair_fn):
             self.logger.info('Using existing keypair')
@@ -52,6 +76,15 @@ class DispersyManager(object):
 
         self.logger.debug('Public key %s', urlsafe_b64encode(keypair.pub().key_to_bin()))
         member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+
+        database = InternetOfMoneyDB(self.state_dir)
+        manager = BankManager(database, cache_dir=self.state_dir)
+
+        money_community = self.dispersy.define_auto_load(MoneyCommunity, member, load=True)[0]
+        money_community.bank_managers = {manager.get_bank_id(): manager}
+
+        self.logger.info('Starting MarketCommunity')
+        kwargs['money_community'] = money_community
         self.community = self.dispersy.define_auto_load(MarketCommunity, member, load=True, args=args, kargs=kwargs)[0]
 
     def stop_dispersy(self):
