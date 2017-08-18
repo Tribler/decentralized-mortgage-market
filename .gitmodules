@@ -1,6 +1,3 @@
 [submodule "dispersy"]
 	path = dispersy
 	url = https://github.com/Tribler/dispersy.git
-[submodule "internetofmoney"]
-	path = internetofmoney
-	url = https://gitlab.blockchain-lab.org/internet-of-money/Internet-of-Money.git
