@@ -15,7 +15,7 @@ from dispersy.authentication import MemberAuthentication
 from dispersy.candidate import WalkCandidate
 from dispersy.community import Community
 from dispersy.conversion import DefaultConversion
-from dispersy.destination import CommunityDestination
+from dispersy.destination import CandidateDestination
 from dispersy.distribution import DirectDistribution
 from dispersy.message import Message, DelayMessageByProof, DropMessage
 from dispersy.requestcache import IntroductionRequestCache, RandomNumberCache
@@ -91,7 +91,7 @@ class MoneyCommunity(Community):
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
-                    CommunityDestination(node_count=10),
+                    CandidateDestination(),
                     ServicesInfoPayload(),
                     self.check_message,
                     self.on_services_info),
@@ -99,7 +99,7 @@ class MoneyCommunity(Community):
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
-                    CommunityDestination(node_count=10),
+                    CandidateDestination(),
                     CapacityQueryPayload(),
                     self.check_capacity_query,
                     self.on_capacity_query),
@@ -107,7 +107,7 @@ class MoneyCommunity(Community):
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
-                    CommunityDestination(node_count=10),
+                    CandidateDestination(),
                     CapacityResponsePayload(),
                     self.check_message,
                     self.on_capacity_response),
@@ -115,7 +115,7 @@ class MoneyCommunity(Community):
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
-                    CommunityDestination(node_count=10),
+                    CandidateDestination(),
                     PaymentToSwitchPayload(),
                     self.check_payment_to_switch_message,
                     self.on_payment_to_switch_message),
@@ -123,7 +123,7 @@ class MoneyCommunity(Community):
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
-                    CommunityDestination(node_count=10),
+                    CandidateDestination(),
                     PaymentFromSwitchPayload(),
                     self.check_message,
                     self.on_payment_from_switch_message),
