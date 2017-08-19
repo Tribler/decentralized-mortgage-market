@@ -9,7 +9,10 @@ class IBANUtil(object):
 
     @staticmethod
     def is_valid_iban(iban):
+        return True
+
         try:
             return IBAN(iban).validate()
-        except ValueError:
+        except ValueError as e:
+            print 'ERROR', e
             return False
