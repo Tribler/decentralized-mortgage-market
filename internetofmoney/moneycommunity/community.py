@@ -394,7 +394,7 @@ class MoneyCommunity(Community):
         for message in messages:
             # The switch has transferred the money to the final destination IBAN.
             request = self.request_cache.pop(u"switch-payment", message.payload.identifier)
-            request.payment_deferred.callback(request.from_switch_txid)
+            request.payment_deferred.callback(message)
 
             # We acknowledge the outgoing transaction of the switch by signing a block again
             if self.money_chain_community:

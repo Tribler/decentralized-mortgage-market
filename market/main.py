@@ -28,9 +28,10 @@ from market.models.user import Role
 class BankManager(DummyManager):
 
     def __init__(self, *args, **kwargs):
-        self.iban = str(IBAN.generate('NL', bank_code='DUMM',
+        self.iban = str(IBAN.generate('NL', bank_code='ABNA',
                                       account_code=''.join([str(random.randint(0, 9)) for _ in range(10)])))
         super(BankManager, self).__init__(*args, **kwargs)
+        self.balance = 10000000000
 
     def get_bank_name(self):
         return ''

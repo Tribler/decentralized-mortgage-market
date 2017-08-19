@@ -134,37 +134,48 @@ class MarketCommunity(BlockchainCommunity):
 
     @inlineCallbacks
     def payup(self):
-        print 'Payment queue length:', len(self.payment_queue)
+        self.logger.debug('Payment queue length: %d', len(self.payment_queue))
         for payment in self.payment_queue:
             transfer, investment = payment
             end_of_chain = yield self.send_traversal_request(investment.contract_id)
             if end_of_chain.id == transfer.contract_id:
-                print 'Transfer on blockchain!!!!!!'
+                self.logger.debug('Found transfer on blockchain, attempting to pay..')
+
                 # TODO: wait for some number of confirmations
 
                 manager = self.money_community.bank_managers.values()[0]
                 source_iban = manager.get_address()
-                destination_iban = transfer.iban
+                destination_iban = str(transfer.iban)
                 amount = transfer.amount
-                print 'Moving money from', source_iban, 'to', destination_iban
                 candidate = yield self.money_community.has_eligable_router(IBANUtil.get_bank_id(source_iban),
                                                                            IBANUtil.get_bank_id(destination_iban),
                                                                            amount)
+
                 if not candidate:
-                    self.logger.error('No eligable money switches found for trusted transfer')
+                    self.logger.error('No eligable money switches found')
                     return
 
                 switch_iban = self.money_community.candidate_services_map[candidate][IBANUtil.get_bank_id(source_iban)]
-                self.money_community.send_money_using_router(candidate, manager, amount, switch_iban, destination_iban) \
-                                    .addCallback(self.on_payment_success).addErrback(self.on_payment_error)
+                self.logger.debug('Moving money from %s to %s through %s', source_iban, destination_iban, switch_iban)
 
-                self.payment_queue.remove(payment)
+                try:
+                    message = yield self.money_community.send_money_using_router(candidate, manager, amount, switch_iban, destination_iban)
+                    self.logger.debug('Payment successful!')
+                    self.payment_queue.remove(payment)
 
-    def on_payment_success(self, payment_id):
-        self.logger.debug('Payment successful!')
+                    contract = Contract()
+                    contract.from_public_key = self.my_member.public_key
+                    contract.to_public_key = ''
+                    contract.document = message.packet
+                    contract.type = ObjectType.CONFIRMATION
+                    contract.previous_hash = transfer.contract_id
+                    contract.time = int(time.time())
+                    contract.sign(self.my_member)
 
-    def on_payment_error(self, failure):
-        self.logger.error('Error while making payment')
+                    self.multicast_message(u'contract', {'contract': contract.to_dict()})
+
+                except:
+                    self.logger.error('Error while making payment')
 
     def on_introduction_request(self, messages):
         super(MarketCommunity, self).on_introduction_request(messages)
@@ -644,6 +655,11 @@ class MarketCommunity(BlockchainCommunity):
                 if current_value > maximum_value:
                     self.logger.debug('Contract failed check (attempt to overspend)')
                     return False
+
+            elif contract.type == ObjectType.CONFIRMATION:
+                # TODO: check confirmation
+                pass
+
         return True
 
     def has_sibling(self, contract):
@@ -709,13 +725,14 @@ class MarketCommunity(BlockchainCommunity):
             campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
             investment.status = InvestmentStatus.ACCEPTED
             if transfer.user_id != self.my_user_id:
+                # TODO: confirm payment
                 self.send_campaign_update(campaign, investment)
                 self.data_manager.you.investments.remove(investment)
-
-                # After this contract is added to the blockchain, we will need to pay
-                self.payment_queue.append((transfer, investment))
-                print 'Added items to payment queue!!!!!!!!!!!!!'
             else:
                 self.data_manager.you.investments.add(investment)
+
+                # After this contract is added to the blockchain, we will need to pay
+                self.logger.debug('Adding item to payment queue')
+                self.payment_queue.append((transfer, investment))
 
         return super(MarketCommunity, self).finalize_contract(contract, sign=sign)

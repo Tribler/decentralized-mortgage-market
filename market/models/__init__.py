@@ -9,3 +9,4 @@ class ObjectType(IntEnum):
     MORTGAGE = 1
     INVESTMENT = 2
     TRANSFER = 3
+    CONFIRMATION = 4

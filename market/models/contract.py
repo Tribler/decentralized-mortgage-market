@@ -63,6 +63,10 @@ class Contract(object):
 
         data = str(self)
         if member is None:
+            # Confirmation contracts only have a single signature
+            if self.type == ObjectType.CONFIRMATION:
+                return verify_libnaclpk(self.from_public_key, data, self.from_signature)
+
             return verify_libnaclpk(self.from_public_key, data, self.from_signature) and \
                    verify_libnaclpk(self.to_public_key, data, self.to_signature)
 
@@ -93,8 +97,9 @@ class Contract(object):
 
         if api_response:
             contract_dict['id'] = urlsafe_b64encode(self.id)
-            contract_dict['decoded'] = self.get_object().to_dict(api_response=True)
-            contract_dict['decoded'].pop('contract_id')
+            if self.type != ObjectType.CONFIRMATION:
+                contract_dict['decoded'] = self.get_object().to_dict(api_response=True)
+                contract_dict['decoded'].pop('contract_id')
 
         return contract_dict
 

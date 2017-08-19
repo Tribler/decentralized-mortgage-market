@@ -30,11 +30,11 @@ from market.util.uint256 import full_to_uint256, compact_to_uint256, uint256_to_
 COMMIT_INTERVAL = 60
 
 BLOCK_CREATION_INTERNAL = 1
-BLOCK_TARGET_SPACING = 300  # 10 * 60
-BLOCK_TARGET_TIMESPAN = 20 * 60  # 14 * 24 * 60 * 60
+BLOCK_TARGET_SPACING = 30  # 10 * 60
+BLOCK_TARGET_TIMESPAN = 300  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
-BLOCK_DIFFICULTY_INIT = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-BLOCK_DIFFICULTY_MIN = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+BLOCK_DIFFICULTY_INIT = 0x0affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+BLOCK_DIFFICULTY_MIN = 0x0affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 BLOCK_GENESIS_HASH = '\00' * 32
 
 MAX_CLOCK_DRIFT = 15 * 60
