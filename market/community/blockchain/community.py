@@ -302,8 +302,9 @@ class BlockchainCommunity(Community):
 
     def send_block_request(self, block_id):
         self.request_cache.add(BlockRequestCache(self, block_id))
-        candidate = next(self.dispersy_yield_verified_candidates(), None)
-        self.send_message(u'block-request', (candidate,), {'block_id': block_id})
+        verifiers = self.get_verifiers()
+        if verifiers:
+            self.send_message(u'block-request', (verifiers[0],), {'block_id': block_id})
 
     def on_block_request(self, messages):
         for message in messages:
