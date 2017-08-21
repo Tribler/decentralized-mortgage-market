@@ -117,6 +117,14 @@ message Transfer {
     optional bytes contract_id = 8;
 }
 
+message Confirmation {
+    required uint32 transfer_id = 1;
+    required bytes transfer_user_id = 2;
+    required string to_iban = 3;
+    required string from_iban = 4;
+    required double amount = 5;
+}
+
 message Campaign {
     required uint32 id = 1;
     required bytes user_id = 2;

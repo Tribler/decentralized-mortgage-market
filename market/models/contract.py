@@ -10,6 +10,7 @@ from market.models import ObjectType
 from market.models.mortgage import Mortgage
 from market.models.investment import Investment
 from market.models.transfer import Transfer
+from market.models.confirmation import Confirmation
 from market.util.misc import verify_libnaclpk
 
 
@@ -82,6 +83,8 @@ class Contract(object):
             return Investment.from_bin(self.document)
         elif self.type == ObjectType.TRANSFER:
             return Transfer.from_bin(self.document)
+        elif self.type == ObjectType.CONFIRMATION:
+            return Confirmation.from_bin(self.document)
 
     def to_dict(self, api_response=False):
         contract_dict = {
@@ -97,9 +100,8 @@ class Contract(object):
 
         if api_response:
             contract_dict['id'] = urlsafe_b64encode(self.id)
-            if self.type != ObjectType.CONFIRMATION:
-                contract_dict['decoded'] = self.get_object().to_dict(api_response=True)
-                contract_dict['decoded'].pop('contract_id')
+            contract_dict['decoded'] = self.get_object().to_dict(api_response=True)
+            contract_dict['decoded'].pop('contract_id', None)
 
         return contract_dict
 

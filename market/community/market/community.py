@@ -27,6 +27,7 @@ from market.models.user import User, Role
 from market.models.campaign import Campaign
 from market.models.investment import InvestmentStatus, Investment
 from market.models.transfer import Transfer, TransferStatus
+from market.models.confirmation import Confirmation
 from market.models.profile import Profile
 from market.models.contract import Contract
 from market.restapi.rest_manager import RESTManager
@@ -159,23 +160,22 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Moving money from %s to %s through %s', source_iban, destination_iban, switch_iban)
 
                 try:
-                    message = yield self.money_community.send_money_using_router(candidate, manager, amount, switch_iban, destination_iban)
+                    yield self.money_community.send_money_using_router(candidate, manager, amount, switch_iban, destination_iban)
+
                     self.logger.debug('Payment successful!')
                     self.payment_queue.remove(payment)
 
-                    contract = Contract()
-                    contract.from_public_key = self.my_member.public_key
-                    contract.to_public_key = ''
-                    contract.document = message.packet
-                    contract.type = ObjectType.CONFIRMATION
-                    contract.previous_hash = transfer.contract_id
-                    contract.time = int(time.time())
-                    contract.sign(self.my_member)
+                    # Now we need the money router to sign the confirmation contract,
+                    # which proves to the network the we have paid
+                    confirmation = Confirmation(transfer.id, transfer.user_id, unicode(source_iban),
+                                                unicode(destination_iban), amount)
+                    document = confirmation.to_bin()
 
-                    self.multicast_message(u'contract', {'contract': contract.to_dict()})
+                    self.begin_contract(candidate, document, ObjectType.CONFIRMATION, self.my_member.public_key,
+                                        candidate.get_member().public_key, transfer.contract_id)
 
-                except:
-                    self.logger.error('Error while making payment')
+                except Exception, e:
+                    self.logger.error('Error while making payment (%s)', str(e))
 
     def on_introduction_request(self, messages):
         super(MarketCommunity, self).on_introduction_request(messages)
@@ -725,7 +725,6 @@ class MarketCommunity(BlockchainCommunity):
             campaign = self.data_manager.get_campaign(investment.campaign_id, investment.campaign_user_id)
             investment.status = InvestmentStatus.ACCEPTED
             if transfer.user_id != self.my_user_id:
-                # TODO: confirm payment
                 self.send_campaign_update(campaign, investment)
                 self.data_manager.you.investments.remove(investment)
             else:
@@ -734,5 +733,9 @@ class MarketCommunity(BlockchainCommunity):
                 # After this contract is added to the blockchain, we will need to pay
                 self.logger.debug('Adding item to payment queue')
                 self.payment_queue.append((transfer, investment))
+
+        elif isinstance(obj, Confirmation):
+            # TODO: check if we have routed the money
+            pass
 
         return super(MarketCommunity, self).finalize_contract(contract, sign=sign)
