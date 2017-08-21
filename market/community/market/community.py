@@ -313,8 +313,14 @@ class MarketCommunity(BlockchainCommunity):
         self.logger.debug('Verifying contract ownership')
 
         # First, we verify the owner of the investment
-        contract = yield self.send_traversal_request(investment.contract_id)
-        owner_public_key = contract.to_public_key
+        contract = yield self.send_traversal_request(investment.contract_id, contract_type=ObjectType.CONFIRMATION)
+
+        if not contract:
+            contract = yield self.send_traversal_request(investment.contract_id, contract_type=ObjectType.INVESTMENT)
+            owner_public_key = contract.to_public_key if contract else None
+        else:
+            owner_public_key = contract.from_public_key
+
         if owner_public_key:
             self.logger.debug('Contract ownership verification successful!')
 

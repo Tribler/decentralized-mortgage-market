@@ -28,6 +28,7 @@ message BlockMessage {
 message TraversalRequestMessage {
     required uint32 identifier = 1;
     required bytes contract_id = 2;
+    optional uint32 contract_type = 3;
 }
 
 message TraversalResponseMessage {

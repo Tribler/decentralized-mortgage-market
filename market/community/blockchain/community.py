@@ -26,6 +26,7 @@ from market.models.block_index import BlockIndex
 from market.models.contract import Contract
 from market.util.misc import median
 from market.util.uint256 import full_to_uint256, compact_to_uint256, uint256_to_compact
+from market.models import ObjectType
 
 COMMIT_INTERVAL = 60
 
@@ -64,31 +65,41 @@ class BlockRequestCache(RandomNumberCache):
 
 class TraversalRequestCache(RandomNumberCache):
 
-    def __init__(self, community, contract_id, deferred, max_responses, min_responses):
+    def __init__(self, community, contract_id, contract_type, deferred, min_responses, max_responses):
         super(TraversalRequestCache, self).__init__(community.request_cache, u'traversal-request')
         self.logger = community.logger
         self.contract_id = contract_id
+        self.contract_type = contract_type
         self.deferred = deferred
-        self.max_responses = max_responses
         self.min_responses = min_responses
+        self.max_responses = max_responses
         self.responses = {}
+        self.public_keys = []
 
-    def add_response(self, sender_pub_key, contract):
-        if not contract:
+    def callback(self):
+        responses_sorted = sorted(self.responses.items(), key=lambda item: item[1])
+        if responses_sorted and responses_sorted[-1][1] >= self.min_responses:
+            self.deferred.callback(responses_sorted[-1][0])
+        else:
+            self.logger.warning('Not enough similar responses to traversal-request')
+            self.deferred.errback()
+
+    def add_response(self, public_key, contract):
+        # Only allow 1 response per peer
+        if public_key in self.public_keys:
             return False
+        self.public_keys.append(public_key)
 
-        self.responses[sender_pub_key] = contract
+        self.responses[contract] = self.responses.get(contract, 0) + 1
+
         # If we already have all responses there is not need to wait for the timeout
-        if len(self.responses) == self.max_responses and len({c.id for c in self.responses.values()}) == 1:
-            self.deferred.callback(contract)
+        if sum(self.responses.values()) >= self.max_responses:
+            self.callback()
             return True
+        return False
 
     def on_timeout(self):
-        if len(self.responses) < self.min_responses:
-            self.logger.warning('Not enough responses to traversal-request')
-        elif len(set(self.responses.values())) != 1:
-            self.logger.warning('Got different traversal-response messages!')
-        self.deferred.errback()
+        self.callback()
 
 
 class BlockchainCommunity(Community):
@@ -577,7 +588,7 @@ class BlockchainCommunity(Community):
 
         return True
 
-    def send_traversal_request(self, contract_id, max_requests=5, min_responses=1):
+    def send_traversal_request(self, contract_id, contract_type=None, max_requests=5, min_responses=1):
         # Send a message to a limited number of verifiers
         verifiers = self.get_verifiers()[:max_requests]
         if len(verifiers) < min_responses:
@@ -586,16 +597,30 @@ class BlockchainCommunity(Community):
 
         # Use a request cache to keep track of the responses. We require a minimum number of (equal) responses
         deferred = Deferred()
-        cache = self.request_cache.add(TraversalRequestCache(self, contract_id, deferred, len(verifiers), min_responses))
-        self.send_message(u'traversal-request', tuple(verifiers), {'identifier': cache.number,
-                                                                   'contract_id': contract_id})
+        cache = self.request_cache.add(TraversalRequestCache(self, contract_id, contract_type,
+                                                             deferred, min_responses, len(verifiers)))
+
+        msg_dict = {'identifier': cache.number,
+                    'contract_id': contract_id}
+
+        if contract_type != None:
+            msg_dict['contract_type'] = contract_type
+
+        self.send_message(u'traversal-request', tuple(verifiers), msg_dict)
+
         return deferred
 
     def on_traversal_request(self, messages):
         for message in messages:
             msg_dict = {'identifier': message.payload.dictionary['identifier']}
 
-            contract = self.traverse_contracts(message.payload.dictionary['contract_id'])
+            try:
+                contract_type = ObjectType(message.payload.dictionary['contract_type'])
+            except (ValueError, KeyError):
+                contract_type = None
+
+            contract = self.traverse_contracts(message.payload.dictionary['contract_id'],
+                                               contract_type)
             if contract is not None:
                 msg_dict['contract'] = contract.to_dict()
 
@@ -610,16 +635,21 @@ class BlockchainCommunity(Community):
 
             self.logger.debug('Got traversal-response from %s', message.candidate.sock_addr)
 
-            contract = Contract.from_dict(message.payload.dictionary['contract'])
+            contract = Contract.from_dict(message.payload.dictionary['contract']) \
+                       if 'contract' in message.payload.dictionary else None
 
             if cache.add_response(message.candidate.get_member().public_key, contract):
                 # If all responses are received remove the cache
                 self.request_cache.pop(u'traversal-request', message.payload.dictionary['identifier'])
 
-    def traverse_contracts(self, contract_id):
+    def traverse_contracts(self, contract_id, contract_type):
+        contract_of_type = None
         contract = self.data_manager.get_contract(contract_id)
         # Traverse contract chain
         while contract:
+            if contract.type == contract_type:
+                contract_of_type = contract
+
             contracts = self.data_manager.find_contracts(Contract.previous_hash == contract.id)
             contracts = [contract for contract in list(contracts) if self.data_manager.contract_on_blockchain(contract.id)]
 
@@ -630,6 +660,6 @@ class BlockchainCommunity(Community):
 
             elif len(contracts) == 0:
                 # Found end of contract chain
-                return contract
+                return contract if contract_type is None else contract_of_type
 
             break
