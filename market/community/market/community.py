@@ -4,7 +4,7 @@ import base64
 import logging
 import hashlib
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 
 from dispersy.authentication import MemberAuthentication
@@ -31,6 +31,7 @@ from market.models.confirmation import Confirmation
 from market.models.profile import Profile
 from market.models.contract import Contract
 from market.restapi.rest_manager import RESTManager
+from market.util.uint256 import full_to_uint256
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
@@ -313,13 +314,7 @@ class MarketCommunity(BlockchainCommunity):
         self.logger.debug('Verifying contract ownership')
 
         # First, we verify the owner of the investment
-        contract = yield self.send_traversal_request(investment.contract_id, contract_type=ObjectType.CONFIRMATION)
-
-        if not contract:
-            contract = yield self.send_traversal_request(investment.contract_id, contract_type=ObjectType.INVESTMENT)
-            owner_public_key = contract.to_public_key if contract else None
-        else:
-            owner_public_key = contract.from_public_key
+        owner_public_key = yield self.find_owner_remote(investment.contract_id)
 
         if owner_public_key:
             self.logger.debug('Contract ownership verification successful!')
@@ -629,6 +624,19 @@ class MarketCommunity(BlockchainCommunity):
                     # Update the existing investment with the new status. Should be either ACCEPTED or FORSALE
                     existing_investment.status = investment.status
 
+    def check_proof(self, block):
+        proof = hashlib.sha256(str(block)).digest()
+
+        contracts = self.data_manager.find_contracts(Contract.to_public_key == block.creator,
+                                                     Contract.type in [ObjectType.INVESTMENT, ObjectType.TRANSFER])
+
+        value = sum([c.get_object().amount for c in contracts if self.find_owner(c.id) == block.creator])
+        #  Give stake a +1 for every 100000 invested. Consider amounts up to 1000000.
+        stake = min(value, 1000000) / 100000
+        stake += 1
+
+        return full_to_uint256(proof) < (block.target_difficulty * stake)
+
     def check_contract(self, contract, fail_without_parent=True):
         if not super(MarketCommunity, self).check_contract(contract, fail_without_parent=fail_without_parent):
             return False
@@ -745,3 +753,25 @@ class MarketCommunity(BlockchainCommunity):
             pass
 
         return super(MarketCommunity, self).finalize_contract(contract, sign=sign)
+
+    @inlineCallbacks
+    def find_owner_remote(self, contract_id):
+        contract = yield self.send_traversal_request(contract_id, ObjectType.CONFIRMATION)
+
+        owner = None
+        if not contract:
+            contract = yield self.send_traversal_request(contract_id, ObjectType.INVESTMENT)
+            owner = contract.to_public_key if contract else None
+        else:
+            owner = contract.from_public_key
+
+        returnValue(owner)
+
+    def find_owner(self, contract_id):
+        contract = self.traverse_contracts(contract_id, ObjectType.CONFIRMATION)
+
+        if not contract:
+            contract = self.traverse_contracts(contract_id, ObjectType.INVESTMENT)
+            return contract.to_public_key if contract else None
+        else:
+            return contract.from_public_key
