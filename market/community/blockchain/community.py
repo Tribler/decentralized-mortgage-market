@@ -34,8 +34,8 @@ BLOCK_CREATION_INTERNAL = 1
 BLOCK_TARGET_SPACING = 30  # 10 * 60
 BLOCK_TARGET_TIMESPAN = 300  # 14 * 24 * 60 * 60
 BLOCK_TARGET_BLOCKSPAN = BLOCK_TARGET_TIMESPAN / BLOCK_TARGET_SPACING
-BLOCK_DIFFICULTY_INIT = 0x0affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-BLOCK_DIFFICULTY_MIN = 0x0affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+BLOCK_DIFFICULTY_INIT = 0x05ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+BLOCK_DIFFICULTY_MIN = 0x05ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 BLOCK_GENESIS_HASH = '\00' * 32
 
 MAX_CLOCK_DRIFT = 15 * 60
@@ -487,7 +487,7 @@ class BlockchainCommunity(Community):
                                 self.data_manager.get_contract(contract.previous_hash)
                 on_blockchain = self.data_manager.contract_on_blockchain(prev_contract.id) if prev_contract else False
                 # We need to wait until the previous contract is received and on the blockchain
-                if prev_contract is None or not on_blockchain:
+                if not on_blockchain:
                     dependencies[contract.previous_hash].append(contract)
                     continue
             contracts.append(contract)
