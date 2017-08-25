@@ -660,6 +660,12 @@ class MarketCommunity(BlockchainCommunity):
                               if c.previous_hash == prev_contract.id]
                 contracts.append(contract)
 
+                # Filter out duplicates
+                contracts_dict = {}
+                for contract in contracts:
+                    contracts_dict[contract.id] = contract
+                contracts = contracts_dict.values()
+
                 # Make sure the sum of all investments does not surpass the maximum allowed amount
                 mortgage = prev_contract.get_object()
                 maximum_value = mortgage.amount - mortgage.bank_amount
