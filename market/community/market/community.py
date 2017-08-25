@@ -648,9 +648,18 @@ class MarketCommunity(BlockchainCommunity):
             if prev_contract is None:
                 return True
 
-            elif contract.type == ObjectType.TRANSFER and self.has_sibling(contract):
-                self.logger.debug('Contract failed check (attempt to double spend)')
-                return False
+            elif contract.type == ObjectType.TRANSFER:
+                if self.has_sibling(contract):
+                    self.logger.debug('Contract failed check (attempt to double spend)')
+                    return False
+
+                investment_contract = self.find_investment_contract(contract)
+                if not investment_contract:
+                    self.logger.debug('Contract failed check (unable to find investment contract)')
+                    return False
+                elif self.find_owner(investment_contract.id) != contract.from_public_key:
+                    self.logger.debug('Contract failed check (unauthorized)')
+                    return False
 
             elif contract.type == ObjectType.INVESTMENT:
                 # Find all contracts that depend on this mortgage
@@ -781,3 +790,9 @@ class MarketCommunity(BlockchainCommunity):
             return contract.to_public_key if contract else None
         else:
             return contract.from_public_key
+
+    def find_investment_contract(self, contract):
+        # Go up in the chain until we find the investment
+        while contract and contract.type != ObjectType.INVESTMENT:
+            contract = self.data_manager.get_contract(contract.previous_hash)
+        return contract
