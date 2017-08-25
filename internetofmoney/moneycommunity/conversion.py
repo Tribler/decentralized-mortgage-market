@@ -77,7 +77,7 @@ class MoneyConversion(BinaryConversion):
         return self._decode_payload(placeholder, offset, data, [int, str, float])
 
     def _encode_payment_to_switch(self, message):
-        packet = encode((message.payload.identifier, message.payload.from_switch_txid, message.payload.to_switch_txid,
+        packet = encode((message.payload.identifier, message.payload.to_switch_txid, message.payload.from_switch_txid,
                          message.payload.from_iban, message.payload.to_iban, message.payload.final_destination_iban,
                          message.payload.amount))
         return packet,

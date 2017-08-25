@@ -74,11 +74,10 @@ class InternetOfMoneyDB(Database):
         """
         return u"""
         CREATE TABLE IF NOT EXISTS events(
+         id                          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
          timestamp                   LONG NOT NULL,
          level                       TEXT NOT NULL,
-         message                     TEXT NOT NULL,
-
-         PRIMARY KEY (timestamp)
+         message                     TEXT NOT NULL
          );
 
          CREATE TABLE IF NOT EXISTS transactions(
@@ -89,7 +88,7 @@ class InternetOfMoneyDB(Database):
          amount                      DOUBLE NOT NULL,
          description                 TEXT NOT NULL,
 
-         PRIMARY KEY (timestamp)
+         PRIMARY KEY (txid)
          );
 
         CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);

@@ -245,8 +245,8 @@ class MoneyCommunity(Community):
                 authentication=(self.my_member,),
                 distribution=(self.claim_global_time(),),
                 destination=(router_candidate,),
-                payload=(cache.number, to_switch_txid, from_switch_txid, from_iban,
-                         destination_iban, final_destination_iban, float(amount))
+                payload=(cache.number, str(to_switch_txid), str(from_switch_txid), str(from_iban),
+                         str(destination_iban), str(final_destination_iban), float(amount))
             )
 
             self.dispersy.store_update_forward([message], True, False, True)
