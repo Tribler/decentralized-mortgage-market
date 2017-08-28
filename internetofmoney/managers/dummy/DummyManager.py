@@ -5,6 +5,7 @@ from twisted.internet.task import deferLater
 from internetofmoney.RequiredField import RequiredField
 from internetofmoney.RequiredInput import RequiredInput
 from internetofmoney.managers.BaseManager import BaseManager
+from internetofmoney.moneycommunity import generate_txid
 
 
 class DummyManager(BaseManager):
@@ -71,9 +72,10 @@ class DummyManager(BaseManager):
     def perform_payment(self, amount, destination_account, description):
         self.database.log_event('info', 'Starting %s payment with amount %f to %s (description: %s)' %
                                 (self.get_bank_name(), amount, destination_account, description))
-        self.database.add_transaction('a' * 20, self.get_address(), destination_account, amount, description)
+        txid = generate_txid()
+        self.database.add_transaction(txid, self.get_address(), destination_account, amount, description)
         self.transactions.append({"amount": amount})
-        return succeed('a' * 20)
+        return succeed(txid)
 
     def get_transactions(self):
         self.database.log_event('info', 'Fetching %s transactions of account %s' %
