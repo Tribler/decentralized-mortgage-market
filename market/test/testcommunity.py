@@ -1,17 +1,18 @@
 import sys
 import logging
-import unittest
 
 from tempfile import mkdtemp
 
 # This will ensure nose starts the reactor. Do not remove
 from nose.twistedtools import reactor
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.python import log
+from twisted.trial import unittest
 
 from dispersy.dispersy import Dispersy
 from dispersy.endpoint import StandaloneEndpoint
 from dispersy.candidate import Candidate
+from dispersy.util import blocking_call_on_reactor_thread
 
 logging.basicConfig(stream=sys.stderr)
 logging.getLogger("MarketLogger").setLevel(logging.DEBUG)
@@ -27,11 +28,14 @@ class TestCommunity(unittest.TestCase):
         self.communities = []
         self.message_callbacks = {}
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         super(TestCommunity, self).tearDown()
 
         for community in self.communities:
-            community.dispersy.stop()
+            if community.dispersy.running:
+                yield community.dispersy.stop()
 
     def create_community(self, cls, *args, **kwargs):
         temp_dir = unicode(mkdtemp(suffix="_dispersy_test_session"))
@@ -78,7 +82,7 @@ class TestCommunity(unittest.TestCase):
                 raise Exception('get_next_message timeout')
 
         deferred = Deferred()
-        reactor.callLater(10, timeout, deferred)
+        community.register_task(deferred, reactor.callLater(10, timeout, deferred))
         self.message_callbacks[community] = self.message_callbacks.get(community, {})
         self.message_callbacks[community][message_name] = self.message_callbacks.get(message_name, [])
         self.message_callbacks[community][message_name].append(deferred)
