@@ -132,6 +132,5 @@ CREATE TABLE IF NOT EXISTS block_contract(
 
 CREATE TABLE IF NOT EXISTS block_index(
   block_id TEXT PRIMARY KEY,
-  height   INTEGER NOT NULL,
-  score    INTEGER NOT NULL
+  height   INTEGER NOT NULL
 );
