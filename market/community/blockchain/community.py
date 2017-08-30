@@ -488,7 +488,7 @@ class BlockchainCommunity(Community):
                 on_blockchain = self.data_manager.contract_on_blockchain(prev_contract.id) if prev_contract else False
                 # We need to wait until the previous contract is received and on the blockchain
                 if not on_blockchain:
-                    dependencies[contract.previous_hash].append(contract)
+                    dependencies[contract.id].append(prev_contract)
                     continue
             contracts.append(contract)
 
