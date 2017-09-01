@@ -644,7 +644,9 @@ class BlockchainCommunity(Community):
 
     def traverse_contracts(self, contract_id, contract_type):
         contract_of_type = None
-        contract = self.data_manager.get_contract(contract_id)
+        contract = self.data_manager.get_contract(contract_id) \
+                   if self.data_manager.contract_on_blockchain(contract_id) else None
+
         # Traverse contract chain
         while contract:
             if contract.type == contract_type:

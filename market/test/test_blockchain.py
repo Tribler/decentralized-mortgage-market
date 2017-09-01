@@ -102,18 +102,26 @@ class TestBlockchainCommunity(TestCommunity):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_traversal_request(self):
-        # Create dummy contract chain. We need to create the contract twice (once for each node) or storm will complain
-        node1_contract1 = self.create_contract(self.node1, self.node2)
-        node1_contract2 = self.create_contract(self.node2, self.node1, previous_hash=node1_contract1.id)
-        self.node1.data_manager.add_contract(node1_contract1)
-        self.node1.data_manager.add_contract(node1_contract2)
+        self.set_fixed_difficulty()
+        self.node1.cancel_pending_task('create_block')
+        self.node2.cancel_pending_task('create_block')
 
-        node2_contract1 = self.create_contract(self.node1, self.node2)
-        node2_contract2 = self.create_contract(self.node2, self.node1, previous_hash=node2_contract1.id)
-        self.node2.data_manager.add_contract(node2_contract1)
-        self.node2.data_manager.add_contract(node2_contract2)
+        # Create dummy contract chain.
+        c1 = self.create_contract(self.node1, self.node2)
+        c2 = self.create_contract(self.node2, self.node1, previous_hash=c1.id)
+        self.node1.incoming_contracts[c1.id] = c1
+        self.node1.incoming_contracts[c2.id] = c2
 
-        contract = yield self.node1.send_traversal_request(node1_contract1.id)
+        # The contracts should not be on the blockchain yet, so send_traversal_request should return None
+        contract = yield self.node2.send_traversal_request(c1.id)
+        self.assertEqual(contract, None)
+
+        # Mine both blocks
+        self.node1.create_block()
+        self.node1.create_block()
+
+        # Node1 should be owner
+        contract = yield self.node2.send_traversal_request(c1.id)
         self.assertEqual(contract.to_public_key, self.node1.my_member.public_key)
 
     def set_fixed_difficulty(self):
