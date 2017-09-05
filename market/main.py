@@ -99,6 +99,7 @@ def main(argv):
     type_unicode = lambda s: unicode(s, sys.getfilesystemencoding())
 
     parser = argparse.ArgumentParser(add_help=False, description=('Run the MarketCommunity'))
+    parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--dispersy', help='Dispersy port', type=int, default=DEFAULT_DISPERSY_PORT)
     parser.add_argument('--api', help='API port', type=int, default=DEFAULT_REST_API_PORT)
     parser.add_argument('--state', help='State directory', type=type_unicode, default=os.path.join(BASE_DIR, 'State'))

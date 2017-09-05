@@ -58,3 +58,23 @@ While extended branches should be rare, the market is able to cope with such iss
 The market does not offer any kind of monetary incentive for creating blocks, instead banks will have to create blocks simply because they cannot risk a potential malicious bank from putting incorrect contracts on the blockchain.
 
 For sake of simplicity, the current maximum size of a block is only 1472 bytes, a limit chosen such that blocks can fit in a single UDP packet without risking IP fragmentation.
+
+# Usage
+
+```
+usage: main.py [--help] [--dispersy DISPERSY] [--api API] [--state STATE]
+               [--keypair KEYPAIR] (--bank | --investor | --borrower)
+
+Run the MarketCommunity
+
+optional arguments:
+  --help, -h           Show this help message and exit
+  --dispersy DISPERSY  Dispersy port
+  --api API            API port
+  --state STATE        State directory
+  --keypair KEYPAIR    Keypair filename
+  --bank               Run as bank
+  --investor           Run as investor
+  --borrower           Run as borrower
+
+```
