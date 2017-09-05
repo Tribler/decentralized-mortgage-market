@@ -33,9 +33,8 @@ class TestCommunity(unittest.TestCase):
     def tearDown(self):
         super(TestCommunity, self).tearDown()
 
-        for community in self.communities:
-            if community.dispersy.running:
-                yield community.dispersy.stop()
+        for community in self.communities[:]:
+            yield self.destroy_community(community)
 
     def create_community(self, cls, *args, **kwargs):
         temp_dir = unicode(mkdtemp(suffix="_dispersy_test_session"))
@@ -52,13 +51,20 @@ class TestCommunity(unittest.TestCase):
             community.candidates.clear()
             community.add_discovered_candidate(Candidate(head_community.dispersy.lan_address, False))
         else:
-            community = cls.create_community(dispersy, my_member)
+            community = cls.create_community(dispersy, my_member, *args, **kwargs)
             community.candidates.clear()
 
         self.attach_hooks(community)
         self.communities.append(community)
 
         return community
+
+    @inlineCallbacks
+    def destroy_community(self, community):
+        if community.dispersy.running:
+            yield community.dispersy.stop()
+        self.message_callbacks.pop(community, None)
+        self.communities.remove(community)
 
     def attach_hooks(self, community):
         # Attach message hooks

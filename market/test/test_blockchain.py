@@ -1,6 +1,6 @@
 import unittest
 
-from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.internet.defer import inlineCallbacks
 
 from dispersy.candidate import Candidate
 from dispersy.util import blocking_call_on_reactor_thread
@@ -34,8 +34,9 @@ class TestBlockchainCommunity(TestCommunity):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_contract_sign_and_store(self):
-        node3 = self.create_community(verifier=False)
+        node3 = self.create_community()
 
+        # Node2 creates a contract which node3 should sign
         self.node2.begin_contract(Candidate(node3._dispersy.lan_address, False),
                                   self.document,
                                   ObjectType.MORTGAGE,
@@ -43,33 +44,35 @@ class TestBlockchainCommunity(TestCommunity):
                                   node3.my_member.public_key,
                                   previous_hash='')
 
-        message = yield self.get_next_message(self.node1, u'contract')
+        # Wait for signature-request/response messages
+        yield self.get_next_message(node3, u'signature-request')
+        yield self.get_next_message(self.node2, u'signature-response')
 
+        # Check if node1 receives the contract
+        message = yield self.get_next_message(self.node1, u'contract')
         contract = Contract.from_dict(message.payload.dictionary['contract'])
         self.assertEqual(contract.from_public_key, self.node2.my_member.public_key)
         self.assertEqual(contract.to_public_key, node3.my_member.public_key)
         self.assertEqual(contract.document, self.document)
         self.assertTrue(contract.verify())
 
+        # Let node1 store the contract in a block
         self.set_fixed_difficulty()
-        self.node2.cancel_pending_task('create_block')
+        self.node1.create_block()
 
-        yield DeferredList([self.get_next_message(self.node1, u'block'),
-                            self.get_next_message(self.node2, u'block')], fireOnOneCallback=True)
-
-        first_block1 = list(self.node1.data_manager.get_block_indexes())[-1].block_id
-        first_block2 = list(self.node2.data_manager.get_block_indexes())[-1].block_id
+        # Wait for the block to be receive by node2 and check the blockchains
+        yield self.get_next_message(self.node2, u'block')
+        node1_block1 = list(self.node1.data_manager.get_block_indexes())[-1].block_id
+        node2_block1 = list(self.node2.data_manager.get_block_indexes())[-1].block_id
 
         # Check if a block is created
-        self.assertTrue(first_block2)
+        self.assertTrue(node2_block1)
         # Check if both bank agree on the block
-        self.assertEqual(first_block2, first_block1)
+        self.assertEqual(node2_block1, node1_block1)
 
     @blocking_call_on_reactor_thread
     def test_contract_order(self):
         self.set_fixed_difficulty()
-        self.node1.cancel_pending_task('create_block')
-        self.node2.cancel_pending_task('create_block')
 
         c1 = self.create_contract(self.node1, self.node2)
         c2 = self.create_contract(self.node1, self.node2, previous_hash=c1.id)
@@ -103,8 +106,6 @@ class TestBlockchainCommunity(TestCommunity):
     @inlineCallbacks
     def test_traversal_request(self):
         self.set_fixed_difficulty()
-        self.node1.cancel_pending_task('create_block')
-        self.node2.cancel_pending_task('create_block')
 
         # Create dummy contract chain.
         c1 = self.create_contract(self.node1, self.node2)
@@ -123,6 +124,39 @@ class TestBlockchainCommunity(TestCommunity):
         # Node1 should be owner
         contract = yield self.node2.send_traversal_request(c1.id)
         self.assertEqual(contract.to_public_key, self.node1.my_member.public_key)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_block_request(self):
+        yield self.destroy_community(self.node2)
+
+        # Create some blocks.
+        self.set_fixed_difficulty()
+        blocks = [self.node1.create_block() for _ in range(2)]
+
+        # Restart the 2nd verifier.
+        self.node2 = self.create_community()
+        self.node2.take_step()
+        yield self.get_next_message(self.node2, u'dispersy-introduction-request')
+
+        # Create another block. Note that node2 is now online, and it should receive the block as well.
+        self.set_fixed_difficulty()
+        blocks.append(self.node1.create_block())
+
+        # Wait for the block to arrive at node2.
+        yield self.get_next_message(self.node2, u'block')
+
+        # When node2 receives the new block it should realize it doesn't yet possess the parent blocks.
+        # Node2 should make block-requests.
+        for _ in range(len(blocks) - 1):
+            yield self.get_next_message(self.node1, u'block-request')
+            yield self.get_next_message(self.node2, u'block')
+
+        # Check if all blocks are on node2's blockchain
+        for index, block in enumerate(blocks):
+            db_block = self.node2.data_manager.get_block_index(block.id)
+            self.assertTrue(db_block)
+            self.assertEqual(index + 1, db_block.height)
 
     def set_fixed_difficulty(self):
         for community in self.communities:
@@ -145,7 +179,9 @@ class TestBlockchainCommunity(TestCommunity):
         return contract
 
     def create_community(self, *args, **kwargs):
-        return super(TestBlockchainCommunity, self).create_community(BlockchainCommunity, *args, **kwargs)
+        # Note that we are setting verifier=False so that we can manually create blocks
+        return super(TestBlockchainCommunity, self).create_community(BlockchainCommunity, *args,
+                                                                     verifier=False, **kwargs)
 
 
 if __name__ == "__main__":

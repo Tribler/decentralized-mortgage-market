@@ -514,6 +514,7 @@ class BlockchainCommunity(Community):
             if self.process_block(block):
                 self.logger.debug('Added created block with %s contract(s)', len(block.contracts))
                 self.multicast_message(u'block', {'block': block.to_dict()})
+                return block
 
     def get_next_difficulty(self, block):
         # Determine difficulty for the next block
