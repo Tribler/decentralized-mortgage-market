@@ -1,3 +1,5 @@
+[![Build Status](https://jenkins.tribler.org/job/Test_decentralized_mortgage_market/badge/icon)](https://jenkins.tribler.org/job/Test_decentralized_mortgage_market/)
+
 # Decentralized Mortgage Market
 
 This project implements a decentralized mortgage market where home buyers and banks can meet and negotiate mortgage agreements, and banks can sell pieces of these mortgages to investors. In turn, investors can also resell their investment to other investors. This market is completely decentralized, is blockchain-regulated and runs on Dispersy, a messaging platform.
