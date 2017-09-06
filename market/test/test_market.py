@@ -51,27 +51,38 @@ class TestMarketCommunity(TestCommunity):
 
         # Wait until offer is processed
         yield self.get_next_message(self.node2, u'offer')
-        self.assertEqual(self.node2.data_manager.get_loan_request(loan_request.id, loan_request.user_id).to_dict(), loan_request.to_dict())
+        self.assertEqual(self.node2.data_manager.get_loan_request(loan_request.id, loan_request.user_id).to_dict(),
+                         loan_request.to_dict())
 
         # Create mortgage for which to send an offer
-        mortgage = self.create_mortgage(self.node2, loan_request)
+        mortgage2 = self.create_mortgage(self.node2, loan_request)
 
         # Send mortgage offer
-        self.node2.offer_mortgage(loan_request, mortgage)
+        self.node2.offer_mortgage(loan_request, mortgage2)
 
         # Wait until offer is processed
         yield self.get_next_message(self.node1, u'offer')
-        self.assertEqual(self.node1.data_manager.get_mortgage(mortgage.id, mortgage.user_id).to_dict(), mortgage.to_dict())
+        self.assertEqual(self.node1.data_manager.get_mortgage(mortgage2.id, mortgage2.user_id).to_dict(),
+                         mortgage2.to_dict())
 
         # Make sure we have the mortgage from the database of node1
-        mortgage = self.node1.data_manager.get_mortgage(mortgage.id, mortgage.user_id)
+        mortgage1 = self.node1.data_manager.get_mortgage(mortgage2.id, mortgage2.user_id)
 
         # Accept mortgage offer
-        self.node1.accept_mortgage(mortgage)
+        mortgage1.status = MortgageStatus.ACCEPTED
+        self.node1.accept_mortgage(mortgage1)
 
         # Wait until accept is processed
         yield self.get_next_message(self.node2, u'accept')
-        self.assertEqual(self.node2.data_manager.get_mortgage(mortgage.id, mortgage.user_id).status, MortgageStatus.ACCEPTED)
+        self.assertEqual(mortgage2.status, MortgageStatus.ACCEPTED)
+
+        # Wait for signature-request/response messages
+        yield self.get_next_message(self.node1, u'signature-request')
+        yield self.get_next_message(self.node2, u'signature-response')
+
+        # We should have a mortgage contract
+        self.assertTrue(mortgage1.contract_id)
+        self.assertTrue(mortgage2.contract_id)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -157,6 +168,14 @@ class TestMarketCommunity(TestCommunity):
         # Check offer status
         yield self.get_next_message(self.node1, u'accept')
         self.assertEqual(investment1.status, InvestmentStatus.ACCEPTED)
+
+        # Wait for signature-request/response messages
+        yield self.get_next_message(self.node2, u'signature-request')
+        yield self.get_next_message(self.node1, u'signature-response')
+
+        # We should have a investment contract
+        self.assertTrue(investment1.contract_id)
+        self.assertTrue(investment2.contract_id)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -334,7 +353,7 @@ class TestMarketCommunity(TestCommunity):
                             mortgage.user_id,
                             mortgage.amount * 0.5,
                             0,
-                            sys.maxint)
+                            0)
         user.campaigns.add(campaign)
         return campaign
 
@@ -366,11 +385,8 @@ class TestMarketCommunity(TestCommunity):
         return transfer
 
     def create_community(self, role=Role.UNKNOWN):
-        community = super(TestMarketCommunity, self).create_community(MarketCommunity)
-        community.data_manager.you.role = role
+        community = super(TestMarketCommunity, self).create_community(MarketCommunity, role=role)
         community.my_user.profile = Profile(u'Firstname', u'Lastname', u'name@example.com', u'NL28RABO123456789', u'0123456789')
-        # Disable blockchain
-        community.begin_contract = lambda *args, **kwargs: None
         return community
 
 

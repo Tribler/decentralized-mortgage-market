@@ -484,9 +484,12 @@ class MarketCommunity(BlockchainCommunity):
 
                 prev_contract = yield self.send_traversal_request(investment.contract_id)
 
-                self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
-                                    message.candidate.get_member().public_key, self.my_member.public_key,
-                                    prev_contract.id)
+                if prev_contract is not None:
+                    self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
+                                        message.candidate.get_member().public_key, self.my_member.public_key,
+                                        prev_contract.id)
+                else:
+                    self.logger.error('Could not find previous contract will attempting to create a transfer contract')
 
             else:
                 self.logger.warning('Dropping accept from %s (unknown object_type)', sock_addr)
@@ -546,7 +549,7 @@ class MarketCommunity(BlockchainCommunity):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
                             payload=(msg_dict,))
-        return self._dispersy.store_update_forward([message], True, True, True)
+        return self.dispersy.store_update_forward([message], True, True, True)
 
     def on_campaign_update(self, messages):
         for message in messages:
