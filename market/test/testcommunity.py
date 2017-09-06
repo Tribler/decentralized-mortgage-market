@@ -92,7 +92,7 @@ class TestCommunity(unittest.TestCase):
             deferreds = self.message_callbacks.get(community, {}).get(message_name, [])
             if d in deferreds:
                 deferreds.remove(d)
-                raise Exception('get_next_message timeout')
+                d.errback(RuntimeError('get_next_message timeout'))
 
         deferred = Deferred()
         community.register_task(deferred, reactor.callLater(10, timeout, deferred))
