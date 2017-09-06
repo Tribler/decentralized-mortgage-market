@@ -14,9 +14,6 @@ from dispersy.endpoint import StandaloneEndpoint
 from dispersy.candidate import Candidate
 from dispersy.util import blocking_call_on_reactor_thread
 
-logging.basicConfig(stream=sys.stderr)
-logging.getLogger("MarketLogger").setLevel(logging.DEBUG)
-
 # Redirect twisted log to standard python logging
 observer = log.PythonLoggingObserver()
 observer.start()
@@ -24,6 +21,13 @@ observer.start()
 class TestCommunity(unittest.TestCase):
 
     def setUp(self):
+        # Nose prints to stderr, so we will use stdout
+        self.handler = logging.StreamHandler(sys.stdout)
+        for logger_name in ['MarketLogger', 'BlockchainLogger']:
+            logger = logging.getLogger(logger_name)
+            logger.addHandler(self.handler)
+            logger.setLevel(logging.DEBUG)
+
         super(TestCommunity, self).setUp()
         self.communities = []
         self.message_callbacks = {}
@@ -35,6 +39,9 @@ class TestCommunity(unittest.TestCase):
 
         for community in self.communities[:]:
             yield self.destroy_community(community)
+
+        for logger_name in ['MarketLogger', 'BlockchainLogger']:
+            logging.getLogger(logger_name).removeHandler(self.handler)
 
     def create_community(self, cls, *args, **kwargs):
         temp_dir = unicode(mkdtemp(suffix="_dispersy_test_session"))
