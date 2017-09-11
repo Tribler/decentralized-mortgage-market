@@ -11,7 +11,7 @@ from market.models.investment import Investment
 from market.models.transfer import Transfer
 from market.models.profile import Profile
 from market.database.types import Enum
-from market.defs import VERIFIED_BANKS
+from market.defs import VERIFIED_BANK_IDS
 
 
 class Role(PyEnum):
@@ -49,7 +49,7 @@ class User(Storm):
         }
 
         if api_response:
-            bank_name = next((name for name, user_id in VERIFIED_BANKS.iteritems() if user_id == user_dict['id']), None)
+            bank_name = next((name for name, user_id in VERIFIED_BANK_IDS.iteritems() if user_id == self.id), None)
             if bank_name is not None:
                 user_dict['display_name'] = bank_name
             elif self.profile is not None:

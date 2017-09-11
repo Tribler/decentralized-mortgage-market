@@ -218,13 +218,6 @@ class BlockchainCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), BlockchainConversion(self)]
 
-    @property
-    def my_user_id(self):
-        return self.member_to_id(self.my_member)
-
-    def member_to_id(self, member):
-        return hashlib.sha1(member.public_key).digest()
-
     def get_verifiers(self):
         return list(self.dispersy_yield_verified_candidates())
 

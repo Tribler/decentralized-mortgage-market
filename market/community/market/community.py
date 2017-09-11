@@ -16,6 +16,7 @@ from dispersy.resolution import PublicResolution
 
 from internetofmoney.utils.iban import IBANUtil
 
+from market.community.market import accept
 from market.community.blockchain.community import BlockchainCommunity
 from market.community.market.conversion import MarketConversion
 from market.community.payload import ProtobufPayload
@@ -32,6 +33,7 @@ from market.models.profile import Profile
 from market.models.contract import Contract
 from market.restapi.rest_manager import RESTManager
 from market.util.uint256 import full_to_uint256
+from market.defs import VERIFIED_BANKS
 
 COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
@@ -49,6 +51,7 @@ class MarketCommunity(BlockchainCommunity):
         self.market_api = None
         self.payment_queue = []
         self.money_community = None
+        self.stake_cache = {}
 
     def initialize(self, rest_api_port=0, role=Role.UNKNOWN, database_fn='', money_community=None):
         super(MarketCommunity, self).initialize(verifier=role == Role.FINANCIAL_INSTITUTION,
@@ -123,6 +126,16 @@ class MarketCommunity(BlockchainCommunity):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MarketConversion(self)]
+
+    @property
+    def my_user_id(self):
+        return self.member_to_id(self.my_member)
+
+    def public_key_to_id(self, public_key):
+        return hashlib.sha256(public_key).digest()
+
+    def member_to_id(self, member):
+        return self.public_key_to_id(member.public_key)
 
     @inlineCallbacks
     def unload_community(self):
@@ -199,9 +212,11 @@ class MarketCommunity(BlockchainCommunity):
         return self.send_message(msg_type, tuple(candidates), payload_dict)
 
     def get_verifiers(self):
-        # Only financial institutions are verifiers on the blockchain
+        # Only financial institutions with stake >= 1 are verifiers on the blockchain
         return [self.id_to_candidate[user.id] for user in self.data_manager.get_users()
-                if user.id in self.id_to_candidate and user.role == Role.FINANCIAL_INSTITUTION]
+                if user.id in self.id_to_candidate \
+                and self.get_stake(self.id_to_candidate[user.id].get_member().public_key) >= 1 \
+                and user.role == Role.FINANCIAL_INSTITUTION]
 
     @property
     def my_role(self):
@@ -319,7 +334,7 @@ class MarketCommunity(BlockchainCommunity):
         if owner_public_key:
             self.logger.debug('Contract ownership verification successful!')
 
-            owner_id = hashlib.sha1(owner_public_key).digest()
+            owner_id = self.public_key_to_id(owner_public_key)
             owner = self.data_manager.get_user(owner_id)
 
             if owner is None or owner.profile is None or not owner.profile.iban:
@@ -627,17 +642,48 @@ class MarketCommunity(BlockchainCommunity):
                     # Update the existing investment with the new status. Should be either ACCEPTED or FORSALE
                     existing_investment.status = investment.status
 
+    def get_stake(self, public_key):
+        for key, (ts, _) in self.stake_cache.items():
+            # Remove entries that are older than 1h
+            if ts > time.time() + 3600:
+                del self.stake_cache[key]
+
+        if public_key not in self.stake_cache:
+            value = 0
+
+            contracts = self.data_manager.find_contracts(Contract.to_public_key == public_key,
+                                                         Contract.type in [ObjectType.INVESTMENT, ObjectType.TRANSFER])
+
+            for contract in contracts:
+                if not self.data_manager.contract_on_blockchain(contract.id):
+                    continue
+
+                # Find the mortgage contract
+                root_contract = contract
+                while root_contract.type != ObjectType.MORTGAGE:
+                    root_contract = self.data_manager.get_contract(root_contract.previous_hash)
+
+                # Only consider contracts that are linked to a mortgage contract by a verified bank
+                if root_contract and root_contract.type == ObjectType.MORTGAGE and root_contract.to_public_key in VERIFIED_BANKS.values():
+                    # Calculate the value the peer has on the network
+                    if self.find_owner(contract.id) == public_key:
+                        value += contract.get_object().amount
+
+
+            #  Give stake a +1 for every 1000000 invested. Consider amounts up to 10000000.
+            stake = min(value, 10000000) / 1000000
+
+            # To allow bootstrapping we give verified banks a minimum stake of 1
+            if public_key in VERIFIED_BANKS.values():
+                stake = max(stake, 1)
+
+            self.stake_cache[public_key] = (time.time(), stake)
+
+        return self.stake_cache[public_key][1]
+
     def check_proof(self, block):
         proof = hashlib.sha256(str(block)).digest()
-
-        contracts = self.data_manager.find_contracts(Contract.to_public_key == block.creator,
-                                                     Contract.type in [ObjectType.INVESTMENT, ObjectType.TRANSFER])
-
-        value = sum([c.get_object().amount for c in contracts if self.find_owner(c.id) == block.creator])
-        #  Give stake a +1 for every 100000 invested. Consider amounts up to 1000000.
-        stake = min(value, 1000000) / 100000
-        stake += 1
-
+        stake = self.get_stake(block.creator)
         return full_to_uint256(proof) < (block.target_difficulty * stake)
 
     def check_contract(self, contract, fail_without_parent=True):
@@ -799,3 +845,25 @@ class MarketCommunity(BlockchainCommunity):
         while contract and contract.type != ObjectType.INVESTMENT:
             contract = self.data_manager.get_contract(contract.previous_hash)
         return contract
+
+    # Make sure we only accept blockchain messages if the sender is a financial institution with stake >= 1
+
+    @accept(local=Role.FINANCIAL_INSTITUTION)
+    def on_contract(self, messages):
+        super(MarketCommunity, self).on_contract(messages)
+
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.FINANCIAL_INSTITUTION)
+    def on_block_request(self, messages):
+        super(MarketCommunity, self).on_block_request(messages)
+
+    @accept(local=Role.FINANCIAL_INSTITUTION, remote=Role.FINANCIAL_INSTITUTION)
+    def on_block(self, messages):
+        super(MarketCommunity, self).on_block(messages)
+
+    @accept(local=Role.FINANCIAL_INSTITUTION)
+    def on_traversal_request(self, messages):
+        super(MarketCommunity, self).on_traversal_request(messages)
+
+    @accept(remote=Role.FINANCIAL_INSTITUTION)
+    def on_traversal_response(self, messages):
+        super(MarketCommunity, self).on_traversal_response(messages)
