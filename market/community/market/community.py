@@ -39,7 +39,7 @@ COMMIT_INTERVAL = 60
 CLEANUP_INTERVAL = 60
 PAYUP_INTERVAL = 60
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
-
+TRANSFER_LOCK_TIME = 60 * 60
 
 class MarketCommunity(BlockchainCommunity):
 
@@ -695,6 +695,7 @@ class MarketCommunity(BlockchainCommunity):
                             self.data_manager.get_contract(contract.previous_hash)
 
             if prev_contract is None:
+                # Should never happen since BlockchainCommunity.check_contract also checks for this
                 return True
 
             elif (prev_contract.type == ObjectType.MORTGAGE and contract.type != ObjectType.INVESTMENT) or \
@@ -704,10 +705,19 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Contract failed check (unexpected contract type)')
                 return False
 
+            elif contract.type != ObjectType.MORTGAGE and self.has_sibling(contract):
+                self.logger.debug('Contract failed check (attempt to double spend)')
+                return False
+
             elif contract.type == ObjectType.TRANSFER:
-                if self.has_sibling(contract):
-                    self.logger.debug('Contract failed check (attempt to double spend)')
-                    return False
+                if prev_contract == ObjectType.TRANSFER:
+                    block = self.data_manager.contract_on_blockchain(prev_contract.id, ret_block=True)
+                    if block is None:
+                        self.logger.debug('Contract failed check (previous transfer not on blockchain)')
+                        return False
+                    elif time.time() < block.time + TRANSFER_LOCK_TIME:
+                        self.logger.debug('Contract failed check (time between transfers too short)')
+                        return False
 
                 investment_contract = self.find_investment_contract(contract)
                 if not investment_contract:
