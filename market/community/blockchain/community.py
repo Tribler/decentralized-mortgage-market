@@ -288,7 +288,10 @@ class BlockchainCommunity(Community):
     def on_contract(self, messages):
         for message in messages:
             contract = Contract.from_dict(message.payload.dictionary['contract'])
-            if self.incoming_contracts.get(contract.id) or self.data_manager.get_contract(contract.id):
+            if contract is None:
+                self.logger.warning('Dropping invalid contract from %s', message.candidate.sock_addr)
+                continue
+            elif self.incoming_contracts.get(contract.id) or self.data_manager.get_contract(contract.id):
                 self.logger.debug('Dropping contract %s (duplicate)', b64encode(contract.id))
                 continue
 

@@ -697,6 +697,13 @@ class MarketCommunity(BlockchainCommunity):
             if prev_contract is None:
                 return True
 
+            elif (prev_contract.type == ObjectType.MORTGAGE and contract.type != ObjectType.INVESTMENT) or \
+                 (prev_contract.type == ObjectType.INVESTMENT and contract.type != ObjectType.TRANSFER) or \
+                 (prev_contract.type == ObjectType.TRANSFER and contract.type not in [ObjectType.TRANSFER, ObjectType.CONFIRMATION]) or \
+                 (prev_contract.type == ObjectType.CONFIRMATION and contract.type != ObjectType.TRANSFER):
+                self.logger.debug('Contract failed check (unexpected contract type)')
+                return False
+
             elif contract.type == ObjectType.TRANSFER:
                 if self.has_sibling(contract):
                     self.logger.debug('Contract failed check (attempt to double spend)')
