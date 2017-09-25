@@ -46,7 +46,10 @@ class BlockchainDataManager(object):
     def find_contracts(self, *args):
         return self.store.find(Contract, *args)
 
-    def contract_on_blockchain(self, contract_id, ret_block=False):
+    def contract_on_blockchain(self, contract_id):
+        return self.get_blockchain_block_id(contract_id) is not None
+
+    def get_blockchain_block_id(self, contract_id):
         # Find blocks that contain this contract
         block_ids = []
         block_contracts = self.store.find(BlockContract, BlockContract.contract_id == contract_id)
@@ -57,10 +60,7 @@ class BlockchainDataManager(object):
         # Find out if any of the blocks are on the best chain
         for block_id in block_ids:
             if self.get_block_index(block_id):
-                if ret_block:
-                    return self.get_block(block_id)
-                return True
-        return False
+                return block_id
 
     def add_block(self, block):
         self.store.add(block)

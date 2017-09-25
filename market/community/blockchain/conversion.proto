@@ -34,6 +34,7 @@ message TraversalRequestMessage {
 message TraversalResponseMessage {
     required uint32 identifier = 1;
     optional Contract contract = 2;
+    optional uint32 confirmations = 3;
 }
 
 // Objects that are included in the Dispersy messages

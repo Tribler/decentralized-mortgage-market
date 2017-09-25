@@ -152,8 +152,9 @@ class MarketCommunity(BlockchainCommunity):
         self.logger.debug('Payment queue length: %d', len(self.payment_queue))
         for payment in self.payment_queue:
             transfer, investment = payment
-            end_of_chain = yield self.send_traversal_request(investment.contract_id)
-            if end_of_chain.id == transfer.contract_id:
+            response = yield self.send_traversal_request(investment.contract_id)
+            end_of_chain = response[0] if response else None
+            if end_of_chain and end_of_chain.id == transfer.contract_id:
                 self.logger.debug('Found transfer on blockchain, attempting to pay..')
 
                 # TODO: wait for some number of confirmations
@@ -497,9 +498,9 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Got transfer accept from %s', sock_addr)
                 transfer.status = TransferStatus.ACCEPTED
 
-                prev_contract = yield self.send_traversal_request(investment.contract_id)
-
-                if prev_contract is not None:
+                response = yield self.send_traversal_request(investment.contract_id)
+                if response is not None:
+                    prev_contract, _ = response
                     self.begin_contract(message.candidate, transfer.to_bin(), ObjectType.TRANSFER,
                                         message.candidate.get_member().public_key, self.my_member.public_key,
                                         prev_contract.id)
@@ -711,7 +712,8 @@ class MarketCommunity(BlockchainCommunity):
 
             elif contract.type == ObjectType.TRANSFER:
                 if prev_contract == ObjectType.TRANSFER:
-                    block = self.data_manager.contract_on_blockchain(prev_contract.id, ret_block=True)
+                    block_id = self.data_manager.get_blockchain_block_id(prev_contract.id)
+                    block = self.data_manager.get_block(block_id)
                     if block is None:
                         self.logger.debug('Contract failed check (previous transfer not on blockchain)')
                         return False
@@ -837,13 +839,12 @@ class MarketCommunity(BlockchainCommunity):
 
     @inlineCallbacks
     def find_owner_remote(self, contract_id):
-        contract = yield self.send_traversal_request(contract_id, ObjectType.CONFIRMATION)
-
-        owner = None
-        if not contract:
-            contract = yield self.send_traversal_request(contract_id, ObjectType.INVESTMENT)
-            owner = contract.to_public_key if contract else None
+        response = yield self.send_traversal_request(contract_id, ObjectType.CONFIRMATION)
+        if response is not None:
+            response = yield self.send_traversal_request(contract_id, ObjectType.INVESTMENT)
+            owner = response[0].to_public_key if response else None
         else:
+            contract, _ = response
             owner = contract.from_public_key
 
         returnValue(owner)

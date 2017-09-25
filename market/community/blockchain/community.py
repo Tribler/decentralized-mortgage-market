@@ -84,13 +84,13 @@ class TraversalRequestCache(RandomNumberCache):
             self.logger.warning('Not enough similar responses to traversal-request')
             self.deferred.errback()
 
-    def add_response(self, public_key, contract):
+    def add_response(self, public_key, response_tuple):
         # Only allow 1 response per peer
         if public_key in self.public_keys:
             return False
         self.public_keys.append(public_key)
 
-        self.responses[contract] = self.responses.get(contract, 0) + 1
+        self.responses[response_tuple] = self.responses.get(response_tuple, 0) + 1
 
         # If we already have all responses there is not need to wait for the timeout
         if sum(self.responses.values()) >= self.max_responses:
@@ -621,6 +621,15 @@ class BlockchainCommunity(Community):
             if contract is not None:
                 msg_dict['contract'] = contract.to_dict()
 
+                # Add the number of confirmations this contract has
+                block_id = self.data_manager.get_blockchain_block_id(message.payload.dictionary['contract_id'])
+                block = self.data_manager.get_block(block_id)
+                if block:
+                    first_index = self.data_manager.get_block_index(block.id)
+                    last_index = self.data_manager.get_block_indexes(limit=1)[0]
+                    if first_index and last_index:
+                        msg_dict['confirmations'] = last_index.height - first_index.height
+
             self.send_message(u'traversal-response', (message.candidate,), msg_dict)
 
     def on_traversal_response(self, messages):
@@ -634,8 +643,9 @@ class BlockchainCommunity(Community):
 
             contract = Contract.from_dict(message.payload.dictionary['contract']) \
                        if 'contract' in message.payload.dictionary else None
+            confirmations = message.payload.dictionary.get('confirmations', None)
 
-            if cache.add_response(message.candidate.get_member().public_key, contract):
+            if cache.add_response(message.candidate.get_member().public_key, (contract, confirmations)):
                 # If all responses are received remove the cache
                 self.request_cache.pop(u'traversal-request', message.payload.dictionary['identifier'])
 

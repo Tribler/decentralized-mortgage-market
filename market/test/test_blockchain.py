@@ -114,16 +114,18 @@ class TestBlockchainCommunity(TestCommunity):
         self.node1.incoming_contracts[c2.id] = c2
 
         # The contracts should not be on the blockchain yet, so send_traversal_request should return None
-        contract = yield self.node2.send_traversal_request(c1.id)
+        contract, confirmations = yield self.node2.send_traversal_request(c1.id)
         self.assertEqual(contract, None)
+        self.assertEqual(confirmations, None)
 
         # Mine both blocks
         self.node1.create_block()
         self.node1.create_block()
 
         # Node1 should be owner
-        contract = yield self.node2.send_traversal_request(c1.id)
+        contract, confirmations = yield self.node2.send_traversal_request(c1.id)
         self.assertEqual(contract.to_public_key, self.node1.my_member.public_key)
+        self.assertEqual(confirmations, 1)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

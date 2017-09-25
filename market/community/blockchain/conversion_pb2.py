@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='conversion.proto',
   package='blockchain',
   syntax='proto2',
-  serialized_pb=_b('\n\x10\x63onversion.proto\x12\nblockchain\"U\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"V\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"9\n\x0f\x43ontractMessage\x12&\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x14.blockchain.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\"0\n\x0c\x42lockMessage\x12 \n\x05\x62lock\x18\x01 \x02(\x0b\x32\x11.blockchain.Block\"Y\n\x17TraversalRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\x13\n\x0b\x63ontract_id\x18\x02 \x02(\x0c\x12\x15\n\rcontract_type\x18\x03 \x01(\r\"V\n\x18TraversalResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x01(\x0b\x32\x14.blockchain.Contract\"\xad\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x17\n\x0f\x66rom_public_key\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\x15\n\rto_public_key\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb6\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12\'\n\tcontracts\x18\x07 \x03(\x0b\x32\x14.blockchain.Contract')
+  serialized_pb=_b('\n\x10\x63onversion.proto\x12\nblockchain\"U\n\x17SignatureRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"V\n\x18SignatureResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x02(\x0b\x32\x14.blockchain.Contract\"9\n\x0f\x43ontractMessage\x12&\n\x08\x63ontract\x18\x01 \x02(\x0b\x32\x14.blockchain.Contract\"\'\n\x13\x42lockRequestMessage\x12\x10\n\x08\x62lock_id\x18\x01 \x02(\x0c\"0\n\x0c\x42lockMessage\x12 \n\x05\x62lock\x18\x01 \x02(\x0b\x32\x11.blockchain.Block\"Y\n\x17TraversalRequestMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12\x13\n\x0b\x63ontract_id\x18\x02 \x02(\x0c\x12\x15\n\rcontract_type\x18\x03 \x01(\r\"m\n\x18TraversalResponseMessage\x12\x12\n\nidentifier\x18\x01 \x02(\r\x12&\n\x08\x63ontract\x18\x02 \x01(\x0b\x32\x14.blockchain.Contract\x12\x15\n\rconfirmations\x18\x03 \x01(\r\"\xad\x01\n\x08\x43ontract\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x17\n\x0f\x66rom_public_key\x18\x02 \x02(\x0c\x12\x16\n\x0e\x66rom_signature\x18\x03 \x02(\x0c\x12\x15\n\rto_public_key\x18\x04 \x02(\x0c\x12\x14\n\x0cto_signature\x18\x05 \x02(\x0c\x12\x10\n\x08\x64ocument\x18\x06 \x02(\x0c\x12\x0c\n\x04type\x18\x07 \x02(\r\x12\x0c\n\x04time\x18\x08 \x02(\r\"\xb6\x01\n\x05\x42lock\x12\x15\n\rprevious_hash\x18\x01 \x02(\x0c\x12\x18\n\x10merkle_root_hash\x18\x02 \x02(\x0c\x12\x19\n\x11target_difficulty\x18\x03 \x02(\x0c\x12\x0f\n\x07\x63reator\x18\x04 \x02(\x0c\x12\x19\n\x11\x63reator_signature\x18\x05 \x02(\x0c\x12\x0c\n\x04time\x18\x06 \x02(\r\x12\'\n\tcontracts\x18\x07 \x03(\x0b\x32\x14.blockchain.Contract')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -261,6 +261,13 @@ _TRAVERSALRESPONSEMESSAGE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='confirmations', full_name='blockchain.TraversalResponseMessage.confirmations', index=2,
+      number=3, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -274,7 +281,7 @@ _TRAVERSALRESPONSEMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=448,
-  serialized_end=534,
+  serialized_end=557,
 )
 
 
@@ -353,8 +360,8 @@ _CONTRACT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=537,
-  serialized_end=710,
+  serialized_start=560,
+  serialized_end=733,
 )
 
 
@@ -426,8 +433,8 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=713,
-  serialized_end=895,
+  serialized_start=736,
+  serialized_end=918,
 )
 
 _SIGNATUREREQUESTMESSAGE.fields_by_name['contract'].message_type = _CONTRACT
