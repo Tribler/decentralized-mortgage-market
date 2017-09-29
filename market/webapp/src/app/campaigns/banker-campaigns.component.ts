@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 import { CurrencyPipe } from '@angular/common';
 
@@ -8,7 +8,8 @@ import { MarketService } from '../shared/market.service';
     selector: 'banker-campaigns',
     templateUrl: './banker-campaigns.component.html'
 })
-export class BankerCampaignsComponent implements OnInit {
+export class BankerCampaignsComponent implements OnInit, OnDestroy {
+    subscription;
     campaigns = [];
     pending_investments = [];
     accepted_investments = [];
@@ -20,9 +21,13 @@ export class BankerCampaignsComponent implements OnInit {
     }
 
     ngOnInit() {
-        Observable.timer(0, 5000).subscribe(t => {
+        this.subscription = Observable.timer(0, 5000).subscribe(t => {
             this.loadMyCampaigns();
         });
+    }
+
+    ngOnDestroy() {
+        this.subscription.unsubscribe();
     }
 
     loadMyCampaigns() {
