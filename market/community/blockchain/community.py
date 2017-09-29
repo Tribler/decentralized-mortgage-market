@@ -622,13 +622,9 @@ class BlockchainCommunity(Community):
                 msg_dict['contract'] = contract.to_dict()
 
                 # Add the number of confirmations this contract has
-                block_id = self.data_manager.get_blockchain_block_id(message.payload.dictionary['contract_id'])
-                block = self.data_manager.get_block(block_id)
-                if block:
-                    first_index = self.data_manager.get_block_index(block.id)
-                    last_index = self.data_manager.get_block_indexes(limit=1)[0]
-                    if first_index and last_index:
-                        msg_dict['confirmations'] = last_index.height - first_index.height
+                confirmations = self.find_confirmation_count(message.payload.dictionary['contract_id'])
+                if confirmations is not None:
+                    msg_dict['confirmations'] = confirmations
 
             self.send_message(u'traversal-response', (message.candidate,), msg_dict)
 
@@ -672,3 +668,13 @@ class BlockchainCommunity(Community):
                 return contract if contract_type is None else contract_of_type
 
             break
+
+    def find_confirmation_count(self, contract_id):
+        # Find the number of confirmations this contract has
+        block_id = self.data_manager.get_blockchain_block_id(contract_id)
+        block = self.data_manager.get_block(block_id)
+        if block:
+            first_index = self.data_manager.get_block_index(block.id)
+            last_index = self.data_manager.get_block_indexes(limit=1)[0]
+            if first_index and last_index:
+                return last_index.height - first_index.height
