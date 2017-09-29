@@ -77,8 +77,8 @@ class BlockchainDataManager(object):
     def get_block_index(self, block_id):
         return self.store.get(BlockIndex, block_id)
 
-    def get_block_indexes(self, limit=500):
-        return self.store.find(BlockIndex).order_by(Desc(BlockIndex.height)).config(limit=500)
+    def get_block_indexes(self, limit=250):
+        return self.store.find(BlockIndex).order_by(Desc(BlockIndex.height)).config(limit=limit)
 
     def remove_block_indexes(self, from_height):
         self.store.find(BlockIndex, BlockIndex.height >= from_height).remove()

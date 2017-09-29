@@ -1,5 +1,5 @@
-<div *ngFor="let block of blocks; let i=index">
-    <h4>Block {{ i + 1 }}</h4>
+<div *ngFor="let block of blocks">
+    <h4>Block {{ block.height }}</h4>
     <div class="row">
         <div class="col-xs-3 text">Current hash</div>
         <div class="col-xs-9 text"><a [routerLink]="[block.id]">{{ block.id }}</a></div>

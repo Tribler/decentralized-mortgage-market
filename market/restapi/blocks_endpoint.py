@@ -42,11 +42,16 @@ class BlocksEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        blockchain = [self.community.data_manager.get_block(index.block_id)
-                      for index in self.community.data_manager.get_block_indexes()]
+        blockchain = []
+        for index in self.community.data_manager.get_block_indexes():
+            block = self.community.data_manager.get_block(index.block_id)
+            if block:
+                block_dict = block.to_dict(api_response=True)
+                block_dict["height"] = index.height
+                blockchain.append(block_dict)
         blockchain.reverse()
 
-        return json.dumps({"blocks": [block.to_dict(api_response=True) for block in blockchain if block is not None]})
+        return json.dumps({"blocks": blockchain})
 
     def getChild(self, path, request):
         return SpecificBlockEndpoint(self.community, path)
