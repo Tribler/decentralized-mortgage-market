@@ -13,6 +13,7 @@ export class BankerCampaignsComponent implements OnInit, OnDestroy {
     campaigns = [];
     pending_investments = [];
     accepted_investments = [];
+    contracts = {};
 
     alert;
     selected = [];
@@ -37,11 +38,17 @@ export class BankerCampaignsComponent implements OnInit, OnDestroy {
 
                 var all_investments = [];
                 campaigns.forEach((campaign: any) => {
+                    campaign.investments.forEach((investment: any) => {
+                        investment.mortgage_id = campaign.mortgage_id;
+                    });
                     all_investments = all_investments.concat(campaign.investments);
                 });
 
                 this.pending_investments = all_investments.filter((i: any) => i.status == 'PENDING');
                 this.accepted_investments = all_investments.filter((i: any) => i.status == 'ACCEPTED');
+
+                this.marketService.getContracts(this.accepted_investments)
+                    .subscribe((contracts: any) => this.contracts = contracts);
             });
     }
 

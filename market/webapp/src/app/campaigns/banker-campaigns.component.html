@@ -14,7 +14,7 @@
                 {{ value | currency:'EUR':true:'4.2-2' }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="mortgage_id" name="Mortgage id"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
         <ngx-datatable-column prop="end_time" name="End time">
             <template let-value="value" ngx-datatable-cell-template>
                 {{ value * 1000 | date:'shortDate' }}
@@ -42,7 +42,7 @@
                 {{ value | percent }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
             <template let-value="value" ngx-datatable-cell-template>
                 <status [label]="value"></status>
@@ -76,10 +76,11 @@
                 {{ value | percent }}
             </template>
         </ngx-datatable-column>
-        <ngx-datatable-column prop="id" name="Mortgage"></ngx-datatable-column>
+        <ngx-datatable-column prop="mortgage_id" name="Mortgage"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
-            <template let-value="value" ngx-datatable-cell-template>
+            <template let-value="value" let-row="row" ngx-datatable-cell-template>
                 <status [label]="value"></status>
+                <status *ngIf="value == 'ACCEPTED'" [label]="contracts[marketService.getOwnershipContract(row)]?.confirmations"></status>
             </template>
         </ngx-datatable-column>
     </ngx-datatable>

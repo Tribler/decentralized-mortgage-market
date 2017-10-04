@@ -12,6 +12,7 @@ export class BorrowerMortgagesComponent implements OnInit, OnDestroy {
     subscription;
     loan_requests = [];
     mortgages = [];
+    contracts = {};
 
     alert;
     request = {};
@@ -37,7 +38,12 @@ export class BorrowerMortgagesComponent implements OnInit, OnDestroy {
 
     loadMyMortgages() {
         this.marketService.getMyMortgages()
-            .subscribe(mortgages => this.mortgages = mortgages);
+            .subscribe(mortgages => {
+                this.mortgages = mortgages;
+                console.log(mortgages);
+                this.marketService.getContracts(mortgages)
+                    .subscribe((contracts: any) => this.contracts = contracts);
+            });
     }
 
     requestLoan(modal) {

@@ -706,7 +706,7 @@ class MarketCommunity(BlockchainCommunity):
                 self.logger.debug('Contract failed check (unexpected contract type)')
                 return False
 
-            elif contract.type != ObjectType.MORTGAGE and self.has_sibling(contract):
+            elif contract.type not in [ObjectType.MORTGAGE, ObjectType.INVESTMENT] and self.has_sibling(contract):
                 self.logger.debug('Contract failed check (attempt to double spend)')
                 return False
 

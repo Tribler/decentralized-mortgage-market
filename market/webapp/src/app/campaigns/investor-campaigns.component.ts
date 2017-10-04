@@ -13,6 +13,7 @@ export class InvestorCampaignsComponent implements OnInit, OnDestroy {
     my_investments = [];
     investments = [];
     campaigns = [];
+    contracts = {};
 
     alert;
     investment_offer = {};
@@ -45,6 +46,9 @@ export class InvestorCampaignsComponent implements OnInit, OnDestroy {
         this.marketService.getMyInvestments()
             .subscribe(my_investments => {
                 this.my_investments = my_investments
+                this.marketService.getContracts(this.my_investments)
+                    .subscribe((contracts: any) => this.contracts = contracts);
+
                 this.marketService.getInvestments()
                     .map(investments => investments.filter((investment: any) => investment.status == 'FORSALE'))
                     .map(investments => investments.filter((investment: any) => {

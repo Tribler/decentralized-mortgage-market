@@ -83,8 +83,9 @@
         </ngx-datatable-column>
         <ngx-datatable-column prop="campaign_id" name="Campaign"></ngx-datatable-column>
         <ngx-datatable-column prop="status" name="Status">
-            <template let-value="value" ngx-datatable-cell-template>
+            <template let-value="value" let-row="row" ngx-datatable-cell-template>
                 <status [label]="value"></status>
+                <status *ngIf="value == 'ACCEPTED'" [label]="contracts[marketService.getOwnershipContract(row)]?.confirmations"></status>
             </template>
         </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">

@@ -3,6 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/map';
 
+import { Investment } from './investment.model';
+import { Block } from './block.model';
+import { Contract } from './contract.model';
 
 @Injectable()
 export class MarketService {
@@ -101,11 +104,11 @@ export class MarketService {
             .map(res => res.json().campaigns);
     }
 
-    getMyInvestments(): Observable<Object[]> {
+    getMyInvestments(): Observable<Investment[]> {
         return this._http.get(this._api_base + '/you/investments')
             .map(res => res.json().investments);
     }
-    addMyInvestment(investment): Observable<Object[]> {
+    addMyInvestment(investment): Observable<String> {
         return this._http.put(this._api_base + '/you/investments', investment)
             .map(res => res.json().success);
     }
@@ -129,7 +132,7 @@ export class MarketService {
     }
 
 
-    getInvestments(): Observable<Object[]> {
+    getInvestments(): Observable<Investment[]> {
         return this._http.get(this._api_base + '/investments')
             .map(res => res.json().investments);
     }
@@ -144,12 +147,28 @@ export class MarketService {
             .map(res => res.json());
     }
 
-    getBlock(block_id): Observable<Object[]> {
+    getBlock(block_id): Observable<Block[]> {
         return this._http.get(this._api_base + `/blocks/${block_id}`)
             .map(res => res.json().block);
     }
-    getBlocks(): Observable<Object[]> {
+    getBlocks(): Observable<Block[]> {
         return this._http.get(this._api_base + '/blocks')
             .map(res => res.json().blocks);
+    }
+
+    getContract(contract_id): Observable<Contract[]> {
+        return this._http.get(this._api_base + `/contracts/${contract_id}`)
+            .map(res => res.json().contract);
+    }
+    getContracts(items): Observable<Contract[]> {
+        var contract_ids = [];
+        items.forEach((item: any) => contract_ids.push(this.getOwnershipContract(item)));
+        return this._http.post(this._api_base + '/contracts', contract_ids)
+            .map(res => res.json().contracts);
+    }
+
+    getOwnershipContract(item): string {
+        return (item.transfers && item.transfers.length) ?
+               item.transfers[item.transfers.length-1].contract_id : item.contract_id;
     }
 }

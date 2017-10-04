@@ -10,7 +10,7 @@ from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import MortgageStatus, MortgageType
 from market.models.user import Role
 from market.models.profile import Profile
-from market.models.transfer import Transfer, TransferStatus
+from market.models.transfer import TransferStatus
 from market.restapi import split_composite_key
 
 
@@ -197,7 +197,9 @@ class YouInvestmentsEndpoint(resource.Resource):
         investment_dicts = []
         for investment in you.investments:
             investment_dict = investment.to_dict(api_response=True)
+            investment_dict["transfers"] = [transfer.to_dict(api_response=True) for transfer in investment.transfers]
             # Add the highest transfer offer (if any)
+            # TODO: remove
             pending_transfers = sorted([(transfer.amount, transfer) for transfer in investment.transfers if transfer.status == TransferStatus.PENDING])
             if pending_transfers:
                 investment_dict["best_offer"] = pending_transfers[-1][1].to_dict(api_response=True)
