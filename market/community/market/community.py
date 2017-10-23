@@ -843,7 +843,7 @@ class MarketCommunity(BlockchainCommunity):
     @inlineCallbacks
     def find_owner_remote(self, contract_id):
         response = yield self.send_traversal_request(contract_id, ObjectType.CONFIRMATION)
-        if response is not None:
+        if response is None or response[0] is None:
             response = yield self.send_traversal_request(contract_id, ObjectType.INVESTMENT)
             owner = response[0].to_public_key if response else None
         else:
