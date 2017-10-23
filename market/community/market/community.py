@@ -764,9 +764,12 @@ class MarketCommunity(BlockchainCommunity):
             if c.id != contract.id and c.previous_hash == contract.previous_hash:
                 return True
 
-        if self.data_manager.find_contracts(Contract.previous_hash == contract.previous_hash,
-                                            Contract.id != contract.id).count() > 0:
-            return True
+        # For some reason if we add Contract.id != contract.id to the find_contract arguments,
+        # it may still produce results where Contract.id == contract.id. So we check this manually.
+        contracts = self.data_manager.find_contracts(Contract.previous_hash == contract.previous_hash)
+        for c in list(contracts):
+            if c.id != contract.id:
+                return True
 
         return False
 
