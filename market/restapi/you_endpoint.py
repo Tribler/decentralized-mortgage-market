@@ -198,11 +198,6 @@ class YouInvestmentsEndpoint(resource.Resource):
         for investment in you.investments:
             investment_dict = investment.to_dict(api_response=True)
             investment_dict["transfers"] = [transfer.to_dict(api_response=True) for transfer in investment.transfers]
-            # Add the highest transfer offer (if any)
-            # TODO: remove
-            pending_transfers = sorted([(transfer.amount, transfer) for transfer in investment.transfers if transfer.status == TransferStatus.PENDING])
-            if pending_transfers:
-                investment_dict["best_offer"] = pending_transfers[-1][1].to_dict(api_response=True)
             investment_dicts.append(investment_dict)
 
         return json.dumps({"investments": investment_dicts})

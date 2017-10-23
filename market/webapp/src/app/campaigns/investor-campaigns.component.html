@@ -93,8 +93,8 @@
                 <button *ngIf="row.status == 'ACCEPTED'" type="button" class="btn btn-danger btn-xs" (click)="sellMyInvestment(row)">
                     <span class="glyphicon glyphicon-shopping-cart"></span> sell
                 </button>
-                <button *ngIf="row.best_offer" type="button" class="btn btn-info btn-xs" (click)="acceptTransferOffer(row)">
-                    <span class="glyphicon glyphicon-ok"></span> accept offer ({{row.best_offer.amount}})
+                <button *ngIf="getBestOffer(row)" type="button" class="btn btn-info btn-xs" (click)="acceptTransferOffer(row)">
+                    <span class="glyphicon glyphicon-ok"></span> accept offer ({{getBestOffer(row).amount}})
                 </button>
             </template>
         </ngx-datatable-column>

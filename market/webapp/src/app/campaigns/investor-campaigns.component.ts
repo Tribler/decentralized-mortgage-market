@@ -82,7 +82,7 @@ export class InvestorCampaignsComponent implements OnInit, OnDestroy {
     }
 
     acceptTransferOffer(investment) {
-        this.marketService.acceptTransfer(investment.best_offer)
+        this.marketService.acceptTransfer(this.getBestOffer(investment))
             .subscribe(() => this.update(), err => this.setErrorMessage(err.json().error));
     }
 
@@ -98,5 +98,16 @@ export class InvestorCampaignsComponent implements OnInit, OnDestroy {
             }
         });
         return investment.status == 'FORSALE' && !offer_made;
+    }
+
+    getBestOffer(investment) {
+        var transfers = investment.transfers.filter((transfer: any) => transfer.status == 'PENDING');
+        transfers.sort(function(a, b) {
+            if (a.amount >= b.amount){
+                return a;
+            }
+            return b;
+        });
+        return transfers[0];
     }
 }
