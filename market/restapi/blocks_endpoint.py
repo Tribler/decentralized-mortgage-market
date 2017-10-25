@@ -101,4 +101,7 @@ class SpecificBlockEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "block not found"})
 
-        return json.dumps({"block": block.to_dict(api_response=True)})
+        block_dict = block.to_dict(api_response=True)
+        block_index = self.community.data_manager.get_block_index(block.id)
+        block_dict["height"] = block_index.height
+        return json.dumps({"block": block_dict})

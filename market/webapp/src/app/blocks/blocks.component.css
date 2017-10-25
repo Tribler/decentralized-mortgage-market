@@ -5,8 +5,13 @@ div {
     margin: 2px 0;
 }
 .text {
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	overflow: hidden;
-	padding-right: 0px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-right: 0px;
+}
+a.disabled {
+    text-decoration: none;
+    color: #333333;
+    pointer-events: none;
 }
