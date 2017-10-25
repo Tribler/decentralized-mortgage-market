@@ -835,8 +835,11 @@ class MarketCommunity(BlockchainCommunity):
                 self.payment_queue.append((transfer, investment))
 
         elif isinstance(obj, Confirmation):
+            # Link to transfer
+            transfer = self.data_manager.get_transfer(obj.transfer_id, obj.transfer_user_id)
+            if transfer is not None:
+                transfer.confirmation_contract_id = contract.id
             # TODO: check if we have routed the money
-            pass
 
         return super(MarketCommunity, self).finalize_contract(contract, sign=sign)
 

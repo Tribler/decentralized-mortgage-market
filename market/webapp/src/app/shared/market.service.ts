@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/map';
 
+import { Mortgage } from './mortgage.model';
 import { Investment } from './investment.model';
 import { Block } from './block.model';
 import { Contract } from './contract.model';
@@ -64,7 +65,7 @@ export class MarketService {
             .map(res => res.json().success);
     }
 
-    getMyMortgages(): Observable<Object[]> {
+    getMyMortgages(): Observable<Mortgage[]> {
         return this._http.get(this._api_base + '/you/mortgages')
             .map(res => res.json().mortgages);
     }
@@ -77,7 +78,7 @@ export class MarketService {
             .map(res => res.json());
     }
 
-    getMortgages(): Observable<Object[]> {
+    getMortgages(): Observable<Mortgage[]> {
         return this._http.get(this._api_base + '/mortgages')
             .map(res => res.json().mortgages);
     }
@@ -169,6 +170,6 @@ export class MarketService {
 
     getOwnershipContract(item): string {
         return (item.transfers && item.transfers.length) ?
-               item.transfers[item.transfers.length-1].contract_id : item.contract_id;
+               item.transfers[item.transfers.length-1].confirmation_contract_id : item.contract_id;
     }
 }

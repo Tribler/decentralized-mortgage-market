@@ -30,8 +30,9 @@ class Transfer(object):
     investment_user_id = RawStr()
     status = Enum(TransferStatus)
     contract_id = RawStr()
+    confirmation_contract_id = RawStr()
 
-    def __init__(self, identifier, user_id, iban, amount, investment_id, investment_user_id, status, contract_id=''):
+    def __init__(self, identifier, user_id, iban, amount, investment_id, investment_user_id, status, contract_id='', confirmation_contract_id=''):
         self.id = identifier
         self.user_id = user_id
         self.iban = iban
@@ -40,6 +41,7 @@ class Transfer(object):
         self.investment_user_id = investment_user_id
         self.status = status
         self.contract_id = contract_id
+        self.confirmation_contract_id = confirmation_contract_id
 
     def to_dict(self, api_response=False):
         return {
@@ -50,7 +52,8 @@ class Transfer(object):
             'investment_id': self.investment_id,
             'investment_user_id': urlsafe_b64encode(self.investment_user_id) if api_response else self.investment_user_id,
             'status': self.status.name if api_response else self.status.value,
-            'contract_id': urlsafe_b64encode(self.contract_id) if api_response else self.contract_id
+            'contract_id': urlsafe_b64encode(self.contract_id) if api_response else self.contract_id,
+            'confirmation_contract_id': urlsafe_b64encode(self.confirmation_contract_id) if api_response else self.confirmation_contract_id
         }
 
     @staticmethod
@@ -67,7 +70,8 @@ class Transfer(object):
                         transfer_dict['investment_id'],
                         transfer_dict['investment_user_id'],
                         status,
-                        transfer_dict['contract_id'])
+                        transfer_dict['contract_id'],
+                        transfer_dict['confirmation_contract_id'])
 
     def to_bin(self):
         return dict_to_protobuf(TransferPB, self.to_dict()).SerializeToString()

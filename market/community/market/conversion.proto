@@ -115,6 +115,7 @@ message Transfer {
     required bytes investment_user_id = 6;
     required uint32 status = 7;
     optional bytes contract_id = 8;
+    optional bytes confirmation_contract_id = 9;
 }
 
 message Confirmation {
