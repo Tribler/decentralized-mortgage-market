@@ -152,6 +152,10 @@ class InvestmentTransfersEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "only investors can create transfers"})
 
+        if you.profile is None:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "please create a profile prior to creating an transfer offer"})
+
         parameters = json.loads(request.content.read())
         required_fields = ['amount', 'investment_id', 'investment_user_id']
         for field in required_fields:
