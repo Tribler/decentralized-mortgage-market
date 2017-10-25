@@ -90,7 +90,10 @@
         </ngx-datatable-column>
         <ngx-datatable-column prop="id" name="Actions">
             <template let-row="row" ngx-datatable-cell-template>
-                <button *ngIf="row.status == 'ACCEPTED'" type="button" class="btn btn-danger btn-xs" (click)="sellMyInvestment(row)">
+                <button *ngIf="row.status == 'ACCEPTED'" type="button" class="btn btn-danger btn-xs"
+                        [disabled]="contracts[marketService.getOwnershipContract(row)]?.confirmations < 1"
+                        [class.disabled]="contracts[marketService.getOwnershipContract(row)]?.confirmations < 1"
+                        (click)="sellMyInvestment(row)">
                     <span class="glyphicon glyphicon-shopping-cart"></span> sell
                 </button>
                 <button *ngIf="getBestOffer(row)" type="button" class="btn btn-info btn-xs" (click)="acceptTransferOffer(row)">
