@@ -23,14 +23,14 @@ class BlocksEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/blockchain
+                curl -X GET http://localhost:8085/blocks
 
             **Example response**:
 
             .. sourcecode:: javascript
 
                 {
-                    "blockchain": [{
+                    "blocks": [{
                         "creator": "TGliTmFDTFBLOrhXMbHGgk_Pq0TXYqMOCY7FTbtvwe3sXm9XbbzO0bkPsYfofTeAUUDtcBiPCEP2ntMQLdF-oeVr5FeXPoEbwpE=",
                         "contracts": [],
                         "merkle_root_hash": "pXaGVQhfwppLvJf1aeiDIbIjuNUZKDgAVetusHpwRLw=",
@@ -42,16 +42,17 @@ class BlocksEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        blockchain = []
-        for index in self.community.data_manager.get_block_indexes():
+
+        limit = min(250, int(request.args['limit'][0])) if 'limit' in request.args else 250
+        blocks = []
+        for index in self.community.data_manager.get_block_indexes(limit):
             block = self.community.data_manager.get_block(index.block_id)
             if block:
                 block_dict = block.to_dict(api_response=True)
                 block_dict["height"] = index.height
-                blockchain.append(block_dict)
-        blockchain.reverse()
+                blocks.append(block_dict)
 
-        return json.dumps({"blocks": blockchain})
+        return json.dumps({"blocks": blocks})
 
     def getChild(self, path, request):
         return SpecificBlockEndpoint(self.community, path)
