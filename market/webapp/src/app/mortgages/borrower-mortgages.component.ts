@@ -40,7 +40,6 @@ export class BorrowerMortgagesComponent implements OnInit, OnDestroy {
         this.marketService.getMyMortgages()
             .subscribe(mortgages => {
                 this.mortgages = mortgages;
-                console.log(mortgages);
                 this.marketService.getContracts(mortgages)
                     .subscribe((contracts: any) => this.contracts = contracts);
             });

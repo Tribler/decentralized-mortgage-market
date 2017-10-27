@@ -10,7 +10,6 @@ from market.models.loanrequest import LoanRequest, LoanRequestStatus
 from market.models.mortgage import MortgageStatus, MortgageType
 from market.models.user import Role
 from market.models.profile import Profile
-from market.models.transfer import TransferStatus
 from market.restapi import split_composite_key
 
 

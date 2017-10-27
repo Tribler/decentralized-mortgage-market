@@ -19,8 +19,7 @@
                 <li *ngIf="marketService.me?.role == 'FINANCIAL_INSTITUTION'" [routerLinkActive]="['active']"><a [routerLink]="['./blocks']">Blockchain</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                <li class="navbar-text"><small>role:{{ marketService.me?.role | lowercase }}</small></li>
-                <li><a href="#">Logout</a></li>
+                <li class="navbar-text">role:{{ marketService.me?.role | lowercase }}</li>
             </ul>
         </div>
         <!--/.nav-collapse -->
