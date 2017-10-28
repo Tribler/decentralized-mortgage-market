@@ -36,7 +36,7 @@
     </div>
     <div class="row">
         <div class="col-xs-3 text">Contract type</div>
-        <div class="col-xs-9 text">{{ contract.type }}</div>
+        <div class="col-xs-9 text">{{ (contract.type == 'TRANSFER') ? 'PROMISE-TO-BUY' : ((contract.type == 'CONFIRMATION') ? 'PAYMENT-CONFIRMATION' : contract.type) }}</div>
     </div>
     <div class="row">
         <div class="col-xs-3 text">Time</div>
