@@ -31,7 +31,8 @@ export class BankerMortgagesComponent implements OnInit, OnDestroy {
             .subscribe(loan_requests => this.loan_requests = loan_requests.filter((lr: any) => lr.status == 'PENDING'));
         this.marketService.getMortgages()
             .subscribe(mortgages => {
-                this.mortgages = mortgages;
+                var me: any = this.marketService.me;
+                this.mortgages = mortgages.filter((m: any) => m.bank_id == me.id);
                 this.marketService.getContracts(mortgages)
                     .subscribe((contracts: any) => this.contracts = contracts);
             });
