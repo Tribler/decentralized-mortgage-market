@@ -40,6 +40,9 @@ CLEANUP_INTERVAL = 60
 PAYUP_INTERVAL = 60
 DEFAULT_CAMPAIGN_DURATION = 30 * 24 * 60 * 60
 TRANSFER_LOCK_TIME = 60 * 60
+POS_STEP = 1000000
+POS_LIMIT = 10 * POS_STEP
+
 
 class MarketCommunity(BlockchainCommunity):
 
@@ -671,8 +674,8 @@ class MarketCommunity(BlockchainCommunity):
                         value += contract.get_object().amount
 
 
-            #  Give stake a +1 for every 1000000 invested. Consider amounts up to 10000000.
-            stake = min(value, 10000000) / 1000000
+            #  Give stake a +1 for every POS_STEP invested. Consider amounts up to POS_LIMIT.
+            stake = min(value, POS_LIMIT) / POS_STEP
 
             # To allow bootstrapping we give verified banks a minimum stake of 1
             if public_key in VERIFIED_BANKS.values():
