@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewContainerRef } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { MarketService } from '../shared/market.service';
 
@@ -13,11 +14,17 @@ export class ProfileComponent implements OnInit {
 
     alert;
 
-    constructor(private _marketService: MarketService) { }
+    constructor(private _marketService: MarketService,
+                private _router: Router) { }
 
     ngOnInit() {
         this._marketService.getMyUser()
-            .subscribe(me => this.me = me);
+            .subscribe(me => {
+                this.me = me;
+                if (this.me.role == "FINANCIAL_INSTITUTION") {
+                    this._router.navigateByUrl("/mortgages");
+                }
+            });
         this.loadMyProfile();
     }
 
