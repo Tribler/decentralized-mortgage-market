@@ -29,7 +29,7 @@
     <legend>Mortgages</legend>
     <ngx-datatable class='material' [rows]='mortgages' [headerHeight]="50" [footerHeight]="0"
                    [scrollbarV]="false" [scrollbarH]="true">
-        <ngx-datatable-column prop="bank_amount" name="Loan amount">
+        <ngx-datatable-column prop="amount" name="Loan amount">
             <template let-value="value" ngx-datatable-cell-template>
                 {{ value | currency:'EUR':true:'4.2-2' }}
             </template>
