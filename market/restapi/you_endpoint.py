@@ -230,8 +230,8 @@ class YouInvestmentsEndpoint(resource.Resource):
             return json.dumps({"error": "mortgage not found"})
 
         counter = self.community.data_manager.store.find(Investment, Investment.user_id == you.id).count()
-        investment = Investment(counter, you.id, amount, 0,
-                                interest_rate, campaign.id, campaign.user_id, InvestmentStatus.PENDING)
+        investment = Investment(counter, you.id, amount, interest_rate,
+                                campaign.id, campaign.user_id, InvestmentStatus.PENDING)
         you.investments.add(investment)
         campaign.investments.add(investment)
 

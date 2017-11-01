@@ -29,7 +29,6 @@ class Investment(object):
     user_id = RawStr()
     owner_id = RawStr()
     amount = Float()
-    duration = Int()
     interest_rate = Float()
     campaign_id = Int()
     campaign_user_id = RawStr()
@@ -37,11 +36,10 @@ class Investment(object):
     contract_id = RawStr()
     transfers = ReferenceSet((id, user_id), (Transfer.investment_id, Transfer.investment_user_id))
 
-    def __init__(self, identifier, user_id, amount, duration, interest_rate, campaign_id, campaign_user_id, status, contract_id=''):
+    def __init__(self, identifier, user_id, amount, interest_rate, campaign_id, campaign_user_id, status, contract_id=''):
         self.id = identifier
         self.user_id = user_id
         self.amount = amount
-        self.duration = duration
         self.interest_rate = interest_rate
         self.campaign_id = campaign_id
         self.campaign_user_id = campaign_user_id
@@ -53,7 +51,6 @@ class Investment(object):
             'id': self.id,
             'user_id': urlsafe_b64encode(self.user_id) if api_response else self.user_id,
             'amount': self.amount,
-            'duration': self.duration,
             'interest_rate': self.interest_rate,
             'campaign_id': self.campaign_id,
             'campaign_user_id': urlsafe_b64encode(self.campaign_user_id) if api_response else self.campaign_user_id,
@@ -71,7 +68,6 @@ class Investment(object):
         return Investment(investment_dict['id'],
                           investment_dict['user_id'],
                           investment_dict['amount'],
-                          investment_dict['duration'],
                           investment_dict['interest_rate'],
                           investment_dict['campaign_id'],
                           investment_dict['campaign_user_id'],

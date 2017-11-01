@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS investment(
   user_id          TEXT,
   owner_id         TEXT,
   amount           FLOAT,
-  duration         INTEGER,
   interest_rate    FLOAT,
   campaign_id      INTEGER,
   campaign_user_id TEXT,

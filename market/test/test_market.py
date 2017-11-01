@@ -362,7 +362,6 @@ class TestMarketCommunity(TestCommunity):
         investment = Investment(user.investments.count(),
                                 user.id,
                                 10000,
-                                0,
                                 0.02,
                                 campaign.id,
                                 campaign.user_id,
